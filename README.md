@@ -2,6 +2,8 @@
 
 支持Docker部署
 这是一个基于Node.js、Express和MongoDB构建的笔记应用，提供完整的笔记管理功能，包括用户认证、笔记编辑、分类管理、标签管理、笔记分享等功能。
+DEMO: https://notes.covlan.com
+USER/PWD: admin/password
 
 ## 项目用途
 
@@ -60,44 +62,6 @@ cd webapp
 
 ```bash
 chmod +x ./docker-deploy.sh && ./docker-deploy.sh
-```
-
-或者手动执行以下步骤：
-
-1. 创建 `.env` 文件（可从 `.env.example` 复制）
-2. 构建并启动容器：
-
-```bash
-docker compose up -d
-```
-
-应用将在 http://localhost:5660 上运行。
-
-#### Docker相关命令
-
-**查看容器状态**：
-```bash
-docker compose ps
-```
-
-**查看应用日志**：
-```bash
-docker compose logs -f app
-```
-
-**停止应用**：
-```bash
-docker compose down
-```
-
-**重启应用**：
-```bash
-docker compose restart
-```
-
-**完全删除应用（包括数据库数据）**：
-```bash
-docker compose down -v
 ```
 
 ## 自定义配置
