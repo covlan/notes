@@ -105,16 +105,19 @@ exports.getNotes = async (req, res, next) => {
     // 处理回收站和星标筛选
     if (trash === 'true') {
       query.inTrash = true;
+      console.log('查询回收站笔记，inTrash=true');
     } else {
       query.inTrash = false;
+      console.log('查询非回收站笔记，inTrash=false');
       
       // 修改星标筛选条件，确保字符串'true'被正确处理
       if (starred === 'true' || starred === true) {
         query.starred = true;
+        console.log('查询星标笔记，starred=true');
       }
     }
 
-    console.log('查询条件:', query);
+    console.log('笔记查询条件:', query);
 
     // 分类筛选
     if (category) {
@@ -596,6 +599,63 @@ exports.saveMarkdown = async (req, res, next) => {
     });
   } catch (err) {
     console.error('保存Markdown文件时发生错误:', err);
+    next(err);
+  }
+};
+
+// @desc    更新笔记标签
+// @route   PUT /api/notes/:id/tags
+// @access  Private
+exports.updateNoteTags = async (req, res, next) => {
+  try {
+    const { tagIds } = req.body;
+    
+    if (!Array.isArray(tagIds)) {
+      return res.status(400).json({
+        success: false,
+        message: 'tagIds必须是数组'
+      });
+    }
+
+    // 检查笔记是否存在且属于当前用户
+    const note = await Note.findOne({
+      _id: req.params.id,
+      userId: req.user.id
+    });
+
+    if (!note) {
+      return res.status(404).json({
+        success: false,
+        message: '笔记不存在或无权访问'
+      });
+    }
+
+    // 删除现有的笔记-标签关联
+    await NoteTag.deleteMany({
+      noteId: note._id,
+      userId: req.user.id
+    });
+
+    // 创建新的笔记-标签关联
+    if (tagIds.length > 0) {
+      const noteTags = tagIds.map(tagId => ({
+        noteId: note._id,
+        tagId,
+        userId: req.user.id
+      }));
+
+      await NoteTag.insertMany(noteTags);
+    }
+
+    // 更新笔记的updatedAt字段
+    note.updatedAt = Date.now();
+    await note.save();
+
+    res.status(200).json({
+      success: true,
+      message: '笔记标签已更新'
+    });
+  } catch (err) {
     next(err);
   }
 }; 

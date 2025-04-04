@@ -6,6 +6,7 @@
     <title>标签管理 - 笔记平台</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="./css/styles.css">
+    <script src="./js/api.js"></script>
 </head>
 <body>
     <!-- 移动端菜单按钮 -->
@@ -179,63 +180,92 @@
             mainContent.classList.add('expanded');
         }
 
-        // 加载标签列表
-        function loadTags() {
-            const tagsContainer = document.querySelector('.tags-container');
-            const tags = JSON.parse(localStorage.getItem('tags') || '[]');
-            
-            tagsContainer.innerHTML = tags.map(tag => `
-                <div class="tag-card" data-id="${tag.id}">
-                    <div class="tag-header">
-                        <div class="tag-color" style="background-color: ${tag.color}"></div>
-                        <h3 class="tag-name">${tag.name}</h3>
-                        <span class="tag-count">${tag.count || 0} 个笔记</span>
-                    </div>
-                    <div class="tag-actions">
-                        <button class="edit-tag-btn" data-id="${tag.id}">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="delete-tag-btn" data-id="${tag.id}">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                </div>
-            `).join('');
-
-            // 更新标签点击事件
-            document.querySelectorAll('.tag-card').forEach(card => {
-                const editBtn = card.querySelector('.edit-tag-btn');
-                const deleteBtn = card.querySelector('.delete-tag-btn');
+        // 加载标签列表 - 使用API
+        async function loadTags() {
+            try {
+                const tagsContainer = document.querySelector('.tags-container');
+                // 从API获取标签
+                const response = await api.getTags();
                 
-                editBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    editTag(card.dataset.id);
-                });
+                if (response && response.success && response.tags) {
+                    tagsContainer.innerHTML = response.tags.map(tag => `
+                        <div class="tag-card" data-id="${tag._id || tag.id}">
+                            <div class="tag-header">
+                                <div class="tag-color" style="background-color: ${tag.color}"></div>
+                                <h3 class="tag-name">${tag.name}</h3>
+                                <span class="tag-count">${tag.count || 0} 个笔记</span>
+                            </div>
+                            <div class="tag-actions">
+                                <button class="edit-tag-btn" data-id="${tag._id || tag.id}">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="delete-tag-btn" data-id="${tag._id || tag.id}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `).join('');
 
-                deleteBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    deleteTag(card.dataset.id);
-                });
-            });
+                    // 更新标签点击事件
+                    document.querySelectorAll('.tag-card').forEach(card => {
+                        const editBtn = card.querySelector('.edit-tag-btn');
+                        const deleteBtn = card.querySelector('.delete-tag-btn');
+                        
+                        editBtn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            editTag(card.dataset.id);
+                        });
+
+                        deleteBtn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            deleteTag(card.dataset.id);
+                        });
+                    });
+                } else {
+                    tagsContainer.innerHTML = '<div class="empty-state">获取标签失败，请稍后再试</div>';
+                }
+            } catch (error) {
+                console.error('加载标签失败:', error);
+                const tagsContainer = document.querySelector('.tags-container');
+                tagsContainer.innerHTML = `<div class="empty-state">获取标签失败: ${error.message}</div>`;
+            }
         }
 
         // 打开标签编辑弹窗
-        function openTagModal(tagId = null) {
-            const tag = tagId ? JSON.parse(localStorage.getItem('tags') || '[]').find(t => t.id === tagId) : null;
-            
-            modalTitle.textContent = tag ? '编辑标签' : '新建标签';
-            tagNameInput.value = tag ? tag.name : '';
-            
-            // 设置选中的颜色
-            const colorOptions = document.querySelectorAll('.color-option');
-            colorOptions.forEach(option => {
-                if (tag && option.dataset.color === tag.color) {
-                    option.classList.add('selected');
-                } else {
-                    option.classList.remove('selected');
+        async function openTagModal(tagId = null) {
+            if (tagId) {
+                try {
+                    // 从现有标签中查找
+                    const response = await api.getTags();
+                    if (response && response.success && response.tags) {
+                        const tag = response.tags.find(t => (t._id || t.id) === tagId);
+                        if (tag) {
+                            modalTitle.textContent = '编辑标签';
+                            tagNameInput.value = tag.name;
+                            tagModal.dataset.tagId = tagId;
+                            
+                            // 设置选中的颜色
+                            const colorOptions = document.querySelectorAll('.color-option');
+                            colorOptions.forEach(option => {
+                                if (option.dataset.color === tag.color) {
+                                    option.classList.add('selected');
+                                } else {
+                                    option.classList.remove('selected');
+                                }
+                            });
+                        }
+                    }
+                } catch (error) {
+                    console.error('获取标签详情失败:', error);
+                    alert('获取标签详情失败，请稍后再试');
                 }
-            });
-
+            } else {
+                modalTitle.textContent = '新建标签';
+                tagNameInput.value = '';
+                delete tagModal.dataset.tagId;
+                document.querySelectorAll('.color-option').forEach(option => option.classList.remove('selected'));
+            }
+            
             tagModal.style.display = 'block';
         }
 
@@ -252,29 +282,25 @@
         }
 
         // 删除标签
-        function deleteTag(tagId) {
+        async function deleteTag(tagId) {
             if (confirm('确定要删除这个标签吗？此操作不可恢复。')) {
-                const tags = JSON.parse(localStorage.getItem('tags') || '[]');
-                const notes = JSON.parse(localStorage.getItem('notes') || '[]');
-                
-                // 从标签列表中删除
-                const updatedTags = tags.filter(tag => tag.id !== tagId);
-                localStorage.setItem('tags', JSON.stringify(updatedTags));
-                
-                // 从笔记中移除该标签
-                notes.forEach(note => {
-                    if (note.tags && note.tags.includes(tagId)) {
-                        note.tags = note.tags.filter(id => id !== tagId);
+                try {
+                    const response = await api.deleteTag(tagId);
+                    if (response && response.success) {
+                        alert('标签已成功删除');
+                        loadTags(); // 重新加载标签列表
+                    } else {
+                        alert(response?.message || '删除标签失败');
                     }
-                });
-                localStorage.setItem('notes', JSON.stringify(notes));
-                
-                loadTags();
+                } catch (error) {
+                    console.error('删除标签失败:', error);
+                    alert(`删除标签失败: ${error.message}`);
+                }
             }
         }
 
         // 保存标签
-        function saveTag() {
+        async function saveTag() {
             const name = tagNameInput.value.trim();
             const selectedColor = document.querySelector('.color-option.selected')?.dataset.color;
             
@@ -283,32 +309,33 @@
                 return;
             }
 
-            const tags = JSON.parse(localStorage.getItem('tags') || '[]');
-            const tagId = tagModal.dataset.tagId;
+            const tagData = {
+                name,
+                color: selectedColor
+            };
             
-            if (tagId) {
-                // 更新现有标签
-                const tagIndex = tags.findIndex(t => t.id === tagId);
-                if (tagIndex !== -1) {
-                    tags[tagIndex] = {
-                        ...tags[tagIndex],
-                        name,
-                        color: selectedColor
-                    };
+            try {
+                let response;
+                const tagId = tagModal.dataset.tagId;
+                
+                if (tagId) {
+                    // 更新现有标签
+                    response = await api.updateTag(tagId, tagData);
+                } else {
+                    // 创建新标签
+                    response = await api.createTag(tagData);
                 }
-            } else {
-                // 创建新标签
-                tags.push({
-                    id: Date.now().toString(),
-                    name,
-                    color: selectedColor,
-                    count: 0
-                });
+                
+                if (response && response.success) {
+                    closeTagModal();
+                    loadTags();
+                } else {
+                    alert(response?.message || '保存标签失败');
+                }
+            } catch (error) {
+                console.error('保存标签失败:', error);
+                alert(`保存标签失败: ${error.message}`);
             }
-
-            localStorage.setItem('tags', JSON.stringify(tags));
-            closeTagModal();
-            loadTags();
         }
 
         // 事件监听器
@@ -326,7 +353,9 @@
         });
 
         // 初始加载标签列表
-        loadTags();
+        document.addEventListener('DOMContentLoaded', () => {
+            loadTags();
+        });
 
         // 导航菜单项点击事件
         document.querySelectorAll('.nav-item').forEach(item => {

@@ -9,7 +9,8 @@ const {
   restoreNote,
   deleteNote,
   emptyTrash,
-  saveMarkdown
+  saveMarkdown,
+  updateNoteTags
 } = require('../controllers/notes');
 const { protect } = require('../middleware/auth');
 
@@ -45,5 +46,8 @@ router.route('/:id/trash')
 router.route('/:id/restore')
   .put(restoreNote)
   .post(restoreNote);
+
+router.route('/:id/tags')
+  .put(updateNoteTags);
 
 module.exports = router; 

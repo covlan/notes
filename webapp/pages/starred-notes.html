@@ -383,9 +383,12 @@
                             height: buttonRect.height
                         };
                         
+                        // 保存笔记ID，避免在setTimeout中引用可能已失效的变量
+                        const noteId = item.dataset.id;
+                        
                         // 延迟一小段时间再显示菜单，确保前一个菜单的关闭事件已处理完毕
                         setTimeout(() => {
-                            showNoteMenu(buttonInfo, item.dataset.id);
+                            showNoteMenu(buttonInfo, noteId);
                         }, 10);
                     });
                 });

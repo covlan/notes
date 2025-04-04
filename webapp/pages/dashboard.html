@@ -249,6 +249,56 @@
         </div>
     </div>
 
+    <!-- 标签选择弹窗 -->
+    <div class="modal" id="tagSelectModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="tagModalTitle">添加标签</h2>
+                <button class="close-btn" id="closeTagModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="tagSearchInput">搜索标签</label>
+                    <div class="search-input-container">
+                        <input type="text" id="tagSearchInput" placeholder="输入关键词搜索标签...">
+                        <i class="fas fa-search search-icon"></i>
+                    </div>
+                </div>
+                <div class="tags-list" id="tagsList">
+                    <!-- 标签列表将由JavaScript动态生成 -->
+                    <div class="loading-spinner">
+                        <i class="fas fa-spinner fa-spin"></i> 加载中...
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div class="divider">
+                        <span>或</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="newTagName">创建新标签</label>
+                    <input type="text" id="newTagName" placeholder="输入新标签名称">
+                </div>
+                <div class="form-group">
+                    <label for="newTagColor">标签颜色</label>
+                    <div class="color-picker">
+                        <button class="color-option" data-color="#1a73e8" style="background-color: #1a73e8;"></button>
+                        <button class="color-option" data-color="#34a853" style="background-color: #34a853;"></button>
+                        <button class="color-option" data-color="#fbbc05" style="background-color: #fbbc05;"></button>
+                        <button class="color-option" data-color="#ea4335" style="background-color: #ea4335;"></button>
+                        <button class="color-option" data-color="#4285f4" style="background-color: #4285f4;"></button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="cancel-btn" id="cancelTagSelect">取消</button>
+                <button class="save-btn" id="confirmTagSelect">应用标签</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const sidebar = document.getElementById('sidebar');
@@ -325,42 +375,35 @@
             // 初始化用户头像菜单
             const userProfile = document.querySelector('.user-profile');
             const userProfileMenu = document.getElementById('userProfileMenu');
+            const menuOverlay = document.getElementById('menuOverlay');
             
-            userProfile.addEventListener('click', function(e) {
-                e.stopPropagation();
-                
-                // 初始设置菜单为可见但定位在屏幕外，以便获取尺寸
-                userProfileMenu.style.top = '-1000px';
-                userProfileMenu.style.left = '-1000px';
-                userProfileMenu.classList.add('show');
-                
-                // 获取窗口尺寸、菜单尺寸和用户头像位置
+            userProfile.addEventListener('mouseenter', () => {
+                const rect = userProfile.getBoundingClientRect();
+                const menuWidth = userProfileMenu.offsetWidth || 200; // 估计菜单宽度
                 const windowWidth = window.innerWidth;
-                const windowHeight = window.innerHeight;
-                const menuWidth = userProfileMenu.offsetWidth;
-                const menuHeight = userProfileMenu.offsetHeight;
                 
-                const userRect = userProfile.getBoundingClientRect();
-                
-                // 计算菜单的位置，设置初始位置为用户头像下方
-                let x = userRect.right - menuWidth;
-                let y = userRect.bottom + 5;
-                
-                // 检查并修正水平位置
-                if (x < 0) {
-                    x = 5;
+                // 计算右侧是否会溢出
+                if (rect.left + menuWidth > windowWidth) {
+                    // 如果会溢出，将菜单向左对齐
+                    userProfileMenu.style.left = `${rect.right - menuWidth}px`;
+                } else {
+                    userProfileMenu.style.left = `${rect.left}px`;
                 }
                 
-                // 检查并修正垂直位置
-                if (y + menuHeight > windowHeight) {
-                    y = userRect.top - menuHeight - 5; // 如果下方空间不足，显示在用户头像上方
+                userProfileMenu.style.top = `${rect.bottom}px`;
+                userProfileMenu.classList.add('show');
+            });
+            
+            userProfile.addEventListener('mouseleave', (event) => {
+                // 检查鼠标是否移动到菜单上
+                const toElement = event.relatedTarget;
+                if (!userProfileMenu.contains(toElement)) {
+                    userProfileMenu.classList.remove('show');
                 }
-                
-                // 应用计算后的位置
-                userProfileMenu.style.top = `${y}px`;
-                userProfileMenu.style.left = `${x}px`;
-                
-                document.getElementById('menuOverlay').classList.add('show');
+            });
+            
+            userProfileMenu.addEventListener('mouseleave', () => {
+                userProfileMenu.classList.remove('show');
             });
             
             // 处理用户头像菜单操作
@@ -368,6 +411,7 @@
                 item.addEventListener('click', async (e) => {
                     e.stopPropagation();
                     const action = e.currentTarget.dataset.action;
+                    userProfileMenu.classList.remove('show');
                     
                     try {
                         switch (action) {
@@ -397,8 +441,6 @@
                         console.error(`处理用户操作 ${action} 失败:`, error);
                         alert(`操作失败: ${error.message}`);
                     }
-                    
-                    closeNoteActionsMenu();
                 });
             });
     
@@ -647,8 +689,34 @@
                     document.querySelectorAll('.note-action-btn').forEach(btn => {
                         btn.addEventListener('click', (e) => {
                             e.stopPropagation();
-                            const noteId = btn.dataset.id;
-                            showNoteMenu(e, noteId);
+                            e.preventDefault(); // 阻止默认事件
+                            
+                            // 关闭任何已打开的菜单
+                            const menu = document.getElementById('noteActionsMenu');
+                            const overlay = document.getElementById('menuOverlay');
+                            if(menu.classList.contains('show')) {
+                                menu.classList.remove('show');
+                                overlay.classList.remove('show');
+                            }
+                            
+                            // 保存按钮位置信息，供延迟执行时使用
+                            const buttonRect = e.currentTarget.getBoundingClientRect();
+                            const buttonInfo = {
+                                left: buttonRect.left,
+                                top: buttonRect.top,
+                                right: buttonRect.right,
+                                bottom: buttonRect.bottom,
+                                width: buttonRect.width,
+                                height: buttonRect.height
+                            };
+                            
+                            // 保存笔记ID，避免在setTimeout中引用可能已失效的事件对象
+                            const noteId = e.currentTarget.dataset.id;
+                            
+                            // 延迟一小段时间再显示菜单，确保前一个菜单的关闭事件已处理完毕
+                            setTimeout(() => {
+                                showNoteMenu(buttonInfo, noteId);
+                            }, 10);
                         });
                     });
                 } catch (error) {
@@ -766,56 +834,91 @@
                 });
             });
     
-            // 显示笔记操作菜单
-            function showNoteMenu(event, noteId) {
-                event.stopPropagation();
+            /**
+             * 显示笔记操作菜单
+             * @param {Object} buttonInfo - 按钮位置信息对象 {left, top, right, bottom, width, height}
+             * @param {String} noteId - 笔记ID
+             */
+            function showNoteMenu(buttonInfo, noteId) {
+                // 确保有按钮信息
+                if (!buttonInfo) {
+                    console.error('未提供按钮位置信息');
+                    return;
+                }
                 
                 const menu = document.getElementById('noteActionsMenu');
+                const overlay = document.getElementById('menuOverlay');
+                
+                // 如果没有获取到菜单元素，直接返回
+                if (!menu || !overlay) {
+                    console.error('未找到菜单元素');
+                    return;
+                }
+                
+                // 设置菜单关联的笔记ID
                 menu.dataset.noteId = noteId;
                 
-                // 计算菜单的位置，确保不超出窗口边界
-                let x = event.clientX;
-                let y = event.clientY;
-                
-                // 获取窗口尺寸和菜单尺寸
-                const windowWidth = window.innerWidth;
-                const windowHeight = window.innerHeight;
-                
-                // 先设置菜单位置，以便获取其尺寸
-                menu.style.top = '-1000px';
-                menu.style.left = '-1000px';
-                menu.classList.add('show');
+                // 暂时设置菜单可见但不显示，用于获取尺寸
+                menu.style.visibility = 'hidden';
+                menu.style.display = 'block';
                 
                 // 获取菜单尺寸
-                const menuWidth = menu.offsetWidth;
-                const menuHeight = menu.offsetHeight;
+                const menuWidth = menu.offsetWidth || 180;
+                const menuHeight = menu.offsetHeight || 250;
                 
-                // 检查并修正水平位置
-                if (x + menuWidth > windowWidth) {
-                    x = windowWidth - menuWidth - 10;
+                // 计算菜单位置 - 默认显示在按钮右侧
+                let left = buttonInfo.right; // 显示在按钮右侧
+                let top = buttonInfo.top;
+                
+                // 确保菜单右侧不超出窗口
+                const windowWidth = window.innerWidth;
+                if (left + menuWidth > windowWidth - 10) {
+                    // 如果右侧放不下，就显示在按钮左侧
+                    left = buttonInfo.left - menuWidth;
+                    
+                    // 如果左侧也放不下，就居中显示在按钮下方
+                    if (left < 10) {
+                        left = Math.max(10, buttonInfo.left + (buttonInfo.width - menuWidth) / 2);
+                        top = buttonInfo.bottom + 5; // 显示在按钮下方
+                    }
                 }
                 
-                // 检查并修正垂直位置
-                if (y + menuHeight > windowHeight) {
-                    y = windowHeight - menuHeight - 10;
+                // 检查底部是否超出视口
+                const windowHeight = window.innerHeight;
+                if (top + menuHeight > windowHeight - 10) {
+                    top = windowHeight - menuHeight - 10; // 保持在视口内
                 }
                 
-                // 应用计算后的位置
-                menu.style.top = `${y}px`;
-                menu.style.left = `${x}px`;
+                // 确保菜单顶部不超出视口
+                if (top < 10) {
+                    top = 10;
+                }
                 
-                document.getElementById('menuOverlay').classList.add('show');
+                // 设置最终位置并显示
+                menu.style.top = `${top}px`;
+                menu.style.left = `${left}px`;
+                menu.style.visibility = 'visible';
+                menu.classList.add('show');
+                
+                // 显示遮罩层
+                overlay.classList.add('show');
             }
     
             // 关闭笔记操作菜单
-            function closeNoteActionsMenu() {
-                document.getElementById('noteActionsMenu').classList.remove('show');
-                document.getElementById('menuOverlay').classList.remove('show');
-                document.getElementById('userProfileMenu').classList.remove('show');
+            function closeNoteMenu() {
+                const menu = document.getElementById('noteActionsMenu');
+                const overlay = document.getElementById('menuOverlay');
+                if (menu) {
+                    menu.classList.remove('show');
+                    menu.style.visibility = 'hidden';
+                }
+                if (overlay) {
+                    overlay.classList.remove('show');
+                }
             }
     
             // 点击遮罩层关闭菜单
-            document.getElementById('menuOverlay').addEventListener('click', closeNoteActionsMenu);
+            document.getElementById('menuOverlay').addEventListener('click', closeNoteMenu);
     
             // 处理笔记操作
             document.querySelectorAll('.note-actions-menu .menu-item').forEach(item => {
@@ -842,7 +945,7 @@
                                 showCategorySelectModal(noteId);
                                 break;
                             case 'tag':
-                                window.location.href = `tags.html?noteId=${noteId}`;
+                                showTagSelectModal(noteId);
                                 break;
                             case 'trash':
                                 await moveToTrash(noteId);
@@ -908,20 +1011,21 @@
                         alert(`操作失败: ${error.message}`);
                     }
         
-                    closeNoteActionsMenu();
+                    closeNoteMenu();
                 });
             });
 
             // 添加文档点击事件监听器，在点击空白区域时关闭菜单
             document.addEventListener('click', function(event) {
                 const noteMenu = document.getElementById('noteActionsMenu');
-                const userMenu = document.getElementById('userProfileMenu');
                 
-                // 检查点击是否发生在菜单外部
-                if (!noteMenu.contains(event.target) && !userMenu.contains(event.target)) {
-                    closeNoteActionsMenu();
+                // 如果菜单显示且点击的不是菜单本身也不是菜单触发按钮
+                if (noteMenu && noteMenu.classList.contains('show') && 
+                    !noteMenu.contains(event.target) && 
+                    !event.target.closest('.note-action-btn')) {
+                    closeNoteMenu();
                 }
-            });
+            }, true); // 使用捕获阶段，确保在其他事件处理前执行
 
             // 关闭编辑器弹窗的函数（供iframe内部调用）
             window.closeEditorModal = function() {
@@ -1459,6 +1563,196 @@
                     console.error('移至回收站失败:', error);
                     showToast(`移动至回收站失败: ${error.message}`, 'error');
                 }
+            }
+
+            // 显示标签选择弹窗
+            async function showTagSelectModal(noteId) {
+                const modal = document.getElementById('tagSelectModal');
+                const tagSearchInput = document.getElementById('tagSearchInput');
+                const tagsList = document.getElementById('tagsList');
+                const newTagName = document.getElementById('newTagName');
+                const colorOptions = document.querySelectorAll('#tagSelectModal .color-option');
+                const cancelBtn = document.getElementById('cancelTagSelect');
+                const confirmBtn = document.getElementById('confirmTagSelect');
+                const closeBtn = document.getElementById('closeTagModal');
+                
+                // 重置表单
+                tagSearchInput.value = '';
+                newTagName.value = '';
+                colorOptions.forEach(option => option.classList.remove('selected'));
+                // 默认选择第一个颜色
+                colorOptions[0].classList.add('selected');
+                
+                // 清除之前的事件监听器
+                const newCancelBtn = cancelBtn.cloneNode(true);
+                const newConfirmBtn = confirmBtn.cloneNode(true);
+                const newCloseBtn = closeBtn.cloneNode(true);
+                
+                cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+                confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+                closeBtn.parentNode.replaceChild(newCloseBtn, closeBtn);
+                
+                // 加载当前笔记信息
+                try {
+                    const noteResponse = await api.getNoteById(noteId);
+                    if (!noteResponse || !noteResponse.success) {
+                        throw new Error('获取笔记信息失败');
+                    }
+                    
+                    const note = noteResponse.note;
+                    const noteTags = note.tags || [];
+                    
+                    // 显示加载中
+                    tagsList.innerHTML = '<div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> 加载中...</div>';
+                    
+                    // 加载所有标签
+                    const tagsResponse = await api.getTags();
+                    if (!tagsResponse || !tagsResponse.success) {
+                        throw new Error('获取标签列表失败');
+                    }
+                    
+                    const tags = tagsResponse.tags || [];
+                    
+                    if (tags.length === 0) {
+                        tagsList.innerHTML = '<div class="no-tags-message">暂无标签，请创建新标签</div>';
+                    } else {
+                        // 渲染标签列表
+                        tagsList.innerHTML = tags.map(tag => {
+                            const tagId = tag._id || tag.id;
+                            const isChecked = noteTags.includes(tagId);
+                            return `
+                                <div class="tag-item ${isChecked ? 'selected' : ''}" data-id="${tagId}">
+                                    <div class="tag-color-dot" style="background-color: ${tag.color}"></div>
+                                    <div class="tag-name">${tag.name}</div>
+                                    <input type="checkbox" class="tag-checkbox" ${isChecked ? 'checked' : ''}>
+                                </div>
+                            `;
+                        }).join('');
+                        
+                        // 添加标签项点击事件
+                        tagsList.querySelectorAll('.tag-item').forEach(item => {
+                            item.addEventListener('click', function() {
+                                const checkbox = this.querySelector('.tag-checkbox');
+                                checkbox.checked = !checkbox.checked;
+                                this.classList.toggle('selected', checkbox.checked);
+                            });
+                        });
+                        
+                        // 复选框点击事件（防止冒泡）
+                        tagsList.querySelectorAll('.tag-checkbox').forEach(checkbox => {
+                            checkbox.addEventListener('click', function(e) {
+                                e.stopPropagation();
+                                const tagItem = this.closest('.tag-item');
+                                tagItem.classList.toggle('selected', this.checked);
+                            });
+                        });
+                    }
+                    
+                    // 搜索框筛选功能
+                    tagSearchInput.addEventListener('input', function() {
+                        const searchTerm = this.value.toLowerCase().trim();
+                        const tagItems = tagsList.querySelectorAll('.tag-item');
+                        
+                        tagItems.forEach(item => {
+                            const tagName = item.querySelector('.tag-name').textContent.toLowerCase();
+                            if (searchTerm === '' || tagName.includes(searchTerm)) {
+                                item.style.display = '';
+                            } else {
+                                item.style.display = 'none';
+                            }
+                        });
+                    });
+                    
+                    // 颜色选择器
+                    colorOptions.forEach(option => {
+                        option.addEventListener('click', function() {
+                            colorOptions.forEach(opt => opt.classList.remove('selected'));
+                            this.classList.add('selected');
+                        });
+                    });
+                    
+                    // 应用标签按钮
+                    newConfirmBtn.addEventListener('click', async () => {
+                        const selectedTagIds = Array.from(tagsList.querySelectorAll('.tag-checkbox:checked')).map(
+                            checkbox => checkbox.closest('.tag-item').dataset.id
+                        );
+                        
+                        // 如果有输入新标签名称，则创建新标签
+                        if (newTagName.value.trim()) {
+                            try {
+                                const newTagColor = document.querySelector('#tagSelectModal .color-option.selected').dataset.color;
+                                const createTagResponse = await api.createTag({
+                                    name: newTagName.value.trim(),
+                                    color: newTagColor
+                                });
+                                
+                                if (createTagResponse && createTagResponse.success && createTagResponse.tag) {
+                                    const newTagId = createTagResponse.tag._id || createTagResponse.tag.id;
+                                    selectedTagIds.push(newTagId);
+                                }
+                            } catch (error) {
+                                console.error('创建新标签失败:', error);
+                                alert(`创建新标签失败: ${error.message}`);
+                            }
+                        }
+                        
+                        // 更新笔记标签
+                        try {
+                            // 禁用按钮，显示加载状态
+                            newConfirmBtn.disabled = true;
+                            newConfirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 处理中';
+                            
+                            // 调用API更新笔记的标签
+                            const updateResponse = await api.updateNoteTags(noteId, selectedTagIds);
+                            
+                            if (updateResponse && updateResponse.success) {
+                                // 成功后关闭弹窗
+                                modal.style.display = 'none';
+                                
+                                // 显示成功消息
+                                const successMessage = document.createElement('div');
+                                successMessage.className = 'toast-message success';
+                                successMessage.innerHTML = '<i class="fas fa-check-circle"></i> 标签已成功应用到笔记';
+                                document.body.appendChild(successMessage);
+                                
+                                setTimeout(() => {
+                                    successMessage.classList.add('show');
+                                    setTimeout(() => {
+                                        successMessage.classList.remove('show');
+                                        setTimeout(() => document.body.removeChild(successMessage), 300);
+                                    }, 2000);
+                                }, 100);
+                                
+                                // 刷新笔记列表
+                                loadNotes(true);
+                            } else {
+                                throw new Error('应用标签失败');
+                            }
+                        } catch (error) {
+                            console.error('更新笔记标签失败:', error);
+                            alert(`应用标签失败: ${error.message}`);
+                            
+                            // 恢复按钮状态
+                            newConfirmBtn.disabled = false;
+                            newConfirmBtn.innerHTML = '应用标签';
+                        }
+                    });
+                } catch (error) {
+                    console.error('加载标签选择弹窗失败:', error);
+                    tagsList.innerHTML = `<div class="error-message">加载失败: ${error.message}</div>`;
+                }
+                
+                // 关闭弹窗
+                function closeTagModal() {
+                    modal.style.display = 'none';
+                }
+                
+                // 关闭按钮和取消按钮
+                newCloseBtn.addEventListener('click', closeTagModal);
+                newCancelBtn.addEventListener('click', closeTagModal);
+                
+                // 显示弹窗
+                modal.style.display = 'flex';
             }
         });
     </script>
@@ -2148,6 +2442,184 @@
         
         .dark-mode .color-option.selected {
             border-color: #fff;
+        }
+
+        /* 标签选择弹窗样式 */
+        .tags-list {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 5px;
+        }
+
+        .tag-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-bottom: 5px;
+            transition: background-color 0.2s;
+        }
+
+        .tag-item:hover {
+            background-color: #f5f5f5;
+        }
+
+        .tag-item.selected {
+            background-color: #e8f0fe;
+        }
+
+        .tag-color-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            margin-right: 10px;
+            flex-shrink: 0;
+        }
+
+        .tag-name {
+            flex-grow: 1;
+            font-size: 14px;
+        }
+
+        .tag-checkbox {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .loading-spinner {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .no-tags-message {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-style: italic;
+        }
+
+        .search-input-container {
+            position: relative;
+        }
+
+        .search-icon {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #666;
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            margin: 15px 0;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .divider span {
+            padding: 0 10px;
+            color: #888;
+            font-size: 14px;
+        }
+
+        /* 暗黑模式适配 */
+        .dark-mode .tag-item:hover {
+            background-color: #333;
+        }
+
+        .dark-mode .tag-item.selected {
+            background-color: #1a3756;
+        }
+
+        .dark-mode .divider::before,
+        .dark-mode .divider::after {
+            border-bottom-color: #444;
+        }
+
+        .dark-mode .divider span {
+            color: #aaa;
+        }
+
+        .dark-mode .tags-list {
+            border-color: #444;
+        }
+
+        /* 覆盖全局笔记操作菜单样式 */
+        .note-actions-menu {
+            position: fixed !important;
+            transform: none !important;
+            transition: none !important;
+            opacity: 1 !important;
+            pointer-events: auto !important;
+            display: none;
+            padding: 8px 0;
+            background-color: var(--bg-color, #fff);
+            border-radius: 8px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+            border: 1px solid var(--border-color, #e0e0e0);
+            min-width: 180px;
+            max-width: 250px;
+            z-index: 1050;
+            overflow: hidden;
+        }
+        
+        .note-actions-menu.show {
+            display: block !important;
+            opacity: 1 !important;
+            transform: none !important;
+        }
+        
+        .note-actions-menu .menu-item {
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: background-color 0.2s;
+            cursor: pointer;
+            color: var(--text-color, #333);
+        }
+        
+        .note-actions-menu .menu-item:hover {
+            background-color: var(--hover-color, #f5f5f5);
+        }
+        
+        .dark-mode .note-actions-menu {
+            background-color: var(--bg-color, #333);
+            border-color: var(--border-color, #444);
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+        }
+        
+        .dark-mode .note-actions-menu .menu-item {
+            color: var(--text-color, #eee);
+        }
+        
+        .dark-mode .note-actions-menu .menu-item:hover {
+            background-color: var(--hover-color, #444);
+        }
+        
+        /* 笔记操作菜单的响应式样式 */
+        @media screen and (max-width: 768px) {
+            .note-actions-menu {
+                width: calc(100% - 40px); /* 防止在小屏幕上过宽 */
+            }
+            
+            .menu-item {
+                padding: 14px 16px; /* 在移动设备上增加点击区域 */
+            }
         }
     </style>
 </body>

@@ -179,12 +179,13 @@ class API {
         // 标准化数据，确保API返回的数据和localStorage中的数据格式一致
         if (result.notes && Array.isArray(result.notes)) {
             // 如果请求的是回收站笔记，确保只返回真正在回收站中的笔记
-            if (params.inTrash === true) {
+            if (params.inTrash === true || params.inTrash === 'true') {
                 console.log('处理回收站笔记请求，筛选inTrash=true的笔记');
                 result.notes = result.notes.filter(note => note.inTrash === true);
                 console.log(`筛选后的回收站笔记数量: ${result.notes.length}`);
             }
             
+            // 复制到result.data以保持兼容性
             result.data = result.notes.map(note => {
                 // 确保同时有id和_id字段
                 if (note._id && !note.id) {
@@ -203,12 +204,13 @@ class API {
             });
         } else if (result.data && Array.isArray(result.data)) {
             // 如果请求的是回收站笔记，确保只返回真正在回收站中的笔记
-            if (params.inTrash === true) {
+            if (params.inTrash === true || params.inTrash === 'true') {
                 console.log('处理回收站笔记请求，筛选inTrash=true的笔记');
                 result.data = result.data.filter(note => note.inTrash === true);
                 console.log(`筛选后的回收站笔记数量: ${result.data.length}`);
             }
             
+            // 标准化data数组中的笔记数据
             result.data = result.data.map(note => {
                 // 确保同时有id和_id字段
                 if (note._id && !note.id) {
@@ -225,6 +227,9 @@ class API {
                 
                 return note;
             });
+            
+            // 复制到result.notes以保持兼容性
+            result.notes = [...result.data];
         }
         
         return result;
@@ -478,6 +483,11 @@ class API {
     
     async deleteTag(tagId) {
         return this.request(`/api/tags/${tagId}`, 'DELETE');
+    }
+
+    // 笔记标签关联API
+    async updateNoteTags(noteId, tagIds) {
+        return this.request(`/api/notes/${noteId}/tags`, 'PUT', { tagIds });
     }
 
     // 分享相关API

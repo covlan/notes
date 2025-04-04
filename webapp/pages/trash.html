@@ -6,6 +6,7 @@
     <title>回收站 - 笔记平台</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="./css/styles.css">
+    <script src="./js/api.js"></script>
 </head>
 <body>
     <!-- 移动端菜单按钮 -->
@@ -56,42 +57,31 @@
 
     <!-- 主内容区域 -->
     <div class="main-content" id="mainContent">
-        <header class="app-header">
-            <div class="header-left">
-                <button id="toggle-nav-btn" class="toggle-nav-btn">
-                    <i class="fas fa-bars"></i>
-                </button>
-                <h1 class="app-title">回收站</h1>
-            </div>
-            <div class="header-right">
-                <button id="refresh-btn" class="refresh-btn" title="刷新回收站">
+        <div class="content-header">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <h1 class="welcome-text">回收站</h1>
+                <div class="trash-actions">
+                    <button class="restore-all-btn" id="restoreAllBtn" title="恢复所有笔记">
+                        <i class="fas fa-undo"></i>
+                        全部恢复
+                    </button>
+                    <button class="empty-trash-btn" id="emptyTrashBtn" title="清空回收站">
+                        <i class="fas fa-trash"></i>
+                        清空回收站
+                    </button>
+                </div>
+                <button class="refresh-btn" id="refreshNotesBtn" title="刷新回收站">
                     <i class="fas fa-sync-alt"></i>
                 </button>
-                <div class="user-profile">
-                    <div class="user-avatar">
-                        <i class="fas fa-user"></i>
-                    </div>
-                    <span>管理员</span>
+            </div>
+            <div class="user-profile">
+                <div class="user-avatar">
+                    <i class="fas fa-user"></i>
                 </div>
-            </div>
-        </header>
-        <div class="content-header">
-            <div class="header-section">
-                <h2 class="section-title">回收站内容</h2>
-                <p class="section-desc">这里显示已删除的笔记，可以恢复或永久删除</p>
-            </div>
-            <div class="trash-actions">
-                <button class="restore-all-btn" id="restoreAllBtn">
-                    <i class="fas fa-undo"></i>
-                    全部恢复
-                </button>
-                <button class="empty-trash-btn" id="emptyTrashBtn">
-                    <i class="fas fa-trash"></i>
-                    清空回收站
-                </button>
+                <span>管理员</span>
             </div>
         </div>
-        <div class="trash-container" id="trashContainer">
+        <div class="trash-notes">
             <!-- 回收站笔记列表将由 JavaScript 动态生成 -->
         </div>
     </div>
@@ -125,6 +115,7 @@
         const themeToggle = document.getElementById('themeToggle');
         const restoreAllBtn = document.getElementById('restoreAllBtn');
         const emptyTrashBtn = document.getElementById('emptyTrashBtn');
+        const refreshBtn = document.getElementById('refreshNotesBtn');
         const body = document.body;
 
         // 检查本地存储中的主题偏好
@@ -160,25 +151,60 @@
             mainContent.classList.add('expanded');
         }
 
+        // 刷新按钮事件
+        refreshBtn.addEventListener('click', () => {
+            console.log('手动刷新回收站');
+            // 添加旋转动画
+            refreshBtn.classList.add('loading');
+            
+            // 强制清除缓存
+            localStorage.removeItem('trash_notes_cache');
+            localStorage.removeItem('trash_notes_timestamp');
+            
+            // 刷新回收站
+            loadTrashNotes(true).finally(() => {
+                // 无论成功失败，1秒后移除加载状态
+                setTimeout(() => {
+                    refreshBtn.classList.remove('loading');
+                }, 1000);
+            });
+        });
+
         // 加载回收站笔记
-        async function loadTrashNotes(forceRefresh = false) {
+        async function loadTrashNotes(forceRefresh = false, deletedNoteId = null) {
+            const trashContainer = document.querySelector('.trash-notes');
+            
+            // 如果有指定删除的笔记ID，先从已有的笔记列表中移除
+            if (deletedNoteId) {
+                console.log('从UI中删除笔记:', deletedNoteId);
+                const noteElement = document.querySelector(`.trash-note-card[data-id="${deletedNoteId}"]`);
+                
+                if (noteElement) {
+                    noteElement.remove();
+                    
+                    // 如果没有笔记了，显示空状态
+                    const remainingNotes = document.querySelectorAll('.trash-note-card');
+                    if (remainingNotes.length === 0) {
+                        trashContainer.innerHTML = `
+                            <div class="empty-trash">
+                                <i class="fas fa-trash-alt"></i>
+                                <p>回收站是空的</p>
+                            </div>
+                        `;
+                    }
+                    
+                    // 如果只是视图更新，可以直接返回
+                    if (!forceRefresh) {
+                        return;
+                    }
+                }
+            }
+            
+            trashContainer.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> 加载中...</div>';
+            
             let trashNotes = [];
             
             try {
-                // 加载API库（如果尚未加载）
-                if (typeof api === 'undefined') {
-                    await new Promise((resolve, reject) => {
-                        const script = document.createElement('script');
-                        script.src = './js/api.js';
-                        script.onload = resolve;
-                        script.onerror = reject;
-                        document.head.appendChild(script);
-                    });
-                    
-                    // 等待脚本初始化
-                    await new Promise(resolve => setTimeout(resolve, 100));
-                }
-                
                 // 检查是否可以使用缓存
                 const cachedTrashNotes = localStorage.getItem('trash_notes_cache');
                 const cacheTimestamp = localStorage.getItem('trash_notes_timestamp');
@@ -216,16 +242,20 @@
                         console.log('API返回的data数组长度:', rawNotes.length);
                     }
                     
-                    // 笔记可能已经被服务器筛选为inTrash=true，但为了安全起见，仍进行二次检查
-                    trashNotes = rawNotes.map(note => {
-                        // 确保inTrash属性存在，如果不存在或未定义，那么由于这是从inTrash=true的请求获得的，
-                        // 我们可以假设它应该是在回收站中的
-                        if (note.inTrash === undefined) {
-                            console.log(`笔记 ${note.id || note._id} 未指定inTrash属性，设为true`);
-                            note.inTrash = true;
-                        }
-                        return note;
-                    });
+                    // 第二次确认笔记是否在回收站中
+                    trashNotes = rawNotes.filter(note => note.inTrash === true);
+                    console.log('筛选回收站状态后的笔记数量:', trashNotes.length);
+                    
+                    if (trashNotes.length !== rawNotes.length) {
+                        console.warn(`API返回的笔记中有${rawNotes.length - trashNotes.length}条不是回收站笔记`);
+                        
+                        // 检查每条不在回收站的笔记
+                        rawNotes.forEach(note => {
+                            if (note.inTrash !== true) {
+                                console.warn(`此笔记不在回收站: id=${note.id || note._id}, inTrash=${note.inTrash}, title=${note.title}`);
+                            }
+                        });
+                    }
                     
                     console.log(`API返回的笔记数量: ${rawNotes.length}, 处理后的回收站笔记数量: ${trashNotes.length}`);
                     
@@ -236,7 +266,7 @@
                         syncNotesCache(trashNotes);
                     }
                 } else {
-                    console.warn('API请求成功但未返回有效数据');
+                    console.warn('API请求成功但未返回有效数据', response);
                 }
             } catch (error) {
                 console.error('API获取回收站笔记失败:', error);
@@ -831,126 +861,9 @@
         });
 
         // 初始加载回收站笔记列表
-        loadTrashNotes();
-
-        // 导航菜单项点击事件
-        document.querySelectorAll('.nav-item').forEach(item => {
-            item.addEventListener('click', () => {
-                const icon = item.querySelector('i');
-                if (icon.classList.contains('fa-trash')) {
-                    // 已经在回收站页面，不需要跳转
-                    return;
-                }
-                
-                // 根据图标类名确定目标页面
-                let targetPage = '';
-                if (icon.classList.contains('fa-home')) {
-                    targetPage = 'dashboard.html';
-                } else if (icon.classList.contains('fa-star')) {
-                    targetPage = 'starred-notes.html';
-                } else if (icon.classList.contains('fa-folder')) {
-                    targetPage = 'note-categories.html';
-                } else if (icon.classList.contains('fa-tags')) {
-                    targetPage = 'tags.html';
-                } else if (icon.classList.contains('fa-share-alt')) {
-                    targetPage = 'note-share.html';
-                }
-
-                // 如果找到目标页面，则进行跳转
-                if (targetPage) {
-                    try {
-                        console.log('准备跳转到页面:', targetPage);
-                        console.log('当前页面路径:', window.location.pathname);
-                        // 使用 replace 方法进行跳转
-                        window.location.replace(targetPage);
-                    } catch (error) {
-                        console.error('页面跳转失败:', error);
-                        alert('页面跳转失败，请检查页面是否存在');
-                    }
-                } else {
-                    console.error('未找到目标页面');
-                }
-            });
-        });
-
-        // 移动端菜单切换
-        mobileMenuToggle.addEventListener('click', () => {
-            sidebar.classList.toggle('show');
-        });
-
-        // 点击主内容区域时在移动端关闭侧边栏
-        mainContent.addEventListener('click', () => {
-            if (window.innerWidth <= 768) {
-                sidebar.classList.remove('show');
-            }
-        });
-
-        // 窗口大小改变时处理侧边栏状态
-        window.addEventListener('resize', () => {
-            if (window.innerWidth > 768) {
-                sidebar.classList.remove('show');
-            }
-        });
-
-        // 用户头像菜单
-        const userProfile = document.querySelector('.user-profile');
-        const userProfileMenu = document.getElementById('userProfileMenu');
-        
-        userProfile.addEventListener('mouseenter', () => {
-            const rect = userProfile.getBoundingClientRect();
-            const menuWidth = userProfileMenu.offsetWidth || 200; // 估计菜单宽度
-            const windowWidth = window.innerWidth;
-            
-            // 计算右侧是否会溢出
-            if (rect.left + menuWidth > windowWidth) {
-                // 如果会溢出，将菜单向左对齐
-                userProfileMenu.style.left = `${rect.right - menuWidth}px`;
-            } else {
-                userProfileMenu.style.left = `${rect.left}px`;
-            }
-            
-            userProfileMenu.style.top = `${rect.bottom}px`;
-            userProfileMenu.classList.add('show');
-        });
-        
-        userProfile.addEventListener('mouseleave', (event) => {
-            // 检查鼠标是否移动到菜单上
-            const toElement = event.relatedTarget;
-            if (!userProfileMenu.contains(toElement)) {
-                userProfileMenu.classList.remove('show');
-            }
-        });
-        
-        userProfileMenu.addEventListener('mouseleave', () => {
-            userProfileMenu.classList.remove('show');
-        });
-        
-        // 用户菜单项点击事件
-        userProfileMenu.querySelectorAll('.menu-item').forEach(item => {
-            item.addEventListener('click', () => {
-                const action = item.dataset.action;
-                userProfileMenu.classList.remove('show');
-                
-                // 处理不同的菜单操作
-                switch(action) {
-                    case 'profile':
-                        alert('查看个人信息');
-                        break;
-                    case 'edit-profile':
-                        window.location.href = 'profile-edit.html';
-                        break;
-                    case 'settings':
-                        window.location.replace('settings.html');
-                        break;
-                    case 'logout':
-                        alert('退出登录');
-                        break;
-                }
-            });
-        });
-
         document.addEventListener('DOMContentLoaded', async () => {
-            // 显示加载状态
+            // 显示初始加载状态
+            const trashContainer = document.querySelector('.trash-notes');
             trashContainer.innerHTML = `
                 <div class="loading-container">
                     <div class="loading-spinner"></div>
@@ -958,19 +871,10 @@
                 </div>
             `;
             
-            // 刷新按钮事件
-            document.getElementById('refresh-btn').addEventListener('click', () => {
-                console.log('手动刷新回收站');
-                // 强制清除缓存
-                localStorage.removeItem('trash_notes_cache');
-                localStorage.removeItem('trash_notes_timestamp');
-                loadTrashNotes(true);
-            });
-            
             // 加载笔记
             await loadTrashNotes();
             
-            // 注册服务工作者，监听API更新并刷新数据
+            // 注册事件监听，当检测到笔记更新时刷新回收站
             if ('serviceWorker' in navigator) {
                 window.addEventListener('storage', (event) => {
                     if (event.key === 'notes_updated') {
@@ -979,11 +883,128 @@
                     }
                 });
             }
+            
+            // 导航菜单项点击事件
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const icon = item.querySelector('i');
+                    if (icon.classList.contains('fa-trash')) {
+                        // 已经在回收站页面，不需要跳转
+                        return;
+                    }
+                    
+                    // 根据图标类名确定目标页面
+                    let targetPage = '';
+                    if (icon.classList.contains('fa-home')) {
+                        targetPage = 'dashboard.html';
+                    } else if (icon.classList.contains('fa-star')) {
+                        targetPage = 'starred-notes.html';
+                    } else if (icon.classList.contains('fa-folder')) {
+                        targetPage = 'note-categories.html';
+                    } else if (icon.classList.contains('fa-tags')) {
+                        targetPage = 'tags.html';
+                    } else if (icon.classList.contains('fa-share-alt')) {
+                        targetPage = 'note-share.html';
+                    }
+
+                    // 如果找到目标页面，则进行跳转
+                    if (targetPage) {
+                        try {
+                            console.log('准备跳转到页面:', targetPage);
+                            console.log('当前页面路径:', window.location.pathname);
+                            // 使用 replace 方法进行跳转
+                            window.location.replace(targetPage);
+                        } catch (error) {
+                            console.error('页面跳转失败:', error);
+                            alert('页面跳转失败，请检查页面是否存在');
+                        }
+                    } else {
+                        console.error('未找到目标页面');
+                    }
+                });
+            });
+            
+            // 移动端菜单切换
+            mobileMenuToggle.addEventListener('click', () => {
+                sidebar.classList.toggle('show');
+            });
+
+            // 点击主内容区域时在移动端关闭侧边栏
+            mainContent.addEventListener('click', () => {
+                if (window.innerWidth <= 768) {
+                    sidebar.classList.remove('show');
+                }
+            });
+
+            // 窗口大小改变时处理侧边栏状态
+            window.addEventListener('resize', () => {
+                if (window.innerWidth > 768) {
+                    sidebar.classList.remove('show');
+                }
+            });
+            
+            // 用户头像菜单
+            const userProfile = document.querySelector('.user-profile');
+            const userProfileMenu = document.getElementById('userProfileMenu');
+            
+            userProfile.addEventListener('mouseenter', () => {
+                const rect = userProfile.getBoundingClientRect();
+                const menuWidth = userProfileMenu.offsetWidth || 200; // 估计菜单宽度
+                const windowWidth = window.innerWidth;
+                
+                // 计算右侧是否会溢出
+                if (rect.left + menuWidth > windowWidth) {
+                    // 如果会溢出，将菜单向左对齐
+                    userProfileMenu.style.left = `${rect.right - menuWidth}px`;
+                } else {
+                    userProfileMenu.style.left = `${rect.left}px`;
+                }
+                
+                userProfileMenu.style.top = `${rect.bottom}px`;
+                userProfileMenu.classList.add('show');
+            });
+            
+            userProfile.addEventListener('mouseleave', (event) => {
+                // 检查鼠标是否移动到菜单上
+                const toElement = event.relatedTarget;
+                if (!userProfileMenu.contains(toElement)) {
+                    userProfileMenu.classList.remove('show');
+                }
+            });
+            
+            userProfileMenu.addEventListener('mouseleave', () => {
+                userProfileMenu.classList.remove('show');
+            });
+            
+            // 用户菜单项点击事件
+            userProfileMenu.querySelectorAll('.menu-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const action = item.dataset.action;
+                    userProfileMenu.classList.remove('show');
+                    
+                    // 处理不同的菜单操作
+                    switch(action) {
+                        case 'profile':
+                            alert('查看个人信息');
+                            break;
+                        case 'edit-profile':
+                            window.location.href = 'profile-edit.html';
+                            break;
+                        case 'settings':
+                            window.location.replace('settings.html');
+                            break;
+                        case 'logout':
+                            alert('退出登录');
+                            break;
+                    }
+                });
+            });
         });
 
         // 更新回收站UI
         function updateTrashUI(trashNotes) {
             console.log(`更新回收站UI，显示 ${trashNotes.length} 条笔记`);
+            const trashContainer = document.querySelector('.trash-notes');
             
             trashContainer.innerHTML = trashNotes.map(note => `
                 <div class="trash-note-card" data-id="${note.id || note._id}">
@@ -1031,7 +1052,7 @@
     </script>
 
     <style>
-        .trash-container {
+        .trash-notes {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
             gap: 20px;
@@ -1230,20 +1251,10 @@
             font-size: 14px;
             cursor: pointer;
             transition: all 0.2s ease;
+            color: #5f6368;
         }
 
-        .restore-all-btn {
-            color: #1a73e8;
-        }
-
-        .empty-trash-btn {
-            color: #ea4335;
-        }
-
-        .restore-all-btn:hover {
-            background-color: #f8f9fa;
-        }
-
+        .restore-all-btn:hover,
         .empty-trash-btn:hover {
             background-color: #f8f9fa;
         }
@@ -1252,19 +1263,20 @@
         .dark-mode .empty-trash-btn {
             background-color: #2d2d2d;
             border-color: #444;
-        }
-
-        .dark-mode .restore-all-btn {
-            color: #4b8bf4;
-        }
-
-        .dark-mode .empty-trash-btn {
-            color: #f28b82;
+            color: #bbb;
         }
 
         .dark-mode .restore-all-btn:hover,
         .dark-mode .empty-trash-btn:hover {
             background-color: #3d3d3d;
+        }
+
+        .empty-trash-btn {
+            color: #ea4335;
+        }
+
+        .dark-mode .empty-trash-btn {
+            color: #f28b82;
         }
 
         .trash-actions {
@@ -1348,7 +1360,6 @@
             display: flex;
             align-items: center;
             gap: 12px;
-            margin-left: 15px;
         }
 
         .refresh-btn {
@@ -1368,61 +1379,33 @@
         .refresh-btn:hover {
             background-color: #f8f9fa;
         }
+        
+        .refresh-btn.loading {
+            pointer-events: none;
+        }
+        
+        .refresh-btn.loading i {
+            animation: spin 1s linear infinite;
+        }
 
         .dark-mode .refresh-btn {
             background-color: #2d2d2d;
             border-color: #444;
             color: #bbb;
         }
-
+        
         .dark-mode .refresh-btn:hover {
             background-color: #3d3d3d;
         }
 
-        .header-section {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .section-title {
-            margin: 0;
-            font-size: 20px;
-            color: #333;
+        .welcome-text {
+            font-size: 24px;
             font-weight: 500;
+            margin: 0;
         }
-
-        .section-desc {
-            margin: 5px 0 0;
-            font-size: 14px;
-            color: #666;
-        }
-
-        .dark-mode .section-title {
+        
+        .dark-mode .welcome-text {
             color: #fff;
-        }
-
-        .dark-mode .section-desc {
-            color: #bbb;
-        }
-
-        .header-right {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .app-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 20px;
-            border-bottom: 1px solid #e0e0e0;
-            background-color: #fff;
-        }
-
-        .dark-mode .app-header {
-            background-color: #1f1f1f;
-            border-bottom-color: #333;
         }
     </style>
 </body>
