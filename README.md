@@ -1,5 +1,6 @@
 # 笔记应用
 
+支持Docker部署
 这是一个基于Node.js、Express和MongoDB构建的笔记应用，提供完整的笔记管理功能，包括用户认证、笔记编辑、分类管理、标签管理、笔记分享等功能。
 
 ## 项目用途
@@ -49,7 +50,7 @@ npm start
 #### 步骤1：克隆仓库
 
 ```bash
-git clone <仓库地址>
+git clone https://github.com/rootscomplite/notes.git
 cd 笔记应用
 ```
 
