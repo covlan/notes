@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>编辑笔记</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #4a6bff;
+            --bg-color: #ffffff;
+            --text-color: #333333;
+            --border-color: #e1e5eb;
+            --shadow-color: rgba(0, 0, 0, 0.1);
+            --sidebar-width: 250px;
+            --header-height: 60px;
+            --toolbar-bg: #f5f6f7;
+            --sidebar-bg: #f8f9fa;
+        }
+
+        .dark-mode {
+            --primary-color: #6b8cff;
+            --bg-color: #1a1a1a;
+            --text-color: #f0f0f0;
+            --border-color: #444444;
+            --toolbar-bg: #2d2d2d;
+            --sidebar-bg: #2d2d2d;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .app-container {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* 侧边栏样式 */
+        .sidebar {
+            width: var(--sidebar-width);
+            background-color: var(--sidebar-bg);
+            border-right: 1px solid var(--border-color);
+            height: 100vh;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .sidebar-header {
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 20px;
+        }
+
+        .sidebar-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-color);
+        }
+
+        /* 主编辑区域 */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* 顶部工具栏 */
+        .editor-header {
+            height: var(--header-height);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            background-color: var(--toolbar-bg);
+            justify-content: space-between;
+        }
+
+        .note-title-input {
+            font-size: 16px;
+            font-weight: 500;
+            border: none;
+            background: none;
+            color: var(--text-color);
+            width: 300px;
+            padding: 8px;
+            border-radius: 4px;
+        }
+
+        .note-title-input:focus {
+            background-color: rgba(0, 0, 0, 0.05);
+            outline: none;
+        }
+
+        .editor-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-save {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .btn-preview {
+            background-color: transparent;
+            color: var(--text-color);
+        }
+
+        .btn-close {
+            background-color: transparent;
+            color: var(--text-color);
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+        }
+
+        /* 编辑器容器 */
+        .editor-container {
+            flex: 1;
+            overflow: hidden;
+            display: flex;
+        }
+
+        .editor-wrapper {
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* EasyMDE 自定义样式 */
+        .EasyMDEContainer {
+            height: calc(100vh - var(--header-height)) !important;
+        }
+
+        .editor-toolbar {
+            border: none !important;
+            background-color: var(--toolbar-bg) !important;
+            padding: 8px !important;
+        }
+
+        .editor-toolbar button {
+            color: var(--text-color) !important;
+        }
+
+        .CodeMirror {
+            height: calc(100vh - var(--header-height) - 50px) !important;
+            border: none !important;
+            background-color: var(--bg-color) !important;
+            color: var(--text-color) !important;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+            font-size: 15px !important;
+            line-height: 1.6 !important;
+            padding: 20px !important;
+        }
+
+        .editor-preview-side {
+            background-color: var(--bg-color) !important;
+            color: var(--text-color) !important;
+            border-left: 1px solid var(--border-color) !important;
+            padding: 20px !important;
+        }
+
+        .save-status {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 8px 16px;
+            border-radius: 4px;
+            background-color: var(--primary-color);
+            color: white;
+            font-size: 14px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .save-status.show {
+            opacity: 1;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-title">大纲</div>
+            </div>
+            <!-- 这里可以添加文档大纲或导航 -->
+        </div>
+
+        <div class="main-content">
+            <div class="editor-header">
+                <input type="text" class="note-title-input" placeholder="输入标题..." id="noteTitle">
+                <div class="editor-actions">
+                    <button class="btn btn-preview" id="previewBtn">
+                        <i class="fas fa-eye"></i>
+                        预览
+                    </button>
+                    <button class="btn btn-save" id="saveBtn">
+                        <i class="fas fa-save"></i>
+                        保存
+                    </button>
+                    <button class="btn btn-close" id="closeBtn">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="editor-container">
+                <div class="editor-wrapper">
+                    <textarea id="editor"></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="save-status" id="saveStatus">已保存</div>
+
+    <script>
+        // 初始化 EasyMDE 编辑器
+        const easyMDE = new EasyMDE({
+            element: document.getElementById('editor'),
+            spellChecker: false,
+            status: false,
+            toolbar: [
+                {
+                    name: "bold",
+                    action: EasyMDE.toggleBold,
+                    className: "fa fa-bold",
+                    title: "加粗",
+                },
+                {
+                    name: "italic",
+                    action: EasyMDE.toggleItalic,
+                    className: "fa fa-italic",
+                    title: "斜体",
+                },
+                "|",
+                {
+                    name: "heading",
+                    action: EasyMDE.toggleHeadingSmaller,
+                    className: "fa fa-heading",
+                    title: "标题",
+                },
+                {
+                    name: "quote",
+                    action: EasyMDE.toggleBlockquote,
+                    className: "fa fa-quote-left",
+                    title: "引用",
+                },
+                "|",
+                {
+                    name: "unordered-list",
+                    action: EasyMDE.toggleUnorderedList,
+                    className: "fa fa-list-ul",
+                    title: "无序列表",
+                },
+                {
+                    name: "ordered-list",
+                    action: EasyMDE.toggleOrderedList,
+                    className: "fa fa-list-ol",
+                    title: "有序列表",
+                },
+                "|",
+                {
+                    name: "link",
+                    action: EasyMDE.drawLink,
+                    className: "fa fa-link",
+                    title: "链接",
+                },
+                {
+                    name: "image",
+                    action: EasyMDE.drawImage,
+                    className: "fa fa-image",
+                    title: "图片",
+                },
+                "|",
+                {
+                    name: "preview",
+                    action: EasyMDE.togglePreview,
+                    className: "fa fa-eye no-disable",
+                    title: "预览",
+                },
+                {
+                    name: "side-by-side",
+                    action: EasyMDE.toggleSideBySide,
+                    className: "fa fa-columns no-disable no-mobile",
+                    title: "并排预览",
+                },
+                {
+                    name: "fullscreen",
+                    action: EasyMDE.toggleFullScreen,
+                    className: "fa fa-arrows-alt no-disable no-mobile",
+                    title: "全屏",
+                },
+            ],
+            placeholder: "开始编写...",
+            autofocus: true,
+            autoDownloadFontAwesome: false,
+            sideBySideFullscreen: false,
+            minHeight: "calc(100vh - 110px)",
+            maxHeight: "calc(100vh - 110px)",
+        });
+
+        // 获取元素
+        const noteTitle = document.getElementById('noteTitle');
+        const saveBtn = document.getElementById('saveBtn');
+        const closeBtn = document.getElementById('closeBtn');
+        const previewBtn = document.getElementById('previewBtn');
+        const saveStatus = document.getElementById('saveStatus');
+
+        // 从 URL 获取笔记 ID
+        const urlParams = new URLSearchParams(window.location.search);
+        const noteId = urlParams.get('id');
+
+        // 加载笔记数据
+        function loadNote() {
+            if (noteId) {
+                const notes = JSON.parse(localStorage.getItem('notes') || '[]');
+                const note = notes.find(n => n.id === noteId);
+                if (note) {
+                    noteTitle.value = note.title;
+                    easyMDE.value(note.content);
+                }
+            }
+        }
+
+        // 保存笔记
+        function saveNote() {
+            const title = noteTitle.value.trim();
+            const content = easyMDE.value();
+            
+            if (!title) {
+                alert('请输入标题');
+                return;
+            }
+
+            const notes = JSON.parse(localStorage.getItem('notes') || '[]');
+            const noteData = {
+                id: noteId || Date.now().toString(),
+                title,
+                content,
+                updatedAt: new Date().toISOString()
+            };
+
+            if (noteId) {
+                const index = notes.findIndex(n => n.id === noteId);
+                if (index !== -1) {
+                    notes[index] = noteData;
+                }
+            } else {
+                notes.push(noteData);
+            }
+
+            localStorage.setItem('notes', JSON.stringify(notes));
+            showSaveStatus();
+        }
+
+        // 显示保存状态
+        function showSaveStatus() {
+            saveStatus.classList.add('show');
+            setTimeout(() => {
+                saveStatus.classList.remove('show');
+            }, 2000);
+        }
+
+        // 关闭编辑器
+        function closeEditor() {
+            if (confirm('确定要关闭吗？未保存的内容将会丢失。')) {
+                window.location.href = 'dashboard.html';
+            }
+        }
+
+        // 切换预览模式
+        function togglePreview() {
+            easyMDE.togglePreview();
+        }
+
+        // 事件监听
+        saveBtn.addEventListener('click', saveNote);
+        closeBtn.addEventListener('click', closeEditor);
+        previewBtn.addEventListener('click', togglePreview);
+        noteTitle.addEventListener('input', saveNote);
+
+        // 页面加载时加载笔记数据
+        loadNote();
+
+        // 自动保存
+        setInterval(saveNote, 30000);
+    </script>
+</body>
+</html> 

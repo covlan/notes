@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>编辑个人资料 - 笔记平台</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="./css/styles.css">
+    <style>
+        /* 个人资料编辑页面特定样式 */
+        .profile-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: var(--card-bg);
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: var(--card-shadow);
+        }
+        
+        .profile-header {
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .avatar-container {
+            position: relative;
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            overflow: hidden;
+            background-color: var(--sidebar-hover);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .avatar-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .avatar-container i {
+            font-size: 60px;
+            color: var(--text-color);
+            opacity: 0.5;
+        }
+        
+        .avatar-upload {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            text-align: center;
+            padding: 8px 0;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .avatar-upload:hover {
+            background-color: rgba(0, 0, 0, 0.7);
+        }
+        
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-size: 16px;
+        }
+        
+        textarea.form-control {
+            min-height: 120px;
+            resize: vertical;
+        }
+        
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(74, 107, 255, 0.2);
+        }
+        
+        .action-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 15px;
+            margin-top: 30px;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            border: none;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background-color: var(--sidebar-hover);
+            color: var(--text-color);
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        @media (max-width: 768px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .profile-header {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .avatar-container {
+                margin: 0 auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 移动端菜单按钮 -->
+    <div class="mobile-menu-toggle" id="mobileMenuToggle">
+        <i class="fas fa-bars"></i>
+    </div>
+
+    <!-- 侧边栏 -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo" id="toggleSidebar">
+                <i class="fas fa-book"></i>
+                <span>笔记平台</span>
+            </div>
+        </div>
+        <div class="nav-menu">
+            <div class="nav-item" data-tooltip="我的笔记">
+                <i class="fas fa-home"></i>
+                <span>我的笔记</span>
+            </div>
+            <div class="nav-item" data-tooltip="收藏笔记">
+                <i class="fas fa-star"></i>
+                <span>收藏笔记</span>
+            </div>
+            <div class="nav-item" data-tooltip="笔记分类">
+                <i class="fas fa-folder"></i>
+                <span>笔记分类</span>
+            </div>
+            <div class="nav-item" data-tooltip="标签管理">
+                <i class="fas fa-tags"></i>
+                <span>标签管理</span>
+            </div>
+            <div class="nav-item" data-tooltip="分享笔记">
+                <i class="fas fa-share-alt"></i>
+                <span>分享笔记</span>
+            </div>
+            <div class="nav-item" data-tooltip="回收站">
+                <i class="fas fa-trash"></i>
+                <span>回收站</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主题切换按钮 -->
+    <div class="theme-toggle" id="themeToggle">
+        <div class="theme-toggle-circle"></div>
+    </div>
+
+    <!-- 主内容区域 -->
+    <div class="main-content" id="mainContent">
+        <div class="content-header">
+            <h1 class="welcome-text">编辑个人资料</h1>
+            <div class="user-profile">
+                <div class="user-avatar">
+                    <i class="fas fa-user"></i>
+                </div>
+                <span>管理员</span>
+            </div>
+        </div>
+        
+        <div class="profile-container">
+            <div class="profile-header">
+                <div class="avatar-container">
+                    <i class="fas fa-user"></i>
+                    <div class="avatar-upload">
+                        <i class="fas fa-camera"></i> 更换头像
+                    </div>
+                    <input type="file" id="avatarUpload" style="display: none;" accept="image/*">
+                </div>
+                <div>
+                    <h2>个人资料设置</h2>
+                    <p>更新您的个人信息和账户设置</p>
+                </div>
+            </div>
+            
+            <form id="profileForm">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="username">用户名</label>
+                        <input type="text" id="username" class="form-control" placeholder="请输入用户名" value="管理员">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="email">电子邮箱</label>
+                        <input type="email" id="email" class="form-control" placeholder="请输入电子邮箱" value="admin@example.com">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="displayName">显示名称</label>
+                        <input type="text" id="displayName" class="form-control" placeholder="请输入显示名称" value="管理员">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="phone">手机号码</label>
+                        <input type="tel" id="phone" class="form-control" placeholder="请输入手机号码">
+                    </div>
+                    
+                    <div class="form-group full-width">
+                        <label for="bio">个人简介</label>
+                        <textarea id="bio" class="form-control" placeholder="请输入您的个人简介"></textarea>
+                    </div>
+                </div>
+                
+                <h3 style="margin: 30px 0 20px; padding-bottom: 10px; border-bottom: 1px solid var(--border-color);">修改密码</h3>
+                
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="currentPassword">当前密码</label>
+                        <input type="password" id="currentPassword" class="form-control" placeholder="请输入当前密码">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="newPassword">新密码</label>
+                        <input type="password" id="newPassword" class="form-control" placeholder="请输入新密码">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="confirmPassword">确认新密码</label>
+                        <input type="password" id="confirmPassword" class="form-control" placeholder="请再次输入新密码">
+                    </div>
+                </div>
+                
+                <div class="action-buttons">
+                    <button type="button" class="btn btn-secondary" id="cancelBtn">取消</button>
+                    <button type="submit" class="btn btn-primary">保存更改</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 用户头像菜单 -->
+    <div class="user-profile-menu" id="userProfileMenu">
+        <div class="menu-item" data-action="profile">
+            <i class="fas fa-user-circle"></i>
+            个人信息
+        </div>
+        <div class="menu-item" data-action="edit-profile">
+            <i class="fas fa-user-edit"></i>
+            编辑个人资料
+        </div>
+        <div class="menu-divider"></div>
+        <div class="menu-item" data-action="settings">
+            <i class="fas fa-cog"></i>
+            系统设置
+        </div>
+        <div class="menu-item" data-action="logout">
+            <i class="fas fa-sign-out-alt"></i>
+            退出登录
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('mainContent');
+            const toggleSidebar = document.getElementById('toggleSidebar');
+            const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+            const themeToggle = document.getElementById('themeToggle');
+            const body = document.body;
+            const avatarContainer = document.querySelector('.avatar-container');
+            const avatarUpload = document.getElementById('avatarUpload');
+            const profileForm = document.getElementById('profileForm');
+            const cancelBtn = document.getElementById('cancelBtn');
+    
+            // 检查本地存储中的主题偏好
+            const currentTheme = localStorage.getItem('theme');
+            if (currentTheme === 'dark') {
+                body.classList.add('dark-mode');
+            }
+    
+            // 切换主题
+            themeToggle.addEventListener('click', () => {
+                body.classList.toggle('dark-mode');
+                const theme = body.classList.contains('dark-mode') ? 'dark' : 'light';
+                localStorage.setItem('theme', theme);
+            });
+    
+            // 切换侧边栏
+            function toggleSidebarState() {
+                sidebar.classList.toggle('collapsed');
+                mainContent.classList.toggle('expanded');
+                
+                // 保存侧边栏状态
+                const isCollapsed = sidebar.classList.contains('collapsed');
+                localStorage.setItem('sidebar-collapsed', isCollapsed);
+            }
+    
+            // 添加点击事件监听器
+            toggleSidebar.addEventListener('click', toggleSidebarState);
+    
+            // 初始化侧边栏状态
+            function initSidebarState() {
+                const isCollapsed = localStorage.getItem('sidebar-collapsed') === 'true';
+                if (isCollapsed) {
+                    sidebar.classList.add('collapsed');
+                    mainContent.classList.add('expanded');
+                } else {
+                    sidebar.classList.remove('collapsed');
+                    mainContent.classList.remove('expanded');
+                }
+            }
+            
+            // 页面加载时初始化侧边栏状态
+            initSidebarState();
+            
+            // 移动端菜单切换
+            mobileMenuToggle.addEventListener('click', () => {
+                sidebar.classList.toggle('show');
+            });
+    
+            // 用户头像菜单
+            const userProfile = document.querySelector('.user-profile');
+            const userProfileMenu = document.getElementById('userProfileMenu');
+            
+            userProfile.addEventListener('mouseenter', () => {
+                const rect = userProfile.getBoundingClientRect();
+                const menuWidth = userProfileMenu.offsetWidth || 200; // 估计菜单宽度
+                const windowWidth = window.innerWidth;
+                
+                // 计算右侧是否会溢出
+                if (rect.left + menuWidth > windowWidth) {
+                    userProfileMenu.style.left = `${rect.right - menuWidth}px`;
+                } else {
+                    userProfileMenu.style.left = `${rect.left}px`;
+                }
+                
+                userProfileMenu.style.top = `${rect.bottom}px`;
+                userProfileMenu.classList.add('show');
+            });
+            
+            userProfile.addEventListener('mouseleave', (event) => {
+                const toElement = event.relatedTarget;
+                if (!userProfileMenu.contains(toElement)) {
+                    userProfileMenu.classList.remove('show');
+                }
+            });
+            
+            userProfileMenu.addEventListener('mouseleave', () => {
+                userProfileMenu.classList.remove('show');
+            });
+            
+            // 处理用户头像上传
+            avatarContainer.addEventListener('click', () => {
+                avatarUpload.click();
+            });
+            
+            avatarUpload.addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const img = document.createElement('img');
+                        img.src = e.target.result;
+                        
+                        // 清除现有头像
+                        avatarContainer.innerHTML = '';
+                        avatarContainer.appendChild(img);
+                        
+                        // 重新添加上传按钮
+                        const uploadBtn = document.createElement('div');
+                        uploadBtn.className = 'avatar-upload';
+                        uploadBtn.innerHTML = '<i class="fas fa-camera"></i> 更换头像';
+                        avatarContainer.appendChild(uploadBtn);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+            
+            // 表单提交处理
+            profileForm.addEventListener('submit', (event) => {
+                event.preventDefault();
+                
+                // 获取表单数据
+                const formData = {
+                    username: document.getElementById('username').value,
+                    email: document.getElementById('email').value,
+                    displayName: document.getElementById('displayName').value,
+                    phone: document.getElementById('phone').value,
+                    bio: document.getElementById('bio').value
+                };
+                
+                // 密码修改处理
+                const currentPassword = document.getElementById('currentPassword').value;
+                const newPassword = document.getElementById('newPassword').value;
+                const confirmPassword = document.getElementById('confirmPassword').value;
+                
+                if (currentPassword || newPassword || confirmPassword) {
+                    // 验证密码
+                    if (!currentPassword) {
+                        alert('请输入当前密码');
+                        return;
+                    }
+                    
+                    if (newPassword !== confirmPassword) {
+                        alert('新密码与确认密码不匹配');
+                        return;
+                    }
+                    
+                    if (newPassword && newPassword.length < 6) {
+                        alert('新密码长度至少为6个字符');
+                        return;
+                    }
+                    
+                    formData.currentPassword = currentPassword;
+                    formData.newPassword = newPassword;
+                }
+                
+                // 这里应该发送请求到后端API
+                console.log('提交的表单数据:', formData);
+                
+                // 模拟API请求成功
+                setTimeout(() => {
+                    alert('个人资料已更新');
+                    window.location.href = 'dashboard.html';
+                }, 1000);
+            });
+            
+            // 取消按钮返回上一页
+            cancelBtn.addEventListener('click', () => {
+                window.history.back();
+            });
+            
+            // 导航菜单项点击处理
+            const navItems = document.querySelectorAll('.nav-item');
+            navItems.forEach(item => {
+                item.addEventListener('click', () => {
+                    const text = item.querySelector('span').textContent;
+                    if (text === '我的笔记') {
+                        window.location.href = 'dashboard.html';
+                    } else if (text === '收藏笔记') {
+                        window.location.href = 'starred-notes.html';
+                    } else if (text === '笔记分类') {
+                        window.location.href = 'note-categories.html';
+                    } else if (text === '标签管理') {
+                        window.location.href = 'tags.html';
+                    } else if (text === '分享笔记') {
+                        window.location.href = 'note-share.html';
+                    } else if (text === '回收站') {
+                        window.location.href = 'trash.html';
+                    }
+                });
+            });
+            
+            // 用户菜单项点击处理
+            const menuItems = userProfileMenu.querySelectorAll('.menu-item');
+            menuItems.forEach(item => {
+                item.addEventListener('click', () => {
+                    const action = item.getAttribute('data-action');
+                    if (action === 'profile') {
+                        // 个人信息查看功能
+                        alert('查看个人信息 - 功能开发中');
+                    } else if (action === 'edit-profile') {
+                        window.location.href = 'profile-edit.html';
+                    } else if (action === 'settings') {
+                        window.location.href = 'settings.html';
+                    } else if (action === 'logout') {
+                        // 退出登录处理
+                        if (confirm('确定要退出登录吗？')) {
+                            window.location.href = 'index.html';
+                        }
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

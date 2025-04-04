@@ -1,0 +1,1421 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>笔记分类 - 笔记平台</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="./css/styles.css">
+    <script src="./js/api.js"></script>
+</head>
+<body>
+    <!-- 移动端菜单按钮 -->
+    <div class="mobile-menu-toggle" id="mobileMenuToggle">
+        <i class="fas fa-bars"></i>
+    </div>
+
+    <!-- 侧边栏 -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo" id="toggleSidebar">
+                <i class="fas fa-book"></i>
+                <span>笔记平台</span>
+            </div>
+        </div>
+        <div class="nav-menu">
+            <div class="nav-item">
+                <i class="fas fa-home"></i>
+                <span>我的笔记</span>
+            </div>
+            <div class="nav-item">
+                <i class="fas fa-star"></i>
+                <span>收藏笔记</span>
+            </div>
+            <div class="nav-item active">
+                <i class="fas fa-folder"></i>
+                <span>笔记分类</span>
+            </div>
+            <div class="nav-item">
+                <i class="fas fa-tags"></i>
+                <span>标签管理</span>
+            </div>
+            <div class="nav-item">
+                <i class="fas fa-share-alt"></i>
+                <span>分享笔记</span>
+            </div>
+            <div class="nav-item">
+                <i class="fas fa-trash"></i>
+                <span>回收站</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主题切换按钮 -->
+    <div class="theme-toggle" id="themeToggle">
+        <div class="theme-toggle-circle"></div>
+    </div>
+
+    <!-- 主内容区域 -->
+    <div class="main-content" id="mainContent">
+        <div class="content-header">
+            <div style="display: flex; align-items: center;">
+                <h1 class="welcome-text">笔记分类</h1>
+                <button class="new-category-btn" id="newCategoryBtn">
+                    <i class="fas fa-plus"></i>
+                    新建分类
+                </button>
+            </div>
+            <div class="user-profile" id="userProfile">
+                <div class="user-avatar">
+                    <i class="fas fa-user"></i>
+                </div>
+                <span>管理员</span>
+            </div>
+        </div>
+        <div class="categories-container">
+            <!-- 分类列表将由 JavaScript 动态生成 -->
+        </div>
+    </div>
+
+    <!-- 分类编辑弹窗 -->
+    <div class="modal" id="categoryModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">新建分类</h2>
+                <button class="close-btn" id="closeModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="categoryName">分类名称</label>
+                    <input type="text" id="categoryName" placeholder="请输入分类名称">
+                </div>
+                <div class="form-group">
+                    <label for="categoryDescription">分类描述</label>
+                    <textarea id="categoryDescription" placeholder="请输入分类描述（选填）"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="categoryColor">分类颜色</label>
+                    <div class="color-picker">
+                        <button class="color-option selected" data-color="#1a73e8" style="background-color: #1a73e8;"></button>
+                        <button class="color-option" data-color="#34a853" style="background-color: #34a853;"></button>
+                        <button class="color-option" data-color="#fbbc05" style="background-color: #fbbc05;"></button>
+                        <button class="color-option" data-color="#ea4335" style="background-color: #ea4335;"></button>
+                        <button class="color-option" data-color="#9c27b0" style="background-color: #9c27b0;"></button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="cancel-btn" id="cancelBtn">取消</button>
+                <button class="save-btn" id="saveBtn">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 分类笔记列表弹窗 -->
+    <div class="modal" id="categoryNotesModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="categoryNotesTitle">分类笔记</h2>
+                <button class="close-btn" id="closeCategoryNotesModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="category-notes-list">
+                    <!-- 分类下的笔记将由 JavaScript 动态生成 -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="cancel-btn" id="backToCategoriesBtn">返回分类列表</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 用户头像菜单 -->
+    <div class="user-profile-menu" id="userProfileMenu">
+        <div class="menu-item" data-action="profile">
+            <i class="fas fa-user-circle"></i>
+            个人信息
+        </div>
+        <div class="menu-item" data-action="edit-profile">
+            <i class="fas fa-user-edit"></i>
+            编辑个人资料
+        </div>
+        <div class="menu-divider"></div>
+        <div class="menu-item" data-action="settings">
+            <i class="fas fa-cog"></i>
+            系统设置
+        </div>
+        <div class="menu-item" data-action="logout">
+            <i class="fas fa-sign-out-alt"></i>
+            退出登录
+        </div>
+    </div>
+
+    <script>
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('mainContent');
+        const toggleSidebar = document.getElementById('toggleSidebar');
+        const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+        const themeToggle = document.getElementById('themeToggle');
+        const newCategoryBtn = document.getElementById('newCategoryBtn');
+        const categoryModal = document.getElementById('categoryModal');
+        const closeModal = document.getElementById('closeModal');
+        const cancelBtn = document.getElementById('cancelBtn');
+        const saveBtn = document.getElementById('saveBtn');
+        const categoryNameInput = document.getElementById('categoryName');
+        const categoryDescriptionInput = document.getElementById('categoryDescription');
+        const modalTitle = document.getElementById('modalTitle');
+        const body = document.body;
+        const userProfile = document.getElementById('userProfile');
+        const userProfileMenu = document.getElementById('userProfileMenu');
+
+        // 检查本地存储中的主题偏好
+        const currentTheme = localStorage.getItem('theme');
+        if (currentTheme === 'dark') {
+            body.classList.add('dark-mode');
+        }
+
+        // 切换主题
+        themeToggle.addEventListener('click', () => {
+            body.classList.toggle('dark-mode');
+            const theme = body.classList.contains('dark-mode') ? 'dark' : 'light';
+            localStorage.setItem('theme', theme);
+        });
+
+        // 切换侧边栏
+        function toggleSidebarState() {
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('expanded');
+            
+            // 保存侧边栏状态
+            const isCollapsed = sidebar.classList.contains('collapsed');
+            localStorage.setItem('sidebar-collapsed', isCollapsed);
+        }
+
+        // 添加点击事件监听器
+        toggleSidebar.addEventListener('click', toggleSidebarState);
+
+        // 初始化侧边栏状态
+        const isCollapsed = localStorage.getItem('sidebar-collapsed') === 'true';
+        if (isCollapsed) {
+            sidebar.classList.add('collapsed');
+            mainContent.classList.add('expanded');
+        }
+
+        // 加载分类列表
+        function loadCategories() {
+            const categoriesContainer = document.querySelector('.categories-container');
+            
+            // 显示加载状态
+            categoriesContainer.innerHTML = `
+                <div class="loading-categories">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>加载分类中...</p>
+                </div>
+            `;
+            
+            // 先尝试从API获取分类
+            if (typeof api !== 'undefined') {
+                api.getCategories()
+                    .then(response => {
+                        if (response && response.success && response.categories) {
+                            // API请求成功
+                            const categories = response.categories;
+                            // 保存到本地
+                            localStorage.setItem('categories', JSON.stringify(categories));
+                            // 渲染分类
+                            renderCategories(categories);
+                        } else {
+                            throw new Error('获取分类失败');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('API获取分类失败:', error);
+                        // 回退到本地存储
+                        const categories = JSON.parse(localStorage.getItem('categories') || '[]');
+                        renderCategories(categories);
+                    });
+            } else {
+                // 如果API对象不存在，使用本地存储
+                const categories = JSON.parse(localStorage.getItem('categories') || '[]');
+                renderCategories(categories);
+            }
+        }
+        
+        // 渲染分类列表
+        function renderCategories(categories) {
+            const categoriesContainer = document.querySelector('.categories-container');
+            
+            if (categories.length === 0) {
+                categoriesContainer.innerHTML = `
+                    <div class="empty-categories">
+                        <i class="fas fa-folder-open"></i>
+                        <p>暂无分类，点击"新建分类"按钮创建</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            categoriesContainer.innerHTML = categories.map(category => `
+                <div class="category-card" data-id="${category._id || category.id}">
+                    <div class="category-header">
+                        <div class="category-color" style="background-color: ${category.color || '#1a73e8'}"></div>
+                        <h3 class="category-name">${category.name}</h3>
+                        <span class="category-count">${category.count || 0} 个笔记</span>
+                    </div>
+                    <p class="category-description">${category.description || '暂无描述'}</p>
+                    <div class="category-actions">
+                        <button class="edit-category-btn" data-id="${category._id || category.id}">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="delete-category-btn" data-id="${category._id || category.id}">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+
+            // 更新分类点击事件
+            document.querySelectorAll('.category-card').forEach(card => {
+                const editBtn = card.querySelector('.edit-category-btn');
+                const deleteBtn = card.querySelector('.delete-category-btn');
+                
+                // 点击分类卡片显示该分类下的笔记
+                card.addEventListener('click', (e) => {
+                    if (!e.target.closest('.edit-category-btn') && !e.target.closest('.delete-category-btn')) {
+                        showCategoryNotes(card.dataset.id);
+                    }
+                });
+                
+                editBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    editCategory(card.dataset.id);
+                });
+
+                deleteBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    deleteCategory(card.dataset.id);
+                });
+            });
+        }
+
+        // 打开分类编辑弹窗
+        function openCategoryModal(categoryId = null) {
+            const category = categoryId ? JSON.parse(localStorage.getItem('categories') || '[]').find(c => c.id === categoryId) : null;
+            
+            modalTitle.textContent = category ? '编辑分类' : '新建分类';
+            categoryNameInput.value = category ? category.name : '';
+            categoryDescriptionInput.value = category ? category.description || '' : '';
+            
+            // 设置选中的颜色
+            const selectedColor = category ? category.color || '#1a73e8' : '#1a73e8';
+            document.querySelectorAll('.color-option').forEach(option => {
+                if (option.dataset.color === selectedColor) {
+                    option.classList.add('selected');
+                } else {
+                    option.classList.remove('selected');
+                }
+            });
+            
+            categoryModal.style.display = 'block';
+            categoryModal.dataset.categoryId = categoryId || '';
+        }
+
+        // 关闭分类编辑弹窗
+        function closeCategoryModal() {
+            categoryModal.style.display = 'none';
+            categoryNameInput.value = '';
+            categoryDescriptionInput.value = '';
+            categoryModal.dataset.categoryId = '';
+        }
+
+        // 编辑分类
+        function editCategory(categoryId) {
+            openCategoryModal(categoryId);
+        }
+
+        // 删除分类
+        function deleteCategory(categoryId) {
+            if (confirm('确定要删除这个分类吗？此操作不可恢复。')) {
+                // 显示Loading状态
+                const loadingToast = showToast('正在删除分类...', 'info');
+                
+                // 先尝试使用API删除
+                if (typeof api !== 'undefined') {
+                    api.deleteCategory(categoryId)
+                        .then(response => {
+                            if (response && response.success) {
+                                // API删除成功
+                                removeToast(loadingToast);
+                                showToast('分类已删除', 'success');
+                                
+                                // 更新本地存储
+                                const categories = JSON.parse(localStorage.getItem('categories') || '[]');
+                                const updatedCategories = categories.filter(category => 
+                                    category.id !== categoryId && category._id !== categoryId
+                                );
+                                localStorage.setItem('categories', JSON.stringify(updatedCategories));
+                                
+                                // 更新笔记中的分类引用
+                                updateNotesAfterCategoryDelete(categoryId);
+                                
+                                // 刷新显示
+                                loadCategories();
+                            } else {
+                                throw new Error('删除分类失败');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('API删除分类失败:', error);
+                            removeToast(loadingToast);
+                            
+                            // 回退到本地删除
+                            if (confirm('API删除失败，是否在本地删除该分类？')) {
+                                deleteCategoryLocally(categoryId);
+                            } else {
+                                showToast('删除操作已取消', 'info');
+                            }
+                        });
+                } else {
+                    // API不可用，直接本地删除
+                    removeToast(loadingToast);
+                    deleteCategoryLocally(categoryId);
+                }
+            }
+        }
+        
+        // 本地删除分类
+        function deleteCategoryLocally(categoryId) {
+            const categories = JSON.parse(localStorage.getItem('categories') || '[]');
+            
+            // 从分类列表中删除
+            const updatedCategories = categories.filter(category => 
+                category.id !== categoryId && category._id !== categoryId
+            );
+            localStorage.setItem('categories', JSON.stringify(updatedCategories));
+            
+            // 更新笔记中的分类引用
+            updateNotesAfterCategoryDelete(categoryId);
+            
+            // 显示成功消息
+            showToast('分类已在本地删除', 'success');
+            
+            // 刷新显示
+            loadCategories();
+        }
+        
+        // 更新笔记中的分类引用
+        function updateNotesAfterCategoryDelete(categoryId) {
+            const notes = JSON.parse(localStorage.getItem('notes') || '[]');
+            let updated = false;
+            
+            notes.forEach(note => {
+                if (note.categoryId === categoryId) {
+                    note.categoryId = null;
+                    updated = true;
+                }
+            });
+            
+            if (updated) {
+                localStorage.setItem('notes', JSON.stringify(notes));
+            }
+        }
+
+        // 保存分类
+        function saveCategory() {
+            const name = categoryNameInput.value.trim();
+            const description = categoryDescriptionInput.value.trim();
+            const color = document.querySelector('.color-option.selected').dataset.color;
+            
+            if (!name) {
+                alert('请填写分类名称');
+                return;
+            }
+            
+            // 显示Loading状态
+            const loadingToast = showToast('正在保存分类...', 'info');
+            
+            const categoryId = categoryModal.dataset.categoryId;
+            const categoryData = {
+                name,
+                description,
+                color
+            };
+            
+            // 尝试使用API保存
+            if (typeof api !== 'undefined') {
+                const apiPromise = categoryId
+                    ? api.updateCategory(categoryId, categoryData)
+                    : api.createCategory(categoryData);
+                
+                apiPromise
+                    .then(response => {
+                        if (response && response.success) {
+                            // API保存成功
+                            removeToast(loadingToast);
+                            showToast(categoryId ? '分类已更新' : '分类已创建', 'success');
+                            
+                            // 更新本地存储中的分类
+                            saveCategoryToLocalStorage(
+                                categoryId, 
+                                response.category || categoryData
+                            );
+                            
+                            // 关闭弹窗并刷新列表
+                            closeCategoryModal();
+                            loadCategories();
+                        } else {
+                            throw new Error('保存分类失败');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('API保存分类失败:', error);
+                        removeToast(loadingToast);
+                        
+                        // 回退到本地保存
+                        if (confirm('API保存失败，是否保存到本地？')) {
+                            saveCategoryLocally(categoryId, categoryData);
+                        } else {
+                            showToast('保存操作已取消', 'info');
+                        }
+                    });
+            } else {
+                // API不可用，直接本地保存
+                removeToast(loadingToast);
+                saveCategoryLocally(categoryId, categoryData);
+            }
+        }
+        
+        // 保存分类到本地存储
+        function saveCategoryToLocalStorage(categoryId, categoryData) {
+            const categories = JSON.parse(localStorage.getItem('categories') || '[]');
+            
+            if (categoryId) {
+                // 更新现有分类
+                const categoryIndex = categories.findIndex(c => 
+                    c.id === categoryId || c._id === categoryId
+                );
+                
+                if (categoryIndex !== -1) {
+                    // 保留原有的属性，如count
+                    categories[categoryIndex] = {
+                        ...categories[categoryIndex],
+                        ...categoryData,
+                        updatedAt: new Date().toISOString()
+                    };
+                    
+                    // 确保id和_id一致性
+                    if (categoryData._id && !categories[categoryIndex].id) {
+                        categories[categoryIndex].id = categoryData._id;
+                    } else if (categoryData.id && !categories[categoryIndex]._id) {
+                        categories[categoryIndex]._id = categoryData.id;
+                    }
+                }
+            } else {
+                // 创建新分类
+                const newCategory = {
+                    ...categoryData,
+                    id: categoryData._id || categoryData.id || Date.now().toString(),
+                    count: 0,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                };
+                
+                // 确保同时有id和_id
+                if (newCategory._id && !newCategory.id) {
+                    newCategory.id = newCategory._id;
+                } else if (newCategory.id && !newCategory._id) {
+                    newCategory._id = newCategory.id;
+                }
+                
+                categories.push(newCategory);
+            }
+            
+            localStorage.setItem('categories', JSON.stringify(categories));
+        }
+        
+        // 本地保存分类
+        function saveCategoryLocally(categoryId, categoryData) {
+            saveCategoryToLocalStorage(categoryId, categoryData);
+            updateCategoryCounts();
+            closeCategoryModal();
+            loadCategories();
+            showToast(categoryId ? '分类已在本地更新' : '分类已在本地创建', 'success');
+        }
+        
+        // 显示提示消息
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `toast-message ${type}`;
+            toast.innerHTML = `<i class="fas fa-${getToastIcon(type)}"></i> ${message}`;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.classList.add('show');
+            }, 10);
+            
+            if (type !== 'info') {
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                    setTimeout(() => {
+                        document.body.removeChild(toast);
+                    }, 300);
+                }, 3000);
+            }
+            
+            return toast;
+        }
+        
+        // 移除提示消息
+        function removeToast(toast) {
+            if (toast && document.body.contains(toast)) {
+                toast.classList.remove('show');
+                setTimeout(() => {
+                    document.body.removeChild(toast);
+                }, 300);
+            }
+        }
+        
+        // 获取提示图标
+        function getToastIcon(type) {
+            switch (type) {
+                case 'success': return 'check-circle';
+                case 'error': return 'exclamation-circle';
+                case 'info': return 'info-circle';
+                default: return 'info-circle';
+            }
+        }
+
+        // 显示分类下的笔记
+        function showCategoryNotes(categoryId) {
+            const categoryNotesModal = document.getElementById('categoryNotesModal');
+            const categoryNotesTitle = document.getElementById('categoryNotesTitle');
+            const categoryNotesList = document.querySelector('.category-notes-list');
+            
+            const categories = JSON.parse(localStorage.getItem('categories') || '[]');
+            const notes = JSON.parse(localStorage.getItem('notes') || '[]');
+            
+            const category = categories.find(c => c.id === categoryId);
+            if (!category) return;
+            
+            categoryNotesTitle.textContent = `${category.name} - 笔记列表`;
+            
+            // 过滤出属于该分类且不在回收站的笔记
+            const categoryNotes = notes.filter(note => note.categoryId === categoryId && !note.inTrash);
+            
+            if (categoryNotes.length === 0) {
+                categoryNotesList.innerHTML = `
+                    <div class="empty-category-notes">
+                        <i class="fas fa-sticky-note"></i>
+                        <p>该分类下暂无笔记</p>
+                    </div>
+                `;
+            } else {
+                categoryNotesList.innerHTML = categoryNotes.map(note => `
+                    <div class="category-note-item" data-id="${note.id}">
+                        <div class="note-item-header">
+                            <h3 class="note-item-title">${note.title}</h3>
+                            <span class="note-item-date">${new Date(note.updatedAt).toLocaleDateString()}</span>
+                        </div>
+                        <p class="note-item-preview">${note.content.substring(0, 150)}${note.content.length > 150 ? '...' : ''}</p>
+                    </div>
+                `).join('');
+                
+                // 添加笔记点击事件
+                document.querySelectorAll('.category-note-item').forEach(item => {
+                    item.addEventListener('click', () => {
+                        const noteId = item.dataset.id;
+                        // 关闭当前modal
+                        document.getElementById('categoryNotesModal').style.display = 'none';
+                        // 打开笔记编辑器
+                        const editorModal = document.createElement('div');
+                        editorModal.className = 'editor-modal-container';
+                        editorModal.id = 'editorModal';
+                        editorModal.style.display = 'block';
+                        editorModal.innerHTML = `<iframe src="note-editor-modal.html?id=${noteId}" style="width:100%; height:100%; border:none;"></iframe>`;
+                        document.body.appendChild(editorModal);
+                    });
+                });
+            }
+            
+            categoryNotesModal.style.display = 'block';
+        }
+
+        // 关闭分类笔记列表弹窗
+        function closeCategoryNotesModal() {
+            document.getElementById('categoryNotesModal').style.display = 'none';
+        }
+
+        // 更新分类中的笔记数量
+        function updateCategoryCounts() {
+            const categories = JSON.parse(localStorage.getItem('categories') || '[]');
+            const notes = JSON.parse(localStorage.getItem('notes') || '[]');
+            
+            // 重置所有分类的计数
+            categories.forEach(category => {
+                category.count = 0;
+            });
+            
+            // 统计每个分类中的笔记数量（不包括回收站中的笔记）
+            notes.forEach(note => {
+                if (note.categoryId && !note.inTrash) {
+                    const categoryIndex = categories.findIndex(c => c.id === note.categoryId);
+                    if (categoryIndex !== -1) {
+                        categories[categoryIndex].count = (categories[categoryIndex].count || 0) + 1;
+                    }
+                }
+            });
+            
+            localStorage.setItem('categories', JSON.stringify(categories));
+        }
+
+        // 事件监听器
+        newCategoryBtn.addEventListener('click', () => openCategoryModal());
+        closeModal.addEventListener('click', closeCategoryModal);
+        cancelBtn.addEventListener('click', closeCategoryModal);
+        saveBtn.addEventListener('click', saveCategory);
+        
+        // 分类笔记列表事件监听器
+        document.getElementById('closeCategoryNotesModal').addEventListener('click', closeCategoryNotesModal);
+        document.getElementById('backToCategoriesBtn').addEventListener('click', closeCategoryNotesModal);
+
+        // 颜色选择器事件绑定
+        document.querySelectorAll('.color-option').forEach(option => {
+            option.addEventListener('click', () => {
+                document.querySelectorAll('.color-option').forEach(opt => opt.classList.remove('selected'));
+                option.classList.add('selected');
+            });
+        });
+
+        // 初始化
+        updateCategoryCounts();
+        loadCategories();
+
+        // 导航菜单项点击事件
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const icon = item.querySelector('i');
+                if (icon.classList.contains('fa-folder')) {
+                    // 已经在分类页面，不需要跳转
+                    return;
+                }
+                
+                // 根据图标类名确定目标页面
+                let targetPage = '';
+                if (icon.classList.contains('fa-home')) {
+                    targetPage = 'dashboard.html';
+                } else if (icon.classList.contains('fa-star')) {
+                    targetPage = 'starred-notes.html';
+                } else if (icon.classList.contains('fa-tags')) {
+                    targetPage = 'tags.html';
+                } else if (icon.classList.contains('fa-share-alt')) {
+                    targetPage = 'note-share.html';
+                } else if (icon.classList.contains('fa-trash')) {
+                    targetPage = 'trash.html';
+                }
+
+                // 如果找到目标页面，则进行跳转
+                if (targetPage) {
+                    try {
+                        console.log('准备跳转到页面:', targetPage);
+                        console.log('当前页面路径:', window.location.pathname);
+                        // 使用 replace 方法进行跳转
+                        window.location.replace(targetPage);
+                    } catch (error) {
+                        console.error('页面跳转失败:', error);
+                        alert('页面跳转失败，请检查页面是否存在');
+                    }
+                } else {
+                    console.error('未找到目标页面');
+                }
+            });
+        });
+
+        // 移动端菜单切换
+        mobileMenuToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('show');
+        });
+
+        // 点击主内容区域时在移动端关闭侧边栏
+        mainContent.addEventListener('click', () => {
+            if (window.innerWidth <= 768) {
+                sidebar.classList.remove('show');
+            }
+        });
+
+        // 窗口大小改变时处理侧边栏状态
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 768) {
+                sidebar.classList.remove('show');
+            }
+        });
+
+        // 用户头像菜单
+        userProfile.addEventListener('mouseenter', () => {
+            const rect = userProfile.getBoundingClientRect();
+            const menuWidth = userProfileMenu.offsetWidth || 200; // 估计菜单宽度
+            const windowWidth = window.innerWidth;
+            
+            // 计算右侧是否会溢出
+            if (rect.left + menuWidth > windowWidth) {
+                // 如果会溢出，将菜单向左对齐
+                userProfileMenu.style.left = `${rect.right - menuWidth}px`;
+            } else {
+                userProfileMenu.style.left = `${rect.left}px`;
+            }
+            
+            userProfileMenu.style.top = `${rect.bottom}px`;
+            userProfileMenu.classList.add('show');
+        });
+        
+        userProfile.addEventListener('mouseleave', (event) => {
+            // 检查鼠标是否移动到菜单上
+            const toElement = event.relatedTarget;
+            if (!userProfileMenu.contains(toElement)) {
+                userProfileMenu.classList.remove('show');
+            }
+        });
+        
+        userProfileMenu.addEventListener('mouseleave', () => {
+            userProfileMenu.classList.remove('show');
+        });
+
+        // 用户菜单项点击事件
+        userProfileMenu.querySelectorAll('.menu-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const action = item.dataset.action;
+                userProfileMenu.classList.remove('show');
+                
+                // 处理不同的菜单操作
+                switch(action) {
+                    case 'profile':
+                        alert('查看个人信息');
+                        break;
+                    case 'edit-profile':
+                        window.location.href = 'profile-edit.html';
+                        break;
+                    case 'settings':
+                        window.location.replace('settings.html');
+                        break;
+                    case 'logout':
+                        alert('退出登录');
+                        break;
+                }
+            });
+        });
+    </script>
+
+    <style>
+        .categories-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 20px;
+        }
+
+        .category-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .category-card:hover {
+            transform: translateX(2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .category-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+        }
+
+        .category-color {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .category-name {
+            margin: 0;
+            font-size: 16px;
+            color: #333;
+            flex-grow: 1;
+        }
+
+        .dark-mode .category-name {
+            color: #fff;
+        }
+
+        .category-count {
+            color: #666;
+            font-size: 14px;
+            margin-left: auto;
+        }
+
+        .dark-mode .category-count {
+            color: #aaa;
+        }
+
+        .category-description {
+            margin: 0;
+            font-size: 14px;
+            color: #666;
+            line-height: 1.5;
+            flex: 2;
+            max-width: 50%;
+        }
+
+        .dark-mode .category-description {
+            color: #bbb;
+        }
+
+        .category-actions {
+            margin-left: auto;
+            display: flex;
+            gap: 8px;
+        }
+
+        .edit-category-btn,
+        .delete-category-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #666;
+            font-size: 16px;
+            padding: 4px;
+            transition: color 0.2s ease;
+        }
+
+        .edit-category-btn:hover,
+        .delete-category-btn:hover {
+            color: #1a73e8;
+        }
+
+        .delete-category-btn:hover {
+            color: #ea4335;
+        }
+
+        .empty-categories {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .empty-categories i {
+            font-size: 48px;
+            margin-bottom: 16px;
+            color: #999;
+        }
+        
+        .empty-categories p {
+            font-size: 18px;
+            margin: 0;
+        }
+        
+        .dark-mode .empty-categories {
+            color: #bbb;
+        }
+        
+        .dark-mode .empty-categories i {
+            color: #666;
+        }
+        
+        /* 颜色选择器样式 */
+        .color-picker {
+            display: flex;
+            gap: 10px;
+            margin-top: 8px;
+        }
+        
+        .color-option {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .color-option.selected {
+            transform: scale(1.2);
+            box-shadow: 0 0 0 2px white, 0 0 0 4px #1a73e8;
+        }
+        
+        /* 分类笔记列表样式 */
+        .category-notes-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+        
+        .category-note-item {
+            background-color: #f5f5f5;
+            border-radius: 8px;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .dark-mode .category-note-item {
+            background-color: #333;
+        }
+        
+        .category-note-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+        
+        .note-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .note-item-title {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        .note-item-date {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .dark-mode .note-item-date {
+            color: #aaa;
+        }
+        
+        .note-item-preview {
+            margin: 0;
+            font-size: 14px;
+            color: #666;
+            line-height: 1.4;
+        }
+        
+        .dark-mode .note-item-preview {
+            color: #bbb;
+        }
+        
+        .empty-category-notes {
+            text-align: center;
+            padding: 30px;
+            color: #666;
+        }
+        
+        .empty-category-notes i {
+            font-size: 40px;
+            margin-bottom: 12px;
+            color: #999;
+        }
+        
+        .empty-category-notes p {
+            font-size: 16px;
+            margin: 0;
+        }
+        
+        .dark-mode .empty-category-notes {
+            color: #bbb;
+        }
+        
+        .dark-mode .empty-category-notes i {
+            color: #666;
+        }
+        
+        .dark-mode .category-card {
+            background-color: #2d2d2d;
+        }
+        
+        .dark-mode .category-note-item {
+            background-color: #3d3d3d;
+        }
+
+        .new-category-btn {
+            background-color: #1a73e8;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: 20px;
+            transition: background-color 0.3s ease;
+        }
+
+        .new-category-btn:hover {
+            background-color: #1557b0;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: #fff;
+            width: 90%;
+            max-width: 500px;
+            margin: 50px auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .modal-header {
+            padding: 16px 24px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 20px;
+            color: #333;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 20px;
+            color: #666;
+            cursor: pointer;
+            padding: 4px;
+        }
+
+        .modal-body {
+            padding: 24px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        .form-group textarea {
+            height: 100px;
+            resize: vertical;
+        }
+
+        .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        .cancel-btn,
+        .save-btn {
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .cancel-btn {
+            background: none;
+            border: 1px solid #ddd;
+            color: #666;
+        }
+
+        .save-btn {
+            background-color: #1a73e8;
+            border: none;
+            color: white;
+        }
+
+        .cancel-btn:hover {
+            background-color: #f5f5f5;
+        }
+
+        .save-btn:hover {
+            background-color: #1557b0;
+        }
+
+        /* 暗色模式样式 */
+        .dark-mode .category-card {
+            background-color: #2d2d2d;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .dark-mode .category-name {
+            color: #fff;
+        }
+
+        .dark-mode .category-count,
+        .dark-mode .category-description {
+            color: #bbb;
+        }
+
+        .dark-mode .edit-category-btn,
+        .dark-mode .delete-category-btn {
+            color: #bbb;
+        }
+
+        .dark-mode .modal-content {
+            background-color: #2d2d2d;
+        }
+
+        .dark-mode .modal-header {
+            border-bottom-color: #3d3d3d;
+        }
+
+        .dark-mode .modal-header h2 {
+            color: #fff;
+        }
+
+        .dark-mode .close-btn {
+            color: #bbb;
+        }
+
+        .dark-mode .form-group label {
+            color: #fff;
+        }
+
+        .dark-mode .form-group input,
+        .dark-mode .form-group textarea {
+            background-color: #3d3d3d;
+            border-color: #4d4d4d;
+            color: #fff;
+        }
+
+        .dark-mode .modal-footer {
+            border-top-color: #3d3d3d;
+        }
+
+        .dark-mode .cancel-btn {
+            background-color: #3d3d3d;
+            border-color: #4d4d4d;
+            color: #fff;
+        }
+
+        .dark-mode .cancel-btn:hover {
+            background-color: #4d4d4d;
+        }
+
+        /* 用户头像菜单样式 */
+        .user-profile {
+            position: relative;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background-color: #e8f0fe;
+            color: #1a73e8;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .dark-mode .user-avatar {
+            background-color: #1a73e8;
+            color: white;
+        }
+
+        .user-profile-menu {
+            position: absolute;
+            top: 45px;
+            right: 10px;
+            width: 200px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            z-index: 1000;
+            display: none;
+        }
+
+        .user-profile-menu.show {
+            display: block;
+        }
+
+        .dark-mode .user-profile-menu {
+            background-color: #2d2d2d;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+        }
+
+        .menu-item {
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #333;
+            transition: background-color 0.3s;
+            cursor: pointer;
+        }
+
+        .dark-mode .menu-item {
+            color: #fff;
+        }
+
+        .menu-item:hover {
+            background-color: #f5f5f5;
+        }
+
+        .dark-mode .menu-item:hover {
+            background-color: #3d3d3d;
+        }
+
+        .menu-divider {
+            height: 1px;
+            background-color: #e0e0e0;
+            margin: 4px 0;
+        }
+
+        .dark-mode .menu-divider {
+            background-color: #444;
+        }
+
+        .menu-item.delete {
+            color: #ea4335;
+        }
+
+        .dark-mode .menu-item.delete {
+            color: #ff6b6b;
+        }
+
+        /* 提示消息样式 */
+        .toast-message {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            transform: translateY(-20px);
+            opacity: 0;
+            z-index: 9999;
+            max-width: 80%;
+        }
+        
+        .toast-message.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        
+        .toast-message.success {
+            background-color: #e7f7e8;
+            color: #1e8e3e;
+            border-left: 4px solid #1e8e3e;
+        }
+        
+        .toast-message.error {
+            background-color: #fce8e6;
+            color: #d93025;
+            border-left: 4px solid #d93025;
+        }
+        
+        .toast-message.info {
+            background-color: #e8f0fe;
+            color: #1a73e8;
+            border-left: 4px solid #1a73e8;
+        }
+        
+        .toast-message i {
+            font-size: 18px;
+        }
+        
+        .dark-mode .toast-message.success {
+            background-color: #0d3218;
+            color: #81c995;
+            border-left: 4px solid #81c995;
+        }
+        
+        .dark-mode .toast-message.error {
+            background-color: #3d1412;
+            color: #f28b82;
+            border-left: 4px solid #f28b82;
+        }
+        
+        .dark-mode .toast-message.info {
+            background-color: #0d2a4e;
+            color: #8ab4f8;
+            border-left: 4px solid #8ab4f8;
+        }
+        
+        /* 加载状态样式 */
+        .loading-categories {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .loading-categories i {
+            font-size: 32px;
+            margin-bottom: 16px;
+            color: #1a73e8;
+            animation: spin 1s linear infinite;
+        }
+        
+        .loading-categories p {
+            font-size: 18px;
+            margin: 0;
+        }
+        
+        .dark-mode .loading-categories {
+            color: #bbb;
+        }
+        
+        .dark-mode .loading-categories i {
+            color: #4b8bf4;
+        }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</body>
+</html> 

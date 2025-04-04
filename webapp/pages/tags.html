@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>标签管理 - 笔记平台</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="./css/styles.css">
+</head>
+<body>
+    <!-- 移动端菜单按钮 -->
+    <div class="mobile-menu-toggle" id="mobileMenuToggle">
+        <i class="fas fa-bars"></i>
+    </div>
+
+    <!-- 侧边栏 -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo" id="toggleSidebar">
+                <i class="fas fa-book"></i>
+                <span>笔记平台</span>
+            </div>
+        </div>
+        <div class="nav-menu">
+            <div class="nav-item">
+                <i class="fas fa-home"></i>
+                <span>我的笔记</span>
+            </div>
+            <div class="nav-item">
+                <i class="fas fa-star"></i>
+                <span>收藏笔记</span>
+            </div>
+            <div class="nav-item">
+                <i class="fas fa-folder"></i>
+                <span>笔记分类</span>
+            </div>
+            <div class="nav-item active">
+                <i class="fas fa-tags"></i>
+                <span>标签管理</span>
+            </div>
+            <div class="nav-item">
+                <i class="fas fa-share-alt"></i>
+                <span>分享笔记</span>
+            </div>
+            <div class="nav-item">
+                <i class="fas fa-trash"></i>
+                <span>回收站</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主题切换按钮 -->
+    <div class="theme-toggle" id="themeToggle">
+        <div class="theme-toggle-circle"></div>
+    </div>
+
+    <!-- 主内容区域 -->
+    <div class="main-content" id="mainContent">
+        <div class="content-header">
+            <div style="display: flex; align-items: center;">
+                <h1 class="welcome-text">标签管理</h1>
+                <button class="new-tag-btn" id="newTagBtn">
+                    <i class="fas fa-plus"></i>
+                    新建标签
+                </button>
+            </div>
+            <div class="user-profile" id="userProfile">
+                <div class="user-avatar">
+                    <i class="fas fa-user"></i>
+                </div>
+                <span>管理员</span>
+            </div>
+        </div>
+        <div class="tags-container">
+            <!-- 标签列表将由 JavaScript 动态生成 -->
+        </div>
+    </div>
+
+    <!-- 标签编辑弹窗 -->
+    <div class="modal" id="tagModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">新建标签</h2>
+                <button class="close-btn" id="closeModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="tagName">标签名称</label>
+                    <input type="text" id="tagName" placeholder="请输入标签名称">
+                </div>
+                <div class="form-group">
+                    <label for="tagColor">标签颜色</label>
+                    <div class="color-picker">
+                        <button class="color-option" data-color="#1a73e8" style="background-color: #1a73e8;"></button>
+                        <button class="color-option" data-color="#34a853" style="background-color: #34a853;"></button>
+                        <button class="color-option" data-color="#fbbc05" style="background-color: #fbbc05;"></button>
+                        <button class="color-option" data-color="#ea4335" style="background-color: #ea4335;"></button>
+                        <button class="color-option" data-color="#4285f4" style="background-color: #4285f4;"></button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="cancel-btn" id="cancelBtn">取消</button>
+                <button class="save-btn" id="saveBtn">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 用户头像菜单 -->
+    <div class="user-profile-menu" id="userProfileMenu">
+        <div class="menu-item" data-action="profile">
+            <i class="fas fa-user-circle"></i>
+            个人信息
+        </div>
+        <div class="menu-item" data-action="edit-profile">
+            <i class="fas fa-user-edit"></i>
+            编辑个人资料
+        </div>
+        <div class="menu-divider"></div>
+        <div class="menu-item" data-action="settings">
+            <i class="fas fa-cog"></i>
+            系统设置
+        </div>
+        <div class="menu-item" data-action="logout">
+            <i class="fas fa-sign-out-alt"></i>
+            退出登录
+        </div>
+    </div>
+
+    <script>
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('mainContent');
+        const toggleSidebar = document.getElementById('toggleSidebar');
+        const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+        const themeToggle = document.getElementById('themeToggle');
+        const newTagBtn = document.getElementById('newTagBtn');
+        const tagModal = document.getElementById('tagModal');
+        const closeModal = document.getElementById('closeModal');
+        const cancelBtn = document.getElementById('cancelBtn');
+        const saveBtn = document.getElementById('saveBtn');
+        const tagNameInput = document.getElementById('tagName');
+        const modalTitle = document.getElementById('modalTitle');
+        const body = document.body;
+        const userProfile = document.getElementById('userProfile');
+        const userProfileMenu = document.getElementById('userProfileMenu');
+
+        // 检查本地存储中的主题偏好
+        const currentTheme = localStorage.getItem('theme');
+        if (currentTheme === 'dark') {
+            body.classList.add('dark-mode');
+        }
+
+        // 切换主题
+        themeToggle.addEventListener('click', () => {
+            body.classList.toggle('dark-mode');
+            const theme = body.classList.contains('dark-mode') ? 'dark' : 'light';
+            localStorage.setItem('theme', theme);
+        });
+
+        // 切换侧边栏
+        function toggleSidebarState() {
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('expanded');
+            
+            // 保存侧边栏状态
+            const isCollapsed = sidebar.classList.contains('collapsed');
+            localStorage.setItem('sidebar-collapsed', isCollapsed);
+        }
+
+        // 添加点击事件监听器
+        toggleSidebar.addEventListener('click', toggleSidebarState);
+
+        // 初始化侧边栏状态
+        const isCollapsed = localStorage.getItem('sidebar-collapsed') === 'true';
+        if (isCollapsed) {
+            sidebar.classList.add('collapsed');
+            mainContent.classList.add('expanded');
+        }
+
+        // 加载标签列表
+        function loadTags() {
+            const tagsContainer = document.querySelector('.tags-container');
+            const tags = JSON.parse(localStorage.getItem('tags') || '[]');
+            
+            tagsContainer.innerHTML = tags.map(tag => `
+                <div class="tag-card" data-id="${tag.id}">
+                    <div class="tag-header">
+                        <div class="tag-color" style="background-color: ${tag.color}"></div>
+                        <h3 class="tag-name">${tag.name}</h3>
+                        <span class="tag-count">${tag.count || 0} 个笔记</span>
+                    </div>
+                    <div class="tag-actions">
+                        <button class="edit-tag-btn" data-id="${tag.id}">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="delete-tag-btn" data-id="${tag.id}">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+
+            // 更新标签点击事件
+            document.querySelectorAll('.tag-card').forEach(card => {
+                const editBtn = card.querySelector('.edit-tag-btn');
+                const deleteBtn = card.querySelector('.delete-tag-btn');
+                
+                editBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    editTag(card.dataset.id);
+                });
+
+                deleteBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    deleteTag(card.dataset.id);
+                });
+            });
+        }
+
+        // 打开标签编辑弹窗
+        function openTagModal(tagId = null) {
+            const tag = tagId ? JSON.parse(localStorage.getItem('tags') || '[]').find(t => t.id === tagId) : null;
+            
+            modalTitle.textContent = tag ? '编辑标签' : '新建标签';
+            tagNameInput.value = tag ? tag.name : '';
+            
+            // 设置选中的颜色
+            const colorOptions = document.querySelectorAll('.color-option');
+            colorOptions.forEach(option => {
+                if (tag && option.dataset.color === tag.color) {
+                    option.classList.add('selected');
+                } else {
+                    option.classList.remove('selected');
+                }
+            });
+
+            tagModal.style.display = 'block';
+        }
+
+        // 关闭标签编辑弹窗
+        function closeTagModal() {
+            tagModal.style.display = 'none';
+            tagNameInput.value = '';
+            document.querySelectorAll('.color-option').forEach(option => option.classList.remove('selected'));
+        }
+
+        // 编辑标签
+        function editTag(tagId) {
+            openTagModal(tagId);
+        }
+
+        // 删除标签
+        function deleteTag(tagId) {
+            if (confirm('确定要删除这个标签吗？此操作不可恢复。')) {
+                const tags = JSON.parse(localStorage.getItem('tags') || '[]');
+                const notes = JSON.parse(localStorage.getItem('notes') || '[]');
+                
+                // 从标签列表中删除
+                const updatedTags = tags.filter(tag => tag.id !== tagId);
+                localStorage.setItem('tags', JSON.stringify(updatedTags));
+                
+                // 从笔记中移除该标签
+                notes.forEach(note => {
+                    if (note.tags && note.tags.includes(tagId)) {
+                        note.tags = note.tags.filter(id => id !== tagId);
+                    }
+                });
+                localStorage.setItem('notes', JSON.stringify(notes));
+                
+                loadTags();
+            }
+        }
+
+        // 保存标签
+        function saveTag() {
+            const name = tagNameInput.value.trim();
+            const selectedColor = document.querySelector('.color-option.selected')?.dataset.color;
+            
+            if (!name || !selectedColor) {
+                alert('请填写标签名称并选择颜色');
+                return;
+            }
+
+            const tags = JSON.parse(localStorage.getItem('tags') || '[]');
+            const tagId = tagModal.dataset.tagId;
+            
+            if (tagId) {
+                // 更新现有标签
+                const tagIndex = tags.findIndex(t => t.id === tagId);
+                if (tagIndex !== -1) {
+                    tags[tagIndex] = {
+                        ...tags[tagIndex],
+                        name,
+                        color: selectedColor
+                    };
+                }
+            } else {
+                // 创建新标签
+                tags.push({
+                    id: Date.now().toString(),
+                    name,
+                    color: selectedColor,
+                    count: 0
+                });
+            }
+
+            localStorage.setItem('tags', JSON.stringify(tags));
+            closeTagModal();
+            loadTags();
+        }
+
+        // 事件监听器
+        newTagBtn.addEventListener('click', () => openTagModal());
+        closeModal.addEventListener('click', closeTagModal);
+        cancelBtn.addEventListener('click', closeTagModal);
+        saveBtn.addEventListener('click', saveTag);
+
+        // 颜色选择器
+        document.querySelectorAll('.color-option').forEach(option => {
+            option.addEventListener('click', () => {
+                document.querySelectorAll('.color-option').forEach(opt => opt.classList.remove('selected'));
+                option.classList.add('selected');
+            });
+        });
+
+        // 初始加载标签列表
+        loadTags();
+
+        // 导航菜单项点击事件
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const icon = item.querySelector('i');
+                if (icon.classList.contains('fa-tags')) {
+                    // 已经在标签页面，不需要跳转
+                    return;
+                }
+                
+                // 根据图标类名确定目标页面
+                let targetPage = '';
+                if (icon.classList.contains('fa-home')) {
+                    targetPage = 'dashboard.html';
+                } else if (icon.classList.contains('fa-star')) {
+                    targetPage = 'starred-notes.html';
+                } else if (icon.classList.contains('fa-folder')) {
+                    targetPage = 'note-categories.html';
+                } else if (icon.classList.contains('fa-share-alt')) {
+                    targetPage = 'note-share.html';
+                } else if (icon.classList.contains('fa-trash')) {
+                    targetPage = 'trash.html';
+                }
+
+                // 如果找到目标页面，则进行跳转
+                if (targetPage) {
+                    try {
+                        console.log('准备跳转到页面:', targetPage);
+                        console.log('当前页面路径:', window.location.pathname);
+                        // 使用 replace 方法进行跳转
+                        window.location.replace(targetPage);
+                    } catch (error) {
+                        console.error('页面跳转失败:', error);
+                        alert('页面跳转失败，请检查页面是否存在');
+                    }
+                } else {
+                    console.error('未找到目标页面');
+                }
+            });
+        });
+
+        // 移动端菜单切换
+        mobileMenuToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('show');
+        });
+
+        // 点击主内容区域时在移动端关闭侧边栏
+        mainContent.addEventListener('click', () => {
+            if (window.innerWidth <= 768) {
+                sidebar.classList.remove('show');
+            }
+        });
+
+        // 窗口大小改变时处理侧边栏状态
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 768) {
+                sidebar.classList.remove('show');
+            }
+        });
+
+        // 用户头像菜单
+        userProfile.addEventListener('mouseenter', () => {
+            const rect = userProfile.getBoundingClientRect();
+            const menuWidth = userProfileMenu.offsetWidth || 200; // 估计菜单宽度
+            const windowWidth = window.innerWidth;
+            
+            // 计算右侧是否会溢出
+            if (rect.left + menuWidth > windowWidth) {
+                // 如果会溢出，将菜单向左对齐
+                userProfileMenu.style.left = `${rect.right - menuWidth}px`;
+            } else {
+                userProfileMenu.style.left = `${rect.left}px`;
+            }
+            
+            userProfileMenu.style.top = `${rect.bottom}px`;
+            userProfileMenu.classList.add('show');
+        });
+        
+        userProfile.addEventListener('mouseleave', (event) => {
+            // 检查鼠标是否移动到菜单上
+            const toElement = event.relatedTarget;
+            if (!userProfileMenu.contains(toElement)) {
+                userProfileMenu.classList.remove('show');
+            }
+        });
+        
+        userProfileMenu.addEventListener('mouseleave', () => {
+            userProfileMenu.classList.remove('show');
+        });
+
+        // 用户菜单项点击事件
+        userProfileMenu.querySelectorAll('.menu-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const action = item.dataset.action;
+                userProfileMenu.classList.remove('show');
+                
+                // 处理不同的菜单操作
+                switch(action) {
+                    case 'profile':
+                        alert('查看个人信息');
+                        break;
+                    case 'edit-profile':
+                        window.location.href = 'profile-edit.html';
+                        break;
+                    case 'settings':
+                        window.location.replace('settings.html');
+                        break;
+                    case 'logout':
+                        alert('退出登录');
+                        break;
+                }
+            });
+        });
+    </script>
+
+    <style>
+        .tags-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .tag-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .tag-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .tag-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .tag-color {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+        }
+
+        .tag-name {
+            margin: 0;
+            font-size: 16px;
+            color: #333;
+        }
+
+        .tag-count {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .tag-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .edit-tag-btn,
+        .delete-tag-btn {
+            background: none;
+            border: none;
+            padding: 8px;
+            cursor: pointer;
+            color: #666;
+            transition: color 0.3s ease;
+        }
+
+        .edit-tag-btn:hover {
+            color: #1a73e8;
+        }
+
+        .delete-tag-btn:hover {
+            color: #ea4335;
+        }
+
+        .new-tag-btn {
+            background-color: #1a73e8;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: 20px;
+            transition: background-color 0.3s ease;
+        }
+
+        .new-tag-btn:hover {
+            background-color: #1557b0;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: #fff;
+            width: 90%;
+            max-width: 500px;
+            margin: 50px auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .modal-header {
+            padding: 16px 24px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 20px;
+            color: #333;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 20px;
+            color: #666;
+            cursor: pointer;
+            padding: 4px;
+        }
+
+        .modal-body {
+            padding: 24px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        .color-picker {
+            display: flex;
+            gap: 12px;
+        }
+
+        .color-option {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 2px solid #ddd;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .color-option.selected {
+            transform: scale(1.2);
+            box-shadow: 0 0 0 2px white, 0 0 0 4px #1a73e8;
+        }
+
+        .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        .cancel-btn,
+        .save-btn {
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .cancel-btn {
+            background: none;
+            border: 1px solid #ddd;
+            color: #666;
+        }
+
+        .save-btn {
+            background-color: #1a73e8;
+            border: none;
+            color: white;
+        }
+
+        .cancel-btn:hover {
+            background-color: #f5f5f5;
+        }
+
+        .save-btn:hover {
+            background-color: #1557b0;
+        }
+
+        /* 暗色模式样式 */
+        .dark-mode .tag-card {
+            background-color: #2d2d2d;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .dark-mode .tag-name {
+            color: #fff;
+        }
+
+        .dark-mode .tag-count {
+            color: #bbb;
+        }
+
+        .dark-mode .edit-tag-btn,
+        .dark-mode .delete-tag-btn {
+            color: #bbb;
+        }
+
+        .dark-mode .modal-content {
+            background-color: #2d2d2d;
+        }
+
+        .dark-mode .modal-header {
+            border-bottom-color: #3d3d3d;
+        }
+
+        .dark-mode .modal-header h2 {
+            color: #fff;
+        }
+
+        .dark-mode .close-btn {
+            color: #bbb;
+        }
+
+        .dark-mode .form-group label {
+            color: #fff;
+        }
+
+        .dark-mode .form-group input {
+            background-color: #3d3d3d;
+            border-color: #4d4d4d;
+            color: #fff;
+        }
+
+        .dark-mode .modal-footer {
+            border-top-color: #3d3d3d;
+        }
+
+        .dark-mode .cancel-btn {
+            background-color: #3d3d3d;
+            border-color: #4d4d4d;
+            color: #fff;
+        }
+
+        .dark-mode .cancel-btn:hover {
+            background-color: #4d4d4d;
+        }
+
+        /* 用户头像菜单样式 */
+        .user-profile {
+            position: relative;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background-color: #e8f0fe;
+            color: #1a73e8;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .dark-mode .user-avatar {
+            background-color: #1a73e8;
+            color: white;
+        }
+
+        .user-profile-menu {
+            position: absolute;
+            top: 45px;
+            right: 10px;
+            width: 200px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            z-index: 1000;
+            display: none;
+        }
+
+        .user-profile-menu.show {
+            display: block;
+        }
+
+        .dark-mode .user-profile-menu {
+            background-color: #2d2d2d;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+        }
+
+        .menu-item {
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #333;
+            transition: background-color 0.3s;
+            cursor: pointer;
+        }
+
+        .dark-mode .menu-item {
+            color: #fff;
+        }
+
+        .menu-item:hover {
+            background-color: #f5f5f5;
+        }
+
+        .dark-mode .menu-item:hover {
+            background-color: #3d3d3d;
+        }
+
+        .menu-divider {
+            height: 1px;
+            background-color: #e0e0e0;
+            margin: 4px 0;
+        }
+
+        .dark-mode .menu-divider {
+            background-color: #444;
+        }
+
+        .menu-item.delete {
+            color: #ea4335;
+        }
+
+        .dark-mode .menu-item.delete {
+            color: #ff6b6b;
+        }
+    </style>
+</body>
+</html> 

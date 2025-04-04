@@ -1,0 +1,1166 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>查看分享笔记</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="./css/styles.css">
+    <script src="./js/api.js"></script>
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <header class="navbar">
+        <div class="navbar-brand">
+            <i class="fas fa-book-open"></i>
+            <span>Cloud Notes</span>
+        </div>
+        <div class="nav-links">
+            <a href="index.html"><i class="fas fa-sign-in-alt"></i> <span>登录</span></a>
+        </div>
+    </header>
+
+    <!-- 主要内容 -->
+    <div class="container">
+        <!-- 主内容区域 -->
+        <main class="main-content">
+            <!-- 加载中 -->
+            <div id="loadingContainer" class="loading-container">
+                <div class="spinner"></div>
+                <p>正在加载笔记内容...</p>
+            </div>
+
+            <!-- 密码验证表单 -->
+            <div id="passwordFormContainer" class="password-form-container">
+                <div class="password-form-title">
+                    <i class="fas fa-lock"></i> 受保护的笔记
+                </div>
+                <p class="password-form-desc">这是一个私密分享的笔记，需要密码才能查看内容</p>
+                <div class="password-form">
+                    <div class="form-group">
+                        <label for="accessPassword" class="form-label">访问密码</label>
+                        <input type="password" id="accessPassword" class="form-input" placeholder="请输入分享密码">
+                    </div>
+                    <button id="submitPassword" class="btn btn-primary">
+                        <i class="fas fa-unlock"></i> 验证密码
+                    </button>
+                </div>
+            </div>
+
+            <!-- 笔记内容 -->
+            <div id="noteContent" class="article-container">
+                <div class="article-header">
+                    <h1 id="noteTitle" class="article-title">笔记标题</h1>
+                    <div class="article-meta">
+                        <span id="noteOwner"><i class="fas fa-user"></i> 分享者: 用户名</span>
+                        <span id="shareDate"><i class="far fa-calendar-alt"></i> 分享于: 2023-01-01 12:00</span>
+                        <span><i class="far fa-eye"></i> 查看次数: <span id="viewCountNumber">0</span></span>
+                    </div>
+                </div>
+                <div class="article-content">
+                    <div id="noteText" class="blog-content">
+                        <!-- 笔记内容将在这里显示 -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 错误信息 -->
+            <div id="errorContainer" class="error-container">
+                <div class="error-icon">
+                    <i class="fas fa-exclamation-circle"></i>
+                </div>
+                <div id="errorMessage" class="error-message">
+                    出错了，无法加载笔记内容
+                </div>
+                <div id="errorActions" class="error-actions">
+                    <!-- 动态添加按钮 -->
+                </div>
+            </div>
+        </main>
+
+        <!-- 右侧栏 -->
+        <aside id="rightbar" class="rightbar">
+            <!-- 作者卡片 -->
+            <div class="author-card">
+                <div class="author-header">
+                    <div class="author-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div>
+                        <div id="authorName" class="author-name">用户名</div>
+                        <div class="author-bio">笔记作者</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 目录 -->
+            <div class="toc-section">
+                <div class="toc-title">
+                    <i class="fas fa-list"></i> 目录
+                </div>
+                <ul id="tocList" class="toc-list">
+                    <!-- 目录内容将动态生成 -->
+                </ul>
+            </div>
+        </aside>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async function() {
+            const loadingContainer = document.getElementById('loadingContainer');
+            const passwordFormContainer = document.getElementById('passwordFormContainer');
+            const noteContent = document.getElementById('noteContent');
+            const rightbar = document.getElementById('rightbar');
+            const errorContainer = document.getElementById('errorContainer');
+            const errorMessage = document.getElementById('errorMessage');
+            const errorActions = document.getElementById('errorActions');
+            const noteTitle = document.getElementById('noteTitle');
+            const noteText = document.getElementById('noteText');
+            const noteOwner = document.getElementById('noteOwner');
+            const shareDate = document.getElementById('shareDate');
+            const authorName = document.getElementById('authorName');
+            const viewCountNumber = document.getElementById('viewCountNumber');
+            const tocList = document.getElementById('tocList');
+            
+            // 检查是否是移动设备
+            const isMobile = () => window.innerWidth <= 768;
+            
+            // 从URL获取分享ID
+            const urlParams = new URLSearchParams(window.location.search);
+            const shareId = urlParams.get('id');
+            const mode = urlParams.get('mode');
+            const token = urlParams.get('token');
+            
+            if (!shareId) {
+                showError('无效的分享链接');
+                return;
+            }
+            
+            // 显示加载中
+            showLoading();
+            
+            // 尝试加载笔记函数
+            async function loadNote(retryCount = 0, maxRetries = 2) {
+                try {
+                    // 获取API基础URL
+                    const baseUrl = (() => {
+                        const { protocol, hostname, port } = window.location;
+                        return `${protocol}//${hostname}${port ? ':' + port : ''}`;
+                    })();
+                    
+                    // 检查是否是私有模式访问
+                    if (mode === 'private' && token) {
+                        console.log('使用私有模式加载笔记');
+                        
+                        try {
+                            // 使用提供的token直接请求笔记详情
+                            const response = await fetch(`${baseUrl}/api/notes/${shareId}`, {
+                                headers: {
+                                    'Authorization': `Bearer ${token}`
+                                }
+                            });
+                            
+                            if (!response.ok) {
+                                throw new Error(`请求失败: ${response.status}`);
+                            }
+                            
+                            const data = await response.json();
+                            
+                            if (data.success && data.note) {
+                                // 显示笔记内容
+                                displayNote({
+                                    noteTitle: data.note.title,
+                                    noteContent: data.note.content,
+                                    username: '当前登录用户', // 使用当前登录用户
+                                    sharedAt: new Date().toISOString(),
+                                    views: 1
+                                });
+                                
+                                // 更改页面模式提示
+                                document.querySelector('.navbar-brand').innerHTML = `
+                                    <i class="fas fa-book-open"></i>
+                                    <span>Cloud Notes <small>(私有查看模式)</small></span>
+                                `;
+                            } else {
+                                showError('无法加载笔记内容');
+                            }
+                        } catch (error) {
+                            console.error('私有模式加载笔记失败:', error);
+                            showError(`加载失败: ${error.message}`);
+                        }
+                    } else {
+                        // 原有的分享模式加载逻辑
+                        const response = await fetch(`${baseUrl}/api/shares/${shareId}`);
+                        const data = await response.json();
+                        
+                        if (response.ok && data.success) {
+                            // 如果成功获取笔记内容（公开分享）
+                            displayNote(data.share);
+                        } else if (data.requirePassword) {
+                            // 如果需要密码（私密分享）
+                            hideLoading();
+                            showPasswordForm();
+                            
+                            // 处理密码提交
+                            document.getElementById('submitPassword').addEventListener('click', async () => {
+                                const password = document.getElementById('accessPassword').value;
+                                if (!password) {
+                                    alert('请输入密码');
+                                    return;
+                                }
+                                
+                                showLoading();
+                                hidePasswordForm();
+                                
+                                try {
+                                    const accessResponse = await fetch(`${baseUrl}/api/shares/access/${shareId}`, {
+                                        method: 'POST',
+                                        headers: {
+                                            'Content-Type': 'application/json'
+                                        },
+                                        body: JSON.stringify({ password })
+                                    });
+                                    
+                                    const accessData = await accessResponse.json();
+                                    
+                                    if (accessResponse.ok && accessData.success) {
+                                        // 密码正确，显示笔记
+                                        displayNote({
+                                            noteTitle: accessData.note.title,
+                                            noteContent: accessData.note.content,
+                                            username: accessData.note.username,
+                                            sharedAt: accessData.note.sharedAt,
+                                            views: 1
+                                        });
+                                    } else {
+                                        // 密码错误
+                                        showError(accessData.message || '密码错误，无法访问', true, () => {
+                                            hideLoading();
+                                            showPasswordForm();
+                                        });
+                                    }
+                                } catch (error) {
+                                    console.error('访问私密笔记时发生错误:', error);
+                                    showError('验证密码时出错，请稍后再试', true, () => {
+                                        hideLoading();
+                                        showPasswordForm();
+                                    });
+                                }
+                            });
+                        } else {
+                            // 其他错误
+                            if (retryCount < maxRetries) {
+                                // 显示正在重试
+                                loadingContainer.innerHTML = `
+                                    <div class="spinner"></div>
+                                    <p>加载失败，正在重试 (${retryCount + 1}/${maxRetries + 1})...</p>
+                                `;
+                                
+                                // 使用指数退避策略
+                                const delay = Math.pow(2, retryCount) * 1000;
+                                setTimeout(() => loadNote(retryCount + 1, maxRetries), delay);
+                            } else {
+                                // 重试失败，显示错误
+                                showError(data.message || '无法加载笔记内容', true);
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error('加载笔记时发生错误:', error);
+                    
+                    if (retryCount < maxRetries) {
+                        // 显示正在重试
+                        loadingContainer.innerHTML = `
+                            <div class="spinner"></div>
+                            <p>连接失败，正在重试 (${retryCount + 1}/${maxRetries + 1})...</p>
+                        `;
+                        
+                        // 使用指数退避策略
+                        const delay = Math.pow(2, retryCount) * 1000;
+                        setTimeout(() => loadNote(retryCount + 1, maxRetries), delay);
+                    } else {
+                        // 重试失败，显示错误
+                        showError('连接服务器失败，请检查网络连接', true);
+                    }
+                }
+            }
+            
+            // 开始加载笔记
+            loadNote();
+            
+            // 显示笔记内容
+            function displayNote(note) {
+                noteTitle.innerText = note.noteTitle;
+                noteText.innerHTML = formatNoteContent(note.noteContent);
+                
+                // 更新元数据
+                noteOwner.innerHTML = `<i class="fas fa-user"></i> 分享者: ${note.username || '匿名用户'}`;
+                shareDate.innerHTML = `<i class="far fa-calendar-alt"></i> 分享于: ${formatDate(note.sharedAt)}`;
+                viewCountNumber.textContent = note.views || 0;
+                authorName.textContent = note.username || '匿名用户';
+                
+                // 生成目录
+                generateTableOfContents();
+                
+                // 添加滚动监听来高亮当前目录项
+                setupScrollSpy();
+                
+                hideLoading();
+                noteContent.style.display = 'block';
+                
+                // 在移动设备上不显示右侧栏
+                if (!isMobile()) {
+                    rightbar.style.display = 'block';
+                }
+                
+                // 设置页面标题
+                document.title = `${note.noteTitle} - 分享笔记`;
+            }
+            
+            // 生成目录
+            function generateTableOfContents() {
+                const headings = noteText.querySelectorAll('h1, h2, h3');
+                
+                if (headings.length === 0) {
+                    document.querySelector('.toc-section').style.display = 'none';
+                    return;
+                }
+                
+                let tocHtml = '';
+                let counter = 0;
+                
+                headings.forEach(heading => {
+                    const id = `section-${counter++}`;
+                    heading.id = id;
+                    
+                    const level = parseInt(heading.tagName.substring(1));
+                    const paddingLeft = (level - 1) * 10;
+                    
+                    tocHtml += `
+                        <li style="padding-left: ${paddingLeft}px">
+                            <a href="#${id}" class="toc-link" data-target="${id}">
+                                ${heading.textContent}
+                            </a>
+                        </li>
+                    `;
+                });
+                
+                tocList.innerHTML = tocHtml;
+                
+                // 添加目录点击事件
+                document.querySelectorAll('.toc-link').forEach(link => {
+                    link.addEventListener('click', e => {
+                        e.preventDefault();
+                        const targetId = link.getAttribute('href').substring(1);
+                        const targetElement = document.getElementById(targetId);
+                        
+                        window.scrollTo({
+                            top: targetElement.offsetTop - 80,
+                            behavior: 'smooth'
+                        });
+                    });
+                });
+            }
+            
+            // 设置滚动监听
+            function setupScrollSpy() {
+                const headings = noteText.querySelectorAll('h1, h2, h3');
+                if (headings.length === 0) return;
+                
+                window.addEventListener('scroll', () => {
+                    const scrollPosition = window.scrollY + 100;
+                    
+                    // 找到当前可见的标题
+                    let currentHeading = null;
+                    for (let i = 0; i < headings.length; i++) {
+                        if (headings[i].offsetTop <= scrollPosition) {
+                            currentHeading = headings[i];
+                        } else {
+                            break;
+                        }
+                    }
+                    
+                    // 移除所有活动类
+                    document.querySelectorAll('.toc-link').forEach(link => {
+                        link.classList.remove('active');
+                    });
+                    
+                    // 如果找到当前标题，将其对应的目录项设为活动状态
+                    if (currentHeading) {
+                        const currentLink = document.querySelector(`.toc-link[data-target="${currentHeading.id}"]`);
+                        if (currentLink) {
+                            currentLink.classList.add('active');
+                        }
+                    }
+                });
+            }
+            
+            // 格式化笔记内容，支持简单的Markdown
+            function formatNoteContent(content) {
+                if (!content) return '<p>笔记内容为空</p>';
+                
+                // 防止XSS攻击
+                const sanitized = content
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;');
+                
+                // Markdown解析
+                let formatted = sanitized
+                    // 代码块
+                    .replace(/```(.*?)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>')
+                    // 内联代码
+                    .replace(/`([^`]+)`/g, '<code>$1</code>')
+                    // 标题
+                    .replace(/^### (.*?)$/gm, '<h3>$1</h3>')
+                    .replace(/^## (.*?)$/gm, '<h2>$1</h2>')
+                    .replace(/^# (.*?)$/gm, '<h1>$1</h1>')
+                    // 粗体
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    // 斜体
+                    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                    // 引用
+                    .replace(/^> (.*?)$/gm, '<blockquote>$1</blockquote>')
+                    // 列表
+                    .replace(/^- (.*?)$/gm, '<li>$1</li>')
+                    .replace(/(<li>.*?<\/li>\n?)+/g, '<ul>$&</ul>')
+                    // 链接
+                    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
+                    // 段落
+                    .replace(/^([^<].*?)$/gm, '<p>$1</p>')
+                    // 修复可能出现的多级嵌套
+                    .replace(/<p><(h[1-3]|ul|ol|pre|blockquote)>/g, '<$1>')
+                    .replace(/<\/(h[1-3]|ul|ol|pre|blockquote)><\/p>/g, '</$1>')
+                    // 修复空段落
+                    .replace(/<p><\/p>/g, '')
+                    // 换行
+                    .replace(/\n/g, '');
+                
+                return formatted;
+            }
+            
+            // 格式化日期
+            function formatDate(dateStr) {
+                if (!dateStr) return '';
+                const date = new Date(dateStr);
+                return date.toLocaleString('zh-CN', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            }
+            
+            // 显示/隐藏各个界面
+            function showLoading() {
+                loadingContainer.style.display = 'flex';
+                passwordFormContainer.style.display = 'none';
+                noteContent.style.display = 'none';
+                rightbar.style.display = 'none';
+                errorContainer.style.display = 'none';
+            }
+            
+            function hideLoading() {
+                loadingContainer.style.display = 'none';
+            }
+            
+            function showPasswordForm() {
+                passwordFormContainer.style.display = 'flex';
+            }
+            
+            function hidePasswordForm() {
+                passwordFormContainer.style.display = 'none';
+            }
+            
+            // 显示错误信息
+            function showError(message, withRetry = false, callback = null) {
+                errorMessage.textContent = message;
+                errorActions.innerHTML = '';
+                
+                // 如果需要重试按钮
+                if (withRetry) {
+                    // 创建重试按钮
+                    const retryButton = document.createElement('button');
+                    retryButton.className = 'error-btn retry';
+                    retryButton.innerHTML = '<i class="fas fa-sync"></i> 重试';
+                    retryButton.addEventListener('click', () => {
+                        if (callback) {
+                            callback();
+                        } else {
+                            showLoading();
+                            loadNote();
+                        }
+                    });
+                    
+                    // 创建返回登录按钮
+                    const homeButton = document.createElement('button');
+                    homeButton.className = 'error-btn back';
+                    homeButton.innerHTML = '<i class="fas fa-sign-in-alt"></i> 返回登录';
+                    homeButton.addEventListener('click', () => {
+                        window.location.href = 'login.html';
+                    });
+                    
+                    // 添加按钮到页面
+                    errorActions.appendChild(retryButton);
+                    errorActions.appendChild(homeButton);
+                }
+                
+                hideLoading();
+                hidePasswordForm();
+                noteContent.style.display = 'none';
+                rightbar.style.display = 'none';
+                errorContainer.style.display = 'flex';
+            }
+        });
+    </script>
+    
+    <style>
+        /* 基础样式 */
+        :root {
+            --primary-color: #3498db;
+            --primary-hover: #2980b9;
+            --secondary-color: #2ecc71;
+            --text-color: #333;
+            --light-text: #666;
+            --border-color: #e1e1e1;
+            --light-bg: #f5f7fa;
+            --white: #ffffff;
+            --shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            --card-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            --header-height: 60px;
+            --rightbar-percent: 20%; /* 侧边栏百分比宽度 */
+            --content-percent: 80%; /* 内容区域百分比宽度 */
+            --border-radius: 12px;
+            --content-padding: 20px; /* 统一内容边距变量 */
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "WenQuanYi Micro Hei", sans-serif;
+            color: var(--text-color);
+            background-color: var(--light-bg);
+            line-height: 1.6;
+        }
+        
+        a {
+            color: var(--primary-color);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        
+        a:hover {
+            color: var(--primary-hover);
+        }
+        
+        button {
+            cursor: pointer;
+            border: none;
+            outline: none;
+        }
+        
+        ul {
+            list-style: none;
+        }
+        
+        /* 顶部导航栏 */
+        .navbar {
+            height: var(--header-height);
+            background-color: var(--white);
+            box-shadow: var(--shadow);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 1000;
+        }
+        
+        .navbar-brand {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .navbar-brand i {
+            font-size: 1.8rem;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 20px;
+        }
+        
+        .nav-links a {
+            color: var(--text-color);
+            font-weight: 500;
+            padding: 5px 10px;
+            border-radius: 4px;
+        }
+        
+        .nav-links a:hover {
+            background-color: var(--light-bg);
+        }
+        
+        .nav-links a i {
+            margin-right: 5px;
+        }
+        
+        .mobile-toggle {
+            display: none;
+            font-size: 1.5rem;
+            color: var(--text-color);
+            background: transparent;
+        }
+        
+        /* 主布局 */
+        .container {
+            display: flex;
+            min-height: 100vh;
+            padding-top: var(--header-height);
+            max-width: 97%; /* 容器宽度设为97%屏幕宽度 */
+            width: 97%;
+            margin: 0 auto;
+            justify-content: space-between; /* 改为两侧对齐 */
+            background-color: var(--light-bg);
+        }
+        
+        /* 主内容区域 */
+        .main-content {
+            margin-left: 0;
+            margin-right: 0;
+            padding: var(--content-padding);
+            min-height: calc(100vh - var(--header-height));
+            width: var(--content-percent); /* 使用百分比宽度 */
+            flex-shrink: 0;
+        }
+        
+        /* 右侧栏 */
+        .rightbar {
+            width: var(--rightbar-percent); /* 使用百分比宽度 */
+            background-color: transparent;
+            position: sticky; /* 改为sticky定位 */
+            top: var(--header-height);
+            height: calc(100vh - var(--header-height));
+            overflow-y: auto;
+            padding: var(--content-padding);
+            border-left: none;
+            display: none;
+            flex-shrink: 0;
+        }
+        
+        /* 文章内容 */
+        .article-container {
+            background-color: var(--white);
+            box-shadow: var(--card-shadow);
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            display: none;
+            margin-bottom: 30px;
+            width: 100%;
+        }
+        
+        .article-header {
+            padding: 30px;
+            border-bottom: 1px solid var(--border-color);
+            text-align: center;
+            background-color: var(--white);
+        }
+        
+        .article-title {
+            font-size: 2rem;
+            margin-bottom: 15px;
+            color: var(--text-color);
+            line-height: 1.3;
+        }
+        
+        .article-meta {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 20px;
+            font-size: 0.9rem;
+            color: var(--light-text);
+        }
+        
+        .article-meta span {
+            display: flex;
+            align-items: center;
+        }
+        
+        .article-meta i {
+            margin-right: 5px;
+        }
+        
+        .article-content {
+            padding: 30px;
+            background-color: var(--white);
+        }
+        
+        /* 博客内容样式 */
+        .blog-content h1 {
+            font-size: 1.8rem;
+            margin: 1.5em 0 0.8em;
+            padding-bottom: 0.3em;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .blog-content h2 {
+            font-size: 1.5rem;
+            margin: 1.2em 0 0.6em;
+        }
+        
+        .blog-content h3 {
+            font-size: 1.2rem;
+            margin: 1em 0 0.5em;
+        }
+        
+        .blog-content p {
+            margin-bottom: 1em;
+            line-height: 1.8;
+        }
+        
+        .blog-content ul, .blog-content ol {
+            margin-bottom: 1em;
+            padding-left: 2em;
+        }
+        
+        .blog-content ul li, .blog-content ol li {
+            margin-bottom: 0.5em;
+            list-style: disc;
+        }
+        
+        .blog-content blockquote {
+            border-left: 4px solid var(--primary-color);
+            padding-left: 1em;
+            color: var(--light-text);
+            margin: 1em 0;
+            background-color: var(--light-bg);
+            padding: 15px;
+            border-radius: 8px;
+        }
+        
+        .blog-content code {
+            background-color: var(--light-bg);
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+            font-family: SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+            font-size: 0.9em;
+        }
+        
+        .blog-content pre {
+            background-color: var(--light-bg);
+            padding: 1em;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1em 0;
+        }
+        
+        .blog-content pre code {
+            padding: 0;
+            background-color: transparent;
+            font-size: 0.9em;
+            line-height: 1.6;
+        }
+        
+        .blog-content a {
+            color: var(--primary-color);
+            text-decoration: none;
+            border-bottom: 1px dashed var(--primary-color);
+        }
+        
+        .blog-content a:hover {
+            border-bottom: 1px solid var(--primary-color);
+        }
+        
+        .blog-content img {
+            max-width: 100%;
+            border-radius: 8px;
+            margin: 1em 0;
+        }
+        
+        /* 作者卡片 */
+        .author-card {
+            background-color: var(--white);
+            box-shadow: var(--card-shadow);
+            padding: 20px;
+            border-radius: var(--border-radius);
+            margin-bottom: 20px;
+        }
+        
+        .author-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .author-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: var(--primary-color);
+            color: var(--white);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-right: 15px;
+        }
+        
+        .author-name {
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+        
+        .author-bio {
+            margin-top: 5px;
+            font-size: 0.9rem;
+            color: var(--light-text);
+        }
+        
+        /* 目录 */
+        .toc-section {
+            background-color: var(--white);
+            box-shadow: var(--card-shadow);
+            padding: 20px;
+            border-radius: var(--border-radius);
+        }
+        
+        .toc-title {
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+        }
+        
+        .toc-title i {
+            margin-right: 10px;
+        }
+        
+        .toc-list {
+            margin-left: 5px;
+        }
+        
+        .toc-list li {
+            margin-bottom: 8px;
+        }
+        
+        .toc-link {
+            display: block;
+            padding: 5px 0;
+            color: var(--text-color);
+            font-size: 0.95rem;
+            transition: all 0.2s;
+            border-left: 2px solid transparent;
+            padding-left: 10px;
+            border-radius: 0 4px 4px 0;
+        }
+        
+        .toc-link:hover {
+            color: var(--primary-color);
+            background-color: rgba(52, 152, 219, 0.05);
+        }
+        
+        .toc-link.active {
+            color: var(--primary-color);
+            border-left: 2px solid var(--primary-color);
+            background-color: rgba(52, 152, 219, 0.1);
+            font-weight: 500;
+        }
+        
+        /* 加载容器 */
+        .loading-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 400px;
+            gap: 20px;
+            background-color: var(--white);
+            border-radius: var(--border-radius);
+            box-shadow: var(--card-shadow);
+            margin-bottom: 30px;
+            width: 100%;
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(52, 152, 219, 0.2);
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* 密码表单 */
+        .password-form-container {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            padding: 30px;
+            background-color: var(--white);
+            box-shadow: var(--card-shadow);
+            border-radius: var(--border-radius);
+            margin-bottom: 30px;
+            width: 100%;
+        }
+        
+        .password-form-title {
+            font-size: 1.5rem;
+            text-align: center;
+            color: var(--text-color);
+        }
+        
+        .password-form-desc {
+            color: var(--light-text);
+            text-align: center;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        
+        .password-form {
+            width: 100%;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .form-label {
+            font-weight: 500;
+            color: var(--text-color);
+        }
+        
+        .form-input {
+            padding: 12px 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+        
+        .form-input:focus {
+            border-color: var(--primary-color);
+            outline: none;
+        }
+        
+        .btn {
+            padding: 12px 15px;
+            font-size: 1rem;
+            font-weight: 500;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: var(--white);
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+        }
+        
+        /* 错误容器 */
+        .error-container {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            padding: 30px;
+            text-align: center;
+            background-color: var(--white);
+            box-shadow: var(--card-shadow);
+            border-radius: var(--border-radius);
+            margin-bottom: 30px;
+            width: 100%;
+        }
+        
+        .error-icon {
+            font-size: 3rem;
+            color: #e74c3c;
+        }
+        
+        .error-message {
+            font-size: 1.2rem;
+            color: var(--text-color);
+            margin-bottom: 20px;
+        }
+        
+        .error-actions {
+            display: flex;
+            gap: 15px;
+        }
+        
+        .error-btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .error-btn.retry {
+            background-color: var(--primary-color);
+            color: var(--white);
+        }
+        
+        .error-btn.retry:hover {
+            background-color: var(--primary-hover);
+        }
+        
+        .error-btn.back {
+            background-color: var(--light-bg);
+            color: var(--text-color);
+        }
+        
+        .error-btn.back:hover {
+            background-color: var(--border-color);
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 1400px) {
+            :root {
+                --rightbar-percent: 28%;
+                --content-percent: 68%;
+            }
+        }
+        
+        @media (max-width: 1200px) {
+            :root {
+                --rightbar-percent: 30%;
+                --content-percent: 65%;
+                --content-padding: 15px;
+            }
+            
+            .container {
+                width: 95%;
+                max-width: 95%;
+            }
+        }
+        
+        @media (max-width: 992px) {
+            :root {
+                --rightbar-percent: 35%;
+                --content-percent: 60%;
+            }
+            
+            .container {
+                width: 100%;
+                max-width: 100%;
+                padding: 0 15px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            :root {
+                --content-padding: 15px;
+            }
+            
+            body {
+                padding-top: var(--header-height); /* 确保内容不被导航栏覆盖 */
+            }
+            
+            .container {
+                flex-direction: column;
+                align-items: center;
+                padding-top: 0; /* 移除容器顶部内边距 */
+            }
+            
+            .navbar-brand span {
+                display: none;
+            }
+            
+            .nav-links {
+                gap: 10px;
+            }
+            
+            .nav-links a span {
+                display: none;
+            }
+            
+            .main-content {
+                width: 100%;
+                margin-right: 0;
+                padding: var(--content-padding);
+                margin-top: 0; /* 确保内容区域没有额外顶部边距 */
+            }
+            
+            .rightbar {
+                display: none !important; /* 移动端强制隐藏侧边栏 */
+            }
+            
+            .article-meta {
+                flex-direction: column;
+                align-items: center;
+                gap: 10px;
+            }
+            
+            /* 移动端内容区域样式调整 */
+            .article-container {
+                margin-top: 10px; /* 给内容添加适当的顶部边距 */
+            }
+            
+            .article-header {
+                padding: 15px 10px; /* 减小头部内边距 */
+            }
+            
+            .article-title {
+                font-size: 1.5rem; /* 减小标题字号 */
+                margin-bottom: 10px;
+            }
+            
+            .article-content {
+                padding: 15px 10px; /* 减小内容区域内边距 */
+            }
+        }
+        
+        @media (max-width: 576px) {
+            :root {
+                --content-padding: 10px;
+            }
+            
+            .nav-links a {
+                padding: 5px;
+            }
+            
+            .article-header, .article-content {
+                padding: 15px;
+            }
+            
+            .article-title {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</body>
+</html> 
