@@ -51,7 +51,7 @@ npm start
 
 ```bash
 git clone https://github.com/rootscomplite/notes.git
-cd 笔记应用
+cd webapp
 ```
 
 #### 步骤2：Docker部署
