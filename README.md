@@ -59,7 +59,7 @@ cd webapp
 使用提供的部署脚本一键部署：
 
 ```bash
-./docker-deploy.sh
+chmod +x ./docker-deploy.sh && ./docker-deploy.sh
 ```
 
 或者手动执行以下步骤：
