@@ -114,8 +114,8 @@ yarn dev
 npm install -g pm2
 
 # 克隆代码
-git clone <仓库地址>
-cd note-app
+git clone https://github.com/covlan/notes.git
+cd webapp
 
 # 安装依赖
 npm install --production
