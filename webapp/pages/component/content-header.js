@@ -596,10 +596,24 @@ class ContentHeader {
     
     console.log('菜单项点击:', action);
     
-    // 直接处理某些特定操作
+    // 处理常见的菜单操作
     if (action === 'edit-profile') {
-      window.location.href = 'profile-edit';
+      window.location.href = 'profile-edit.html';
+    } else if (action === 'settings') {
+      window.location.href = 'settings.html';
+    } else if (action === 'logout') {
+      // 处理退出登录
+      if (window.confirmLogout) {
+        window.confirmLogout();
+      } else {
+        // 默认退出登录处理
+        if (confirm('确定要退出登录吗？')) {
+          localStorage.removeItem('token');
+          window.location.href = 'login.html';
+        }
+      }
     } else if (typeof this.options.onMenuItemClick === 'function') {
+      // 如果有自定义处理函数，交给它处理
       this.options.onMenuItemClick(action, event);
     }
     

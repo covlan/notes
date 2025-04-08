@@ -986,19 +986,6 @@
                         const currentViewMode = localStorage.getItem('viewMode') || 'grid';
                         await window.loadDashboardNotes(true, currentViewMode);
                     }
-                },
-                onMenuItemClick: (action) => {
-                    console.log('菜单项点击:', action);
-                    if (action === 'logout') {
-                        // 处理退出登录
-                        if (window.confirmLogout) {
-                            window.confirmLogout();
-                        }
-                    } else if (action === 'settings') {
-                        window.location.href = 'settings.html';
-                    } else if (action === 'edit-profile') {
-                        window.location.href = 'profile-edit.html';
-                    }
                 }
             });
             
@@ -1007,30 +994,81 @@
             
             // 初始化笔记操作菜单组件
             const noteActionsMenu = new NoteActionsMenu({
-                onMenuItemClick: (action, noteId) => {
-                    console.log('笔记菜单操作:', action, noteId);
-                    
-                    // 处理不同的菜单操作
-                    switch (action) {
-                        case 'edit':
-                            openNoteEditor(noteId);
-                            break;
-                        case 'trash':
-                            if (window.trashNote) {
-                                window.trashNote(noteId);
-                            }
-                            break;
-                        // 其他菜单项处理...
-                    }
+                menuId: 'noteActionsMenu',
+                overlayId: 'menuOverlay',
+                // 设置菜单配置，确保在仪表盘页面显示"收藏"，而不是"取消收藏"
+                menuConfig: {
+                    show: ['edit', 'star', 'share', 'move', 'tag', 'trash'],
+                    hide: ['unstar', 'delete', 'restore']
+                },
+                onMenuItemClick: onMenuItemClick
+            });
+            
+            // 设置为仪表盘页面类型
+            noteActionsMenu.setPageType('dashboard');
+            
+            // 确保菜单已添加到DOM
+            document.addEventListener('DOMContentLoaded', function() {
+                if (!document.getElementById('noteActionsMenu') && noteActionsMenu && noteActionsMenu.menu) {
+                    document.body.appendChild(noteActionsMenu.menu);
+                }
+                if (!document.getElementById('menuOverlay') && noteActionsMenu && noteActionsMenu.overlay) {
+                    document.body.appendChild(noteActionsMenu.overlay);
                 }
             });
             
-            // 定义全局函数，用于显示笔记菜单
-            window.showNoteMenu = (position, noteId) => {
-                if (noteActionsMenu) {
-                    noteActionsMenu.show(position, noteId);
+            // 定义菜单项点击回调函数
+            function onMenuItemClick(action, noteId) {
+                console.log(`处理笔记操作: ${action}, 笔记ID: ${noteId}`);
+                
+                switch(action) {
+                    case 'edit':
+                        openNoteEditor(noteId);
+                        break;
+                    case 'trash':
+                        trashNote(noteId);
+                        break;
+                    // 其他操作已由note-actions-menu组件内部处理
+                    default:
+                        console.log(`未明确处理的操作: ${action}`);
                 }
-            };
+            }
+            
+            /**
+             * 显示笔记操作菜单
+             * @param {Object} position - 菜单显示位置 {x, y}
+             * @param {string} noteId - 笔记ID
+             */
+            function showNoteMenu(position, noteId) {
+                try {
+                    if (!noteActionsMenu) {
+                        console.error('笔记操作菜单未初始化');
+                        return;
+                    }
+                    
+                    // 显示菜单
+                    noteActionsMenu.show(position, noteId);
+                } catch (error) {
+                    console.error('显示笔记菜单时出错:', error);
+                }
+            }
+            
+            // 为了兼容性，保留全局函数
+            window.showNoteMenu = showNoteMenu;
+            
+            // 为笔记项添加更多操作菜单点击事件
+            document.querySelectorAll('.note-more-actions').forEach(button => {
+                button.addEventListener('click', function(event) {
+                    event.stopPropagation();
+                    const noteId = this.closest('.note-item').dataset.id;
+                    const rect = this.getBoundingClientRect();
+                    const position = {
+                        x: rect.right,
+                        y: rect.top
+                    };
+                    showNoteMenu(position, noteId);
+                });
+            });
             
             // 初始化主题切换
             const themeToggle = document.getElementById('themeToggle');

@@ -10,6 +10,7 @@ class NoteActionsMenu {
      * @param {String} options.overlayId - 遮罩层元素ID
      * @param {Array} options.menuItems - 菜单项配置
      * @param {Function} options.onMenuItemClick - 菜单项点击回调
+     * @param {Object} options.menuConfig - 菜单项显示配置
      */
     constructor(options) {
         // 合并默认选项
@@ -27,8 +28,40 @@ class NoteActionsMenu {
                 { action: 'trash', icon: 'fas fa-trash', text: '移至回收站', className: 'warning' },
                 { action: 'delete', icon: 'fas fa-trash-alt', text: '永久删除', className: 'delete' }
             ],
-            onMenuItemClick: null
+            onMenuItemClick: null,
+            // 默认菜单配置
+            menuConfig: {
+                // 默认显示的操作
+                show: ['edit', 'share', 'star', 'move', 'tag', 'trash', 'delete'],
+                // 默认隐藏的操作
+                hide: ['unstar', 'restore']
+            }
         }, options);
+
+        // 如果传入了特定的menuItems，需要处理unstar项
+        if (options && options.menuItems) {
+            // 确保unstar和star不同时显示
+            const hasUnstar = options.menuItems.some(item => item.action === 'unstar');
+            const hasStar = options.menuItems.some(item => item.action === 'star');
+            
+            if (hasUnstar && hasStar) {
+                console.warn('菜单配置同时包含star和unstar，默认显示star');
+                this.options.menuConfig.show.push('star');
+                this.options.menuConfig.hide.push('unstar');
+            } else if (hasUnstar) {
+                // 如果用户指定了unstar菜单项，则需要更新默认配置
+                this.options.menuConfig.show.push('unstar');
+                this.options.menuConfig.hide.push('star');
+            }
+        }
+
+        // 合并用户提供的menuConfig
+        if (options && options.menuConfig) {
+            this.options.menuConfig = {
+                ...this.options.menuConfig,
+                ...options.menuConfig
+            };
+        }
 
         // 初始化
         this.init();
@@ -383,6 +416,23 @@ class NoteActionsMenu {
                                 this.updateNoteStateInGlobalCache(noteId, { inTrash: false });
                                 // 刷新当前页面显示
                                 this.refreshCurrentView(noteId, 'restore');
+                                break;
+                            
+                            case 'share':
+                                this.openShareModal(noteId);
+                                break;
+                                
+                            case 'move':
+                                this.openCategoryModal(noteId);
+                                break;
+                                
+                            case 'tag':
+                                this.openTagModal(noteId);
+                                break;
+                                
+                            case 'unstar':
+                                // 取消收藏笔记
+                                this.unstarNote(noteId);
                                 break;
                         }
                     } catch (error) {
@@ -799,41 +849,11 @@ class NoteActionsMenu {
             return;
         }
         
-        // 记录最后一次显示时间，用于防抖处理
-        this.lastMenuShowTime = Date.now();
+        // 应用当前菜单配置
+        this.applyMenuConfig();
         
-        // 获取当前笔记的状态，以便动态调整菜单项
-        this.updateMenuOptions(noteId);
-        
-        // 设置位置并显示菜单
-        this.menu.style.left = `${position.x}px`;
-        this.menu.style.top = `${position.y}px`;
-        
-        // 显示菜单和遮罩层
-        this.menu.style.display = 'block';
-        this.overlay.style.display = 'block';
-        
-        // 添加show类以应用CSS动画效果
-        setTimeout(() => {
-            this.menu.classList.add('show');
-            this.overlay.classList.add('show');
-        }, 10);
-        
-        // 检查菜单是否超出视口边界，如果是则调整位置
-        this.adjustMenuPosition();
-        
-        // 添加已打开标记，防止快速连击
-        this.menuJustOpened = true;
-        setTimeout(() => {
-            this.menuJustOpened = false;
-        }, 200);
-        
-        // 绑定document点击事件来关闭菜单
-        setTimeout(() => {
-            document.addEventListener('click', this.documentClickHandler);
-        }, 10);
-        
-        console.log(`笔记操作菜单已显示，noteId: ${noteId}`);
+        // 显示菜单
+        this.showMenu(position, noteId);
     }
     
     /**
@@ -909,6 +929,831 @@ class NoteActionsMenu {
             
         } catch (error) {
             console.error('更新菜单选项时出错:', error);
+        }
+    }
+
+    /**
+     * 打开分享设置弹窗
+     * @param {String} noteId - 笔记ID
+     */
+    openShareModal(noteId) {
+        const shareModal = document.getElementById('shareModal');
+        if (!shareModal) return;
+        
+        // 保存当前要分享的笔记ID
+        shareModal.dataset.noteId = noteId;
+        
+        // 更新分享方式UI
+        const shareTypeRadios = document.querySelectorAll('input[name="shareType"]');
+        if (shareTypeRadios.length > 0) {
+            shareTypeRadios[0].checked = true; // 默认选择公开分享
+        }
+        
+        // 清空密码输入框并隐藏
+        const passwordGroup = document.getElementById('passwordGroup');
+        const sharePassword = document.getElementById('sharePassword');
+        if (passwordGroup) passwordGroup.style.display = 'none';
+        if (sharePassword) sharePassword.value = '';
+        
+        // 更新分享链接
+        this.updateShareLink(noteId);
+        
+        // 显示分享弹窗
+        shareModal.style.display = 'flex';
+        
+        // 初始化分享弹窗的事件监听，但只初始化一次
+        if (!shareModal._eventsInitialized) {
+            this.initShareModalEvents();
+            shareModal._eventsInitialized = true;
+        }
+    }
+    
+    /**
+     * 更新分享链接
+     * @param {String} noteId - 笔记ID
+     */
+    updateShareLink(noteId) {
+        const shareLink = document.getElementById('shareLink');
+        if (!shareLink) return;
+        
+        const shareType = document.querySelector('input[name="shareType"]:checked')?.value || 'public';
+        const baseUrl = window.location.origin;
+        shareLink.value = `${baseUrl}/view-shared-note.html?id=${noteId}&type=${shareType}`;
+    }
+    
+    /**
+     * 初始化分享弹窗的事件监听
+     */
+    initShareModalEvents() {
+        const closeShareModal = document.getElementById('closeShareModal');
+        const cancelShareBtn = document.getElementById('cancelShareBtn');
+        const confirmShareBtn = document.getElementById('confirmShareBtn');
+        const copyShareLink = document.getElementById('copyShareLink');
+        const shareTypeRadios = document.querySelectorAll('input[name="shareType"]');
+        const shareModal = document.getElementById('shareModal');
+        
+        // 关闭分享弹窗
+        if (closeShareModal) {
+            closeShareModal.addEventListener('click', () => {
+                shareModal.style.display = 'none';
+            });
+        }
+        
+        // 取消分享
+        if (cancelShareBtn) {
+            cancelShareBtn.addEventListener('click', () => {
+                shareModal.style.display = 'none';
+            });
+        }
+        
+        // 确认分享
+        if (confirmShareBtn) {
+            confirmShareBtn.addEventListener('click', async () => {
+                try {
+                    const noteId = shareModal.dataset.noteId;
+                    const shareType = document.querySelector('input[name="shareType"]:checked').value;
+                    const sharePassword = document.getElementById('sharePassword')?.value || '';
+                    const shareExpiry = document.getElementById('shareExpiry')?.value || '0';
+                    
+                    if (!noteId) {
+                        throw new Error('找不到要分享的笔记ID');
+                    }
+                    
+                    // 禁用按钮，防止重复点击
+                    confirmShareBtn.disabled = true;
+                    confirmShareBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 处理中...';
+                    
+                    if (typeof api !== 'undefined' && api && typeof api.shareNote === 'function') {
+                        const response = await api.shareNote(noteId, shareType, sharePassword, shareExpiry);
+                        if (response && response.success) {
+                            // 关闭弹窗并显示成功消息
+                            shareModal.style.display = 'none';
+                            
+                            // 如果存在ToastMessage组件，使用它显示消息
+                            if (typeof ToastMessage !== 'undefined') {
+                                ToastMessage.success('笔记分享成功');
+                            } else {
+                                alert('笔记分享成功');
+                            }
+                            
+                            // 刷新当前视图
+                            this.refreshCurrentView(noteId, 'share');
+                        } else {
+                            throw new Error(response.message || '分享失败');
+                        }
+                    } else {
+                        throw new Error('分享API不可用');
+                    }
+                } catch (error) {
+                    console.error('分享笔记出错:', error);
+                    
+                    // 如果存在ToastMessage组件，使用它显示错误
+                    if (typeof ToastMessage !== 'undefined') {
+                        ToastMessage.error(`分享失败: ${error.message}`);
+                    } else {
+                        alert(`分享失败: ${error.message}`);
+                    }
+                } finally {
+                    // 恢复按钮状态
+                    confirmShareBtn.disabled = false;
+                    confirmShareBtn.innerHTML = '确认分享';
+                }
+            });
+        }
+        
+        // 复制分享链接
+        if (copyShareLink) {
+            copyShareLink.addEventListener('click', () => {
+                const shareLink = document.getElementById('shareLink');
+                if (shareLink) {
+                    shareLink.select();
+                    document.execCommand('copy');
+                    
+                    // 如果存在ToastMessage组件，使用它显示消息
+                    if (typeof ToastMessage !== 'undefined') {
+                        ToastMessage.success('分享链接已复制到剪贴板');
+                    } else {
+                        alert('分享链接已复制到剪贴板');
+                    }
+                }
+            });
+        }
+        
+        // 更新分享类型改变时的UI
+        shareTypeRadios.forEach(radio => {
+            radio.addEventListener('change', () => {
+                const passwordGroup = document.getElementById('passwordGroup');
+                if (passwordGroup) {
+                    // 如果是私密分享，显示密码输入框
+                    passwordGroup.style.display = radio.value === 'private' ? 'block' : 'none';
+                }
+                
+                // 更新分享链接
+                this.updateShareLink(shareModal.dataset.noteId);
+            });
+        });
+    }
+    
+    /**
+     * 打开分类选择弹窗
+     * @param {String} noteId - 笔记ID
+     */
+    openCategoryModal(noteId) {
+        const categoryModal = document.getElementById('categorySelectModal');
+        if (!categoryModal) return;
+        
+        // 保存当前要分类的笔记ID
+        categoryModal.dataset.noteId = noteId;
+        
+        // 加载分类列表
+        this.loadCategories();
+        
+        // 显示分类弹窗
+        categoryModal.style.display = 'flex';
+        
+        // 初始化分类弹窗的事件监听，但只初始化一次
+        if (!categoryModal._eventsInitialized) {
+            this.initCategoryModalEvents();
+            categoryModal._eventsInitialized = true;
+        }
+    }
+    
+    /**
+     * 加载笔记分类列表
+     */
+    async loadCategories() {
+        const categoriesList = document.getElementById('categoriesList');
+        if (!categoriesList) return;
+        
+        try {
+            // 显示加载中状态
+            categoriesList.innerHTML = `
+                <div class="loading-categories">
+                    <i class="fas fa-spinner fa-spin"></i> 加载分类中...
+                </div>
+            `;
+            
+            // 获取分类数据
+            const response = await api.getCategories();
+            
+            if (response && response.success && response.categories) {
+                const categories = response.categories;
+                
+                if (categories.length === 0) {
+                    categoriesList.innerHTML = `
+                        <div class="empty-categories">
+                            <i class="fas fa-folder-open"></i>
+                            <p>暂无分类</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // 渲染分类列表
+                categoriesList.innerHTML = categories.map(category => `
+                    <div class="category-item" data-id="${category._id || category.id}">
+                        <span class="category-color" style="background-color: ${category.color || '#1a73e8'}"></span>
+                        <span class="category-name">${category.name}</span>
+                        <span class="category-count">${category.noteCount || 0}</span>
+                    </div>
+                `).join('');
+                
+                // 添加分类项点击事件
+                document.querySelectorAll('.category-item').forEach(item => {
+                    item.addEventListener('click', function() {
+                        // 移除其他项的选中状态
+                        document.querySelectorAll('.category-item').forEach(i => i.classList.remove('selected'));
+                        // 添加当前项的选中状态
+                        this.classList.add('selected');
+                    });
+                });
+                
+            } else {
+                throw new Error(response?.message || '获取分类失败');
+            }
+        } catch (error) {
+            console.error('加载分类失败:', error);
+            categoriesList.innerHTML = `
+                <div class="empty-categories error">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <p>加载分类失败: ${error.message}</p>
+                    <button class="retry-btn">重试</button>
+                </div>
+            `;
+            
+            // 添加重试按钮事件
+            const self = this;
+            categoriesList.querySelector('.retry-btn')?.addEventListener('click', () => {
+                self.loadCategories();
+            });
+        }
+    }
+    
+    /**
+     * 初始化分类弹窗的事件监听
+     */
+    initCategoryModalEvents() {
+        const closeCategoryModal = document.getElementById('closeCategoryModal');
+        const cancelCategorySelect = document.getElementById('cancelCategorySelect');
+        const confirmCategorySelect = document.getElementById('confirmCategorySelect');
+        const categorySearchInput = document.getElementById('categorySearchInput');
+        const newCategoryName = document.getElementById('newCategoryName');
+        const colorOptions = document.querySelectorAll('.color-option');
+        const categoryModal = document.getElementById('categorySelectModal');
+        
+        // 关闭分类弹窗
+        if (closeCategoryModal) {
+            closeCategoryModal.addEventListener('click', () => {
+                categoryModal.style.display = 'none';
+            });
+        }
+        
+        // 取消分类选择
+        if (cancelCategorySelect) {
+            cancelCategorySelect.addEventListener('click', () => {
+                categoryModal.style.display = 'none';
+            });
+        }
+        
+        // 确认分类选择
+        if (confirmCategorySelect) {
+            confirmCategorySelect.addEventListener('click', async () => {
+                try {
+                    const noteId = categoryModal.dataset.noteId;
+                    
+                    if (!noteId) {
+                        throw new Error('找不到要分类的笔记ID');
+                    }
+                    
+                    // 禁用按钮，防止重复点击
+                    confirmCategorySelect.disabled = true;
+                    confirmCategorySelect.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 处理中...';
+                    
+                    // 获取选中的分类ID，或者创建新分类
+                    const selectedCategory = document.querySelector('.category-item.selected');
+                    let categoryId = null;
+                    
+                    // 判断是否需要创建新分类
+                    const newName = newCategoryName.value.trim();
+                    
+                    if (newName) {
+                        // 获取选中的颜色
+                        let color = '#1a73e8'; // 默认颜色
+                        const selectedColor = document.querySelector('.color-option.selected');
+                        if (selectedColor) {
+                            color = selectedColor.dataset.color;
+                        }
+                        
+                        // 创建新分类
+                        const createResponse = await api.createCategory({
+                            name: newName,
+                            color: color
+                        });
+                        
+                        if (createResponse && createResponse.success && createResponse.category) {
+                            categoryId = createResponse.category._id || createResponse.category.id;
+                        } else {
+                            throw new Error(createResponse?.message || '创建分类失败');
+                        }
+                    } else if (selectedCategory) {
+                        categoryId = selectedCategory.dataset.id;
+                    } else {
+                        throw new Error('请选择分类或创建新分类');
+                    }
+                    
+                    // 更新笔记分类
+                    if (categoryId) {
+                        const response = await api.updateNoteCategory(noteId, categoryId);
+                        
+                        if (response && response.success) {
+                            // 关闭弹窗并显示成功消息
+                            categoryModal.style.display = 'none';
+                            
+                            // 如果存在ToastMessage组件，使用它显示消息
+                            if (typeof ToastMessage !== 'undefined') {
+                                ToastMessage.success('笔记分类已更新');
+                            } else {
+                                alert('笔记分类已更新');
+                            }
+                            
+                            // 刷新当前视图
+                            this.refreshCurrentView(noteId, 'move');
+                        } else {
+                            throw new Error(response?.message || '更新笔记分类失败');
+                        }
+                    }
+                } catch (error) {
+                    console.error('更新笔记分类失败:', error);
+                    
+                    // 如果存在ToastMessage组件，使用它显示错误
+                    if (typeof ToastMessage !== 'undefined') {
+                        ToastMessage.error(`更新分类失败: ${error.message}`);
+                    } else {
+                        alert(`更新分类失败: ${error.message}`);
+                    }
+                } finally {
+                    // 恢复按钮状态
+                    confirmCategorySelect.disabled = false;
+                    confirmCategorySelect.innerHTML = '保存';
+                }
+            });
+        }
+        
+        // 分类搜索功能
+        if (categorySearchInput) {
+            categorySearchInput.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase().trim();
+                const categoryItems = document.querySelectorAll('.category-item');
+                
+                categoryItems.forEach(item => {
+                    const categoryName = item.querySelector('.category-name').textContent.toLowerCase();
+                    if (categoryName.includes(searchTerm) || searchTerm === '') {
+                        item.style.display = 'flex';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+            });
+        }
+        
+        // 颜色选择事件
+        colorOptions.forEach(option => {
+            option.addEventListener('click', function() {
+                colorOptions.forEach(opt => opt.classList.remove('selected'));
+                this.classList.add('selected');
+            });
+        });
+    }
+    
+    /**
+     * 打开标签选择弹窗
+     * @param {String} noteId - 笔记ID
+     */
+    openTagModal(noteId) {
+        const tagModal = document.getElementById('tagSelectModal');
+        if (!tagModal) return;
+        
+        // 保存当前要添加标签的笔记ID
+        tagModal.dataset.noteId = noteId;
+        
+        // 加载标签列表
+        this.loadTags(noteId);
+        
+        // 显示标签弹窗
+        tagModal.style.display = 'flex';
+        
+        // 初始化标签弹窗的事件监听，但只初始化一次
+        if (!tagModal._eventsInitialized) {
+            this.initTagModalEvents();
+            tagModal._eventsInitialized = true;
+        }
+    }
+    
+    /**
+     * 加载标签列表
+     * @param {String} noteId - 笔记ID
+     */
+    async loadTags(noteId) {
+        const tagsList = document.getElementById('tagsList');
+        if (!tagsList) return;
+        
+        try {
+            // 显示加载中状态
+            tagsList.innerHTML = `
+                <div class="loading-spinner">
+                    <i class="fas fa-spinner fa-spin"></i> 加载标签中...
+                </div>
+            `;
+            
+            // 获取所有标签
+            const response = await api.getTags();
+            
+            // 同时获取当前笔记的数据，以确定已选中的标签
+            const noteResponse = await api.getNote(noteId);
+            
+            if (response && response.success && response.tags) {
+                const tags = response.tags;
+                const noteTags = (noteResponse && noteResponse.success && noteResponse.note.tags) || [];
+                
+                // 获取已选中的标签ID列表
+                const selectedTagIds = noteTags.map(tag => tag._id || tag.id);
+                
+                if (tags.length === 0) {
+                    tagsList.innerHTML = `
+                        <div class="no-tags-message">
+                            <p>暂无标签，您可以创建新标签</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // 渲染标签列表
+                tagsList.innerHTML = tags.map(tag => `
+                    <div class="tag-item ${selectedTagIds.includes(tag._id || tag.id) ? 'selected' : ''}" data-id="${tag._id || tag.id}">
+                        <span class="tag-color-dot" style="background-color: ${tag.color || '#1a73e8'}"></span>
+                        <span class="tag-name">${tag.name}</span>
+                        <input type="checkbox" class="tag-checkbox" ${selectedTagIds.includes(tag._id || tag.id) ? 'checked' : ''}>
+                    </div>
+                `).join('');
+                
+                // 添加标签项点击事件
+                document.querySelectorAll('.tag-item').forEach(item => {
+                    item.addEventListener('click', function() {
+                        this.classList.toggle('selected');
+                        const checkbox = this.querySelector('.tag-checkbox');
+                        checkbox.checked = !checkbox.checked;
+                    });
+                });
+                
+            } else {
+                throw new Error(response?.message || '获取标签失败');
+            }
+        } catch (error) {
+            console.error('加载标签失败:', error);
+            tagsList.innerHTML = `
+                <div class="error-message">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <p>加载标签失败: ${error.message}</p>
+                    <button class="retry-btn">重试</button>
+                </div>
+            `;
+            
+            // 添加重试按钮事件
+            const self = this;
+            tagsList.querySelector('.retry-btn')?.addEventListener('click', () => {
+                self.loadTags(noteId);
+            });
+        }
+    }
+    
+    /**
+     * 初始化标签弹窗的事件监听
+     */
+    initTagModalEvents() {
+        const closeTagModal = document.getElementById('closeTagModal');
+        const cancelTagSelect = document.getElementById('cancelTagSelect');
+        const confirmTagSelect = document.getElementById('confirmTagSelect');
+        const tagSearchInput = document.getElementById('tagSearchInput');
+        const newTagName = document.getElementById('newTagName');
+        const tagColorOptions = document.querySelectorAll('.color-picker .color-option');
+        const tagModal = document.getElementById('tagSelectModal');
+        
+        // 关闭标签弹窗
+        if (closeTagModal) {
+            closeTagModal.addEventListener('click', () => {
+                tagModal.style.display = 'none';
+            });
+        }
+        
+        // 取消标签选择
+        if (cancelTagSelect) {
+            cancelTagSelect.addEventListener('click', () => {
+                tagModal.style.display = 'none';
+            });
+        }
+        
+        // 确认标签选择
+        if (confirmTagSelect) {
+            confirmTagSelect.addEventListener('click', async () => {
+                try {
+                    const noteId = tagModal.dataset.noteId;
+                    
+                    if (!noteId) {
+                        throw new Error('找不到要添加标签的笔记ID');
+                    }
+                    
+                    // 禁用按钮，防止重复点击
+                    confirmTagSelect.disabled = true;
+                    confirmTagSelect.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 处理中...';
+                    
+                    // 获取选中的标签ID列表
+                    const selectedTags = document.querySelectorAll('.tag-item .tag-checkbox:checked');
+                    const selectedTagIds = Array.from(selectedTags).map(checkbox => 
+                        checkbox.closest('.tag-item').dataset.id);
+                    
+                    // 判断是否需要创建新标签
+                    const newName = newTagName.value.trim();
+                    
+                    if (newName) {
+                        // 获取选中的颜色
+                        let color = '#1a73e8'; // 默认颜色
+                        const selectedColor = document.querySelector('.color-picker .color-option.selected');
+                        if (selectedColor) {
+                            color = selectedColor.dataset.color;
+                        }
+                        
+                        // 创建新标签
+                        const createResponse = await api.createTag({
+                            name: newName,
+                            color: color
+                        });
+                        
+                        if (createResponse && createResponse.success && createResponse.tag) {
+                            // 添加新创建的标签ID到选中列表
+                            selectedTagIds.push(createResponse.tag._id || createResponse.tag.id);
+                        } else {
+                            throw new Error(createResponse?.message || '创建标签失败');
+                        }
+                    }
+                    
+                    // 更新笔记标签
+                    const response = await api.updateNoteTags(noteId, selectedTagIds);
+                    
+                    if (response && response.success) {
+                        // 关闭弹窗并显示成功消息
+                        tagModal.style.display = 'none';
+                        
+                        // 如果存在ToastMessage组件，使用它显示消息
+                        if (typeof ToastMessage !== 'undefined') {
+                            ToastMessage.success('笔记标签已更新');
+                        } else {
+                            alert('笔记标签已更新');
+                        }
+                        
+                        // 刷新当前视图
+                        this.refreshCurrentView(noteId, 'tag');
+                    } else {
+                        throw new Error(response?.message || '更新笔记标签失败');
+                    }
+                } catch (error) {
+                    console.error('更新笔记标签失败:', error);
+                    
+                    // 如果存在ToastMessage组件，使用它显示错误
+                    if (typeof ToastMessage !== 'undefined') {
+                        ToastMessage.error(`更新标签失败: ${error.message}`);
+                    } else {
+                        alert(`更新标签失败: ${error.message}`);
+                    }
+                } finally {
+                    // 恢复按钮状态
+                    confirmTagSelect.disabled = false;
+                    confirmTagSelect.innerHTML = '应用标签';
+                }
+            });
+        }
+        
+        // 标签搜索功能
+        if (tagSearchInput) {
+            tagSearchInput.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase().trim();
+                const tagItems = document.querySelectorAll('.tag-item');
+                
+                tagItems.forEach(item => {
+                    const tagName = item.querySelector('.tag-name').textContent.toLowerCase();
+                    if (tagName.includes(searchTerm) || searchTerm === '') {
+                        item.style.display = 'flex';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+            });
+        }
+        
+        // 标签颜色选择事件
+        tagColorOptions.forEach(option => {
+            option.addEventListener('click', function() {
+                tagColorOptions.forEach(opt => opt.classList.remove('selected'));
+                this.classList.add('selected');
+            });
+        });
+    }
+
+    /**
+     * 更新菜单配置
+     * @param {Object} config - 菜单配置
+     * @param {Array} config.show - 要显示的菜单项action列表
+     * @param {Array} config.hide - 要隐藏的菜单项action列表
+     */
+    updateMenuConfig(config) {
+        if (!config) return;
+        
+        // 更新配置
+        if (config.show) {
+            this.options.menuConfig.show = config.show;
+        }
+        
+        if (config.hide) {
+            this.options.menuConfig.hide = config.hide;
+        }
+        
+        // 刷新菜单项显示状态
+        this.applyMenuConfig();
+        
+        console.log('菜单配置已更新:', this.options.menuConfig);
+    }
+    
+    /**
+     * 应用当前菜单配置
+     */
+    applyMenuConfig() {
+        if (!this.menu) return;
+        
+        const { show, hide } = this.options.menuConfig;
+        
+        // 隐藏所有菜单项
+        this.menu.querySelectorAll('.menu-item').forEach(item => {
+            const action = item.dataset.action;
+            
+            // 默认隐藏
+            item.style.display = 'none';
+            
+            // 如果在显示列表中，则显示
+            if (show.includes(action)) {
+                item.style.display = 'flex';
+            }
+            
+            // 如果在隐藏列表中，则强制隐藏
+            if (hide.includes(action)) {
+                item.style.display = 'none';
+            }
+        });
+        
+        // 处理分隔线，如果某个分隔线前后都没有显示的菜单项，则隐藏该分隔线
+        const dividers = this.menu.querySelectorAll('.menu-divider');
+        dividers.forEach((divider, index) => {
+            // 获取前后的菜单项
+            let prevItem = divider.previousElementSibling;
+            let nextItem = divider.nextElementSibling;
+            
+            // 向前查找可见的菜单项
+            while (prevItem && (prevItem.style.display === 'none' || prevItem.classList.contains('menu-divider'))) {
+                prevItem = prevItem.previousElementSibling;
+            }
+            
+            // 向后查找可见的菜单项
+            while (nextItem && (nextItem.style.display === 'none' || nextItem.classList.contains('menu-divider'))) {
+                nextItem = nextItem.nextElementSibling;
+            }
+            
+            // 如果前后都没有可见的菜单项，则隐藏该分隔线
+            if (!prevItem || !nextItem || 
+                prevItem.style.display === 'none' || 
+                nextItem.style.display === 'none') {
+                divider.style.display = 'none';
+            } else {
+                divider.style.display = 'block';
+            }
+        });
+    }
+    
+    /**
+     * 设置页面类型，自动配置适合该页面的菜单项
+     * @param {String} pageType - 页面类型，如 'dashboard', 'starred', 'trash' 等
+     */
+    setPageType(pageType) {
+        switch(pageType) {
+            case 'dashboard':
+                // 仪表盘页面：显示编辑、分享、收藏、分类、标签、回收站
+                this.updateMenuConfig({
+                    show: ['edit', 'share', 'star', 'move', 'tag', 'trash'],
+                    hide: ['unstar', 'delete', 'restore']
+                });
+                break;
+                
+            case 'starred':
+                // 收藏页面：显示编辑、分享、取消收藏、分类、标签、回收站
+                this.updateMenuConfig({
+                    show: ['edit', 'share', 'unstar', 'move', 'tag', 'trash'],
+                    hide: ['star', 'delete', 'restore']
+                });
+                break;
+                
+            case 'trash':
+                // 回收站页面：显示恢复、永久删除
+                this.updateMenuConfig({
+                    show: ['restore', 'delete'],
+                    hide: ['edit', 'share', 'star', 'unstar', 'move', 'tag', 'trash']
+                });
+                break;
+                
+            case 'shared':
+                // 分享页面：显示编辑、取消分享、收藏/取消收藏、分类、标签、回收站
+                this.updateMenuConfig({
+                    show: ['edit', 'unshare', 'star', 'move', 'tag', 'trash'],
+                    hide: ['share', 'delete', 'restore']
+                });
+                break;
+                
+            default:
+                // 默认配置
+                this.updateMenuConfig({
+                    show: ['edit', 'share', 'star', 'move', 'tag', 'trash'],
+                    hide: ['unstar', 'delete', 'restore']
+                });
+        }
+        
+        console.log(`菜单配置已更新为'${pageType}'页面类型`);
+    }
+    
+    /**
+     * 取消收藏笔记
+     * @param {String} noteId - 笔记ID
+     */
+    unstarNote(noteId) {
+        try {
+            // 从UI中移除笔记元素
+            this.removeNoteFromUI(noteId);
+            
+            // 更新全局缓存中的收藏状态
+            this.updateNoteStateInGlobalCache(noteId, { isStarred: false, starred: false });
+            
+            // 刷新当前视图
+            this.refreshCurrentView(noteId, 'unstar');
+            
+            // 调用API将收藏状态同步到后端
+            if (typeof api !== 'undefined' && api && typeof api.starNote === 'function') {
+                console.log('调用API更新笔记收藏状态:', noteId);
+                api.starNote(noteId)  // 使用starNote方法，后端会自动切换星标状态
+                    .then(response => {
+                        if (response && response.success) {
+                            console.log('笔记已成功取消收藏:', response);
+                            
+                            // 显示成功提示，但防止重复提示
+                            if (typeof ToastMessage !== 'undefined' && !window._noteUnstarToastShown) {
+                                window._noteUnstarToastShown = true;
+                                ToastMessage.success('已从收藏夹中移除');
+                                
+                                // 2秒后重置标志，允许下一次操作显示提示
+                                setTimeout(() => {
+                                    window._noteUnstarToastShown = false;
+                                }, 2000);
+                            }
+                            
+                            // 清理收藏笔记缓存，强制下次访问从API获取
+                            localStorage.removeItem('starred_notes_cache');
+                            localStorage.removeItem('starred_notes_timestamp');
+                            
+                            // 触发笔记更新事件
+                            localStorage.setItem('notes_updated', Date.now().toString());
+                        } else {
+                            console.error('取消收藏笔记失败:', response);
+                            
+                            if (typeof ToastMessage !== 'undefined') {
+                                ToastMessage.error('取消收藏笔记失败，请重试');
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        console.error('取消收藏笔记出错:', error);
+                        
+                        if (typeof ToastMessage !== 'undefined') {
+                            ToastMessage.error('取消收藏笔记失败: ' + error.message);
+                        }
+                    });
+            } else {
+                console.warn('API不可用，仅更新了本地缓存');
+                
+                // 如果有ToastMessage组件，显示成功消息
+                if (typeof ToastMessage !== 'undefined') {
+                    ToastMessage.success('已在本地从收藏夹中移除');
+                }
+            }
+        } catch (error) {
+            console.error('取消收藏笔记时发生错误:', error);
+            
+            if (typeof ToastMessage !== 'undefined') {
+                ToastMessage.error('取消收藏失败: ' + error.message);
+            }
         }
     }
 }

@@ -31,5 +31,5 @@ else
 fi
 
 echo -e "${YELLOW}正在启动应用...${NC}"
-echo -e "${GREEN}应用将在 http://localhost:3000 上运行${NC}"
+echo -e "${GREEN}应用将在 http://localhost:5660 上运行${NC}"
 npm run dev 

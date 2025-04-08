@@ -16,11 +16,7 @@ const siteInfo = {
   keywords: '笔记,记事本,备忘录',
   footerText: '© 2023 笔记平台',
   // 在页面加载完成后从API获取
-  isLoaded: false,
-  // 添加加载状态跟踪
-  isLoading: false,
-  // 添加加载Promise
-  loadPromise: null
+  isLoaded: false
 };
 
 // API基础URL - 确保使用当前页面的协议和主机
@@ -68,25 +64,9 @@ function setupUrlRewriting() {
 // 异步获取站点信息
 async function loadSiteInfo() {
   console.log('开始加载站点信息...');
-  
-  // 如果已经加载完成，直接返回
-  if (siteInfo.isLoaded) {
-    console.log('站点信息已加载, 直接返回');
-    return siteInfo;
-  }
-  
-  // 如果正在加载中，返回现有的Promise
-  if (siteInfo.isLoading && siteInfo.loadPromise) {
-    console.log('站点信息正在加载中, 返回现有Promise');
-    return siteInfo.loadPromise;
-  }
-  
-  // 标记为正在加载
-  siteInfo.isLoading = true;
-  
-  // 创建新的Promise
-  siteInfo.loadPromise = (async () => {
-    try {
+  try {
+    // 只有在还没有加载过的情况下才加载
+    if (!siteInfo.isLoaded) {
       // 尝试两个可能的API端点
       const endpoints = [
         `${API_BASE_URL}/api/settings/public-info`,
@@ -171,17 +151,15 @@ async function loadSiteInfo() {
       } else {
         console.warn('所有API请求失败');
       }
-    } catch (error) {
-      console.error('加载站点信息失败:', error);
-    } finally {
-      // 无论成功失败，都标记为不再加载中
-      siteInfo.isLoading = false;
+    } else {
+      console.log('站点信息已加载, 跳过请求');
     }
     
     return siteInfo;
-  })();
-  
-  return siteInfo.loadPromise;
+  } catch (error) {
+    console.error('加载站点信息失败:', error);
+    return siteInfo;
+  }
 }
 
 // 更新页面标题
@@ -262,6 +240,13 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // 加载站点信息 - 只调用一次
   loadSiteInfo();
+  
+  // 注意：不需要再次调用这些函数，因为它们已经在loadSiteInfo成功后被调用
+  // updatePageTitle();
+  // updateMetaTags();
+  // updateSiteName();
+  // updateLogo();
+  // updateFooter();
 });
 
 // 导出站点信息对象和加载函数

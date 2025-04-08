@@ -431,27 +431,6 @@
         </div>
     </div>
 
-    <!-- 用户头像菜单 -->
-    <div class="user-profile-menu" id="userProfileMenu">
-        <div class="menu-item" data-action="profile">
-            <i class="fas fa-user-circle"></i>
-            个人信息
-        </div>
-        <div class="menu-item" data-action="edit-profile">
-            <i class="fas fa-user-edit"></i>
-            编辑个人资料
-        </div>
-        <div class="menu-divider"></div>
-        <div class="menu-item" data-action="settings">
-            <i class="fas fa-cog"></i>
-            系统设置
-        </div>
-        <div class="menu-item" data-action="logout">
-            <i class="fas fa-sign-out-alt"></i>
-            退出登录
-        </div>
-    </div>
-
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // 显示活动设置部分
@@ -624,23 +603,7 @@
                 title: '系统设置',
                 icon: 'fas fa-cog',
                 showViewToggle: false,
-                showRefreshButton: false,
-                onMenuItemClick: (action) => {
-                    console.log('菜单项点击:', action);
-                    if (action === 'logout') {
-                        // 处理退出登录
-                        if (window.confirmLogout) {
-                            window.confirmLogout();
-                        } else {
-                            localStorage.removeItem('token');
-                            window.location.href = 'login.html';
-                        }
-                    } else if (action === 'settings') {
-                        window.location.href = 'settings.html';
-                    } else if (action === 'edit-profile') {
-                        window.location.href = 'profile-edit.html';
-                    }
-                }
+                showRefreshButton: false
             });
             
             // 初始化主题切换

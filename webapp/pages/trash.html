@@ -210,20 +210,7 @@
                             tooltip: '永久删除所有笔记',
                             callback: confirmEmptyTrash
                         }
-                    ],
-                    onMenuItemClick: (action) => {
-                        console.log('菜单项点击:', action);
-                        if (action === 'logout') {
-                            // 处理退出登录
-                            if (window.confirmLogout) {
-                                window.confirmLogout();
-                            }
-                        } else if (action === 'settings') {
-                            window.location.href = 'settings.html';
-                        } else if (action === 'edit-profile') {
-                            window.location.href = 'profile-edit.html';
-                        }
-                    }
+                    ]
                 });
                 
                 // 保存到全局对象，使其他组件可以访问

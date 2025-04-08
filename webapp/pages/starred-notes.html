@@ -132,22 +132,7 @@
                         notesLoader.setViewMode(view);
                     }
                 },
-                onRefresh: loadStarredNotes,
-                onMenuItemClick: (action) => {
-                    console.log('菜单项点击:', action);
-                    if (action === 'logout') {
-                        // 处理退出登录
-                        if (window.confirmLogout) {
-                            window.confirmLogout();
-                        }
-                    } else if (action === 'settings') {
-                        // 打开设置页面
-                        window.location.href = 'settings.html';
-                    } else if (action === 'edit-profile') {
-                        // 打开个人资料页面
-                        window.location.href = 'profile-edit.html';
-                    }
-                }
+                onRefresh: loadStarredNotes
             });
             
             // 保存到全局对象，使其他组件可以访问
@@ -157,18 +142,16 @@
             const noteActionsMenu = new NoteActionsMenu({
                 menuId: 'noteActionsMenu',
                 overlayId: 'menuOverlay',
-                menuItems: [
-                    { action: 'edit', icon: 'fas fa-edit', text: '编辑笔记' },
-                    { action: 'share', icon: 'fas fa-share-alt', text: '分享笔记' },
-                    { action: 'unstar', icon: 'fas fa-star', text: '取消收藏', className: 'warning' },
-                    { divider: true },
-                    { action: 'move', icon: 'fas fa-folder', text: '移动到分类' },
-                    { action: 'tag', icon: 'fas fa-tags', text: '添加标签' },
-                    { divider: true },
-                    { action: 'trash', icon: 'fas fa-trash', text: '移至回收站', className: 'warning' }
-                ],
+                // 设置页面类型为收藏页面，自动配置菜单项
+                menuConfig: {
+                    show: ['edit', 'share', 'unstar', 'move', 'tag', 'trash'],
+                    hide: ['star', 'delete', 'restore']
+                },
                 onMenuItemClick: handleNoteAction
             });
+            
+            // 设置为收藏页面类型
+            noteActionsMenu.setPageType('starred');
             
             // 确保菜单已添加到DOM
             document.addEventListener('DOMContentLoaded', function() {
@@ -197,16 +180,10 @@
                         const newMenu = new NoteActionsMenu({
                             menuId: 'noteActionsMenu',
                             overlayId: 'menuOverlay',
-                            menuItems: [
-                                { action: 'edit', icon: 'fas fa-edit', text: '编辑笔记' },
-                                { action: 'share', icon: 'fas fa-share-alt', text: '分享笔记' },
-                                { action: 'unstar', icon: 'fas fa-star', text: '取消收藏', className: 'warning' },
-                                { divider: true },
-                                { action: 'move', icon: 'fas fa-folder', text: '移动到分类' },
-                                { action: 'tag', icon: 'fas fa-tags', text: '添加标签' },
-                                { divider: true },
-                                { action: 'trash', icon: 'fas fa-trash', text: '移至回收站', className: 'warning' }
-                            ],
+                            menuConfig: {
+                                show: ['edit', 'share', 'unstar', 'move', 'tag', 'trash'],
+                                hide: ['star', 'delete', 'restore']
+                            },
                             onMenuItemClick: handleNoteAction
                         });
                         
@@ -243,35 +220,24 @@
                         openNoteEditor(noteId);
                         break;
                     case 'share':
-                        // 跳转到分享页面
                         window.location.href = `note-share.html?id=${noteId}`;
                         break;
                     case 'move':
-                        // 跳转到分类页面
                         window.location.href = `note-categories.html?noteId=${noteId}`;
                         break;
                     case 'tag':
-                        // 跳转到标签页面
                         window.location.href = `tags.html?noteId=${noteId}`;
                         break;
-                    case 'star':
-                        // 星标笔记操作由父组件处理
-                        break;
                     case 'trash':
-                        // 移至回收站
                         if (window.trashNote) {
                             window.trashNote(noteId);
                         } else {
-                            // 如果全局函数不可用，尝试使用API
                             api.trashNote(noteId)
                                 .then(() => loadStarredNotes(true))
                                 .catch(err => console.error('移动到回收站失败:', err));
                         }
                         break;
-                    case 'unstar':
-                        // 从收藏夹中移除
-                        removeFromFavorites(noteId);
-                        break;
+                    // 不再需要手动处理unstar操作，由组件内部处理
                     default:
                         console.log('未处理的操作:', action);
                 }
@@ -533,61 +499,6 @@
                             refreshBtn.classList.remove('loading');
                         }, 500);
                     });
-                });
-            }
-            
-            // 取消收藏笔记
-            function removeFromFavorites(noteId) {
-                ConfirmDialog.confirm('取消收藏', '确定要将这个笔记从收藏夹中移除吗？', function(confirmed) {
-                    if (confirmed) {
-                        // 获取笔记当前状态，确保只修改星标状态
-                        const allNotes = JSON.parse(localStorage.getItem('notes') || '[]');
-                        const noteIndex = allNotes.findIndex(n => n.id === noteId || n._id === noteId);
-                        
-                        // 本地更新星标状态
-                        if (noteIndex !== -1) {
-                            allNotes[noteIndex].isStarred = false;
-                            // 保留其他状态不变
-                            localStorage.setItem('notes', JSON.stringify(allNotes));
-                        }
-                        
-                        api.starNote(noteId)  // 使用starNote方法，后端会自动切换星标状态
-                            .then(response => {
-                                if (response && response.success) {
-                                    loadStarredNotes(true); // 强制刷新收藏夹
-                                    ToastMessage.success('已从收藏夹中移除');
-                                    
-                                    // 清理收藏笔记缓存
-                                    localStorage.removeItem('starred_notes_cache');
-                                    localStorage.removeItem('starred_notes_timestamp');
-                                } else {
-                                    throw new Error(response.message || '取消收藏失败');
-                                }
-                            })
-                            .catch(error => {
-                                console.error('取消收藏失败:', error);
-                                
-                                // 如果API失败，尝试在本地取消收藏
-                                const allNotes = JSON.parse(localStorage.getItem('notes') || '[]');
-                                const noteIndex = allNotes.findIndex(n => n.id === noteId || n._id === noteId);
-                                
-                                if (noteIndex !== -1) {
-                                    allNotes[noteIndex].isStarred = false;
-                                    localStorage.setItem('notes', JSON.stringify(allNotes));
-                                    localStorage.setItem('notes_updated', Date.now().toString());
-                                    
-                                    // 清理收藏笔记缓存
-                                    localStorage.removeItem('starred_notes_cache');
-                                    localStorage.removeItem('starred_notes_timestamp');
-                                    
-                                    loadStarredNotes(true); // 强制刷新收藏夹
-                                    ToastMessage.success('已在本地从收藏夹中移除');
-                                    return; // 避免显示错误提示
-                                }
-                                
-                                ToastMessage.error(`操作失败: ${error.message}`);
-                            });
-                    }
                 });
             }
             

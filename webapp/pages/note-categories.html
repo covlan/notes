@@ -6,7 +6,6 @@
     <title>笔记分类 - 笔记平台</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/styles.css">
-    <link rel="stylesheet" href="css/note-actions-menu.css">
     <link rel="stylesheet" href="css/sidebar-menu.css">
     <link rel="stylesheet" href="css/categories.css">
     <link rel="stylesheet" href="css/content-header.css">
@@ -15,8 +14,6 @@
     <script src="component/site-info.js"></script>
     <!-- 引入通用笔记加载组件 -->
     <script src="component/notes-loader.js"></script>
-    <!-- 引入笔记操作菜单组件 -->
-    <script src="component/note-actions-menu.js"></script>
     <!-- 引入侧边栏菜单组件 -->
     <script src="component/sidebar-menu.js"></script>
     <!-- 引入确认对话框组件 -->
@@ -43,14 +40,7 @@
     <!-- 主内容区域 -->
     <div class="main-content" id="mainContent">
         <div class="content-header" id="contentHeader">
-            <div style="display: flex; align-items: center;">
-                <h1 class="welcome-text">笔记分类</h1>
-                <button class="new-category-btn" id="newCategoryBtn">
-                    <i class="fas fa-plus"></i>
-                    新建分类
-                </button>
-            </div>
-            <div class="user-profile-container" id="user-profile-container"></div>
+            <!-- 将由ContentHeader组件动态生成 -->
         </div>
         <div class="categories-container">
             <!-- 分类列表将由 JavaScript 动态生成 -->
@@ -120,9 +110,6 @@
             </div>
         </div>
     </div>
-
-    <!-- 用户头像菜单 -->
-    <div class="user-profile-menu" id="userProfileMenu"></div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -196,19 +183,7 @@
                         }
                     }
                 ],
-                onRefresh: loadCategories,
-                onMenuItemClick: (action) => {
-                    // 处理菜单项点击
-                    if (action === 'logout') {
-                        // 处理退出登录
-                        localStorage.removeItem('token');
-                        window.location.href = 'login.html';
-                    } else if (action === 'settings') {
-                        window.location.href = 'settings.html';
-                    } else if (action === 'edit-profile') {
-                        window.location.href = 'profile-edit.html';
-                    }
-                }
+                onRefresh: loadCategories
             });
             
             // 处理移动端content-header的隐藏
@@ -712,7 +687,6 @@
             }
 
             // 事件监听器
-            newCategoryBtn.addEventListener('click', () => openCategoryModal());
             closeModal.addEventListener('click', closeCategoryModal);
             cancelBtn.addEventListener('click', closeCategoryModal);
             saveBtn.addEventListener('click', saveCategory);
@@ -720,6 +694,12 @@
             // 分类笔记列表事件监听器
             document.getElementById('closeCategoryNotesModal').addEventListener('click', closeCategoryNotesModal);
             document.getElementById('backToCategoriesBtn').addEventListener('click', closeCategoryNotesModal);
+
+            // 创建分类函数 - 供ContentHeader组件调用
+            function createCategory() {
+                openCategoryModal();
+            }
+            window.createCategory = createCategory; // 全局暴露，以便ContentHeader可以调用
 
             // 颜色选择器点击事件
             document.addEventListener('DOMContentLoaded', function() {
@@ -739,7 +719,7 @@
             // 移动端新增分类按钮
             const mobileAddCategoryBtn = document.getElementById('mobileAddCategoryBtn');
             if (mobileAddCategoryBtn) {
-                mobileAddCategoryBtn.addEventListener('click', () => openCategoryModal());
+                mobileAddCategoryBtn.addEventListener('click', createCategory);
             }
 
             // 初始化

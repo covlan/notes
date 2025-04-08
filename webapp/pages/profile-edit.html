@@ -477,23 +477,7 @@
                 title: '编辑个人资料',
                 icon: 'fas fa-user-edit',
                 showViewToggle: false,
-                showRefreshButton: false,
-                onMenuItemClick: (action) => {
-                    console.log('菜单项点击:', action);
-                    if (action === 'logout') {
-                        // 处理退出登录
-                        if (window.confirmLogout) {
-                            window.confirmLogout();
-                        } else {
-                            localStorage.removeItem('token');
-                            window.location.href = 'login.html';
-                        }
-                    } else if (action === 'settings') {
-                        window.location.href = 'settings.html';
-                    } else if (action === 'edit-profile') {
-                        window.location.href = 'profile-edit.html';
-                    }
-                }
+                showRefreshButton: false
             });
             
             // 初始化主题切换

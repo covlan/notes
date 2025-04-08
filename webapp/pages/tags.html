@@ -9,16 +9,11 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/tags.css">
-    <link rel="stylesheet" href="css/note-actions-menu.css">
     <link rel="stylesheet" href="css/sidebar-menu.css">
     <link rel="stylesheet" href="css/content-header.css">
     <script src="./component/api.js"></script>
     <!-- 引入站点信息加载脚本 -->
     <script src="component/site-info.js"></script>
-    <!-- 引入通用笔记加载组件 -->
-    <script src="component/notes-loader.js"></script>
-    <!-- 引入笔记操作菜单组件 -->
-    <script src="component/note-actions-menu.js"></script>
     <!-- 引入侧边栏菜单组件 -->
     <script src="component/sidebar-menu.js"></script>
     <!-- 引入确认对话框组件 -->
@@ -45,14 +40,7 @@
     <!-- 主内容区域 -->
     <div class="main-content" id="mainContent">
         <div class="content-header" id="contentHeader">
-            <div style="display: flex; align-items: center;">
-                <h1 class="welcome-text">标签管理</h1>
-                <button class="new-tag-btn" id="newTagBtn">
-                    <i class="fas fa-plus"></i>
-                    新建标签
-                </button>
-            </div>
-            <div class="user-profile-container" id="user-profile-container"></div>
+            <!-- 将由ContentHeader组件动态生成 -->
         </div>
         <div class="tags-container">
             <!-- 标签列表将由 JavaScript 动态生成 -->
@@ -95,9 +83,6 @@
             </div>
         </div>
     </div>
-
-    <!-- 用户头像菜单 -->
-    <div class="user-profile-menu" id="userProfileMenu"></div>
 
     <script>
         // 打开标签编辑弹窗
@@ -163,23 +148,8 @@
                         callback: showNewTagModal
                     }
                 ],
-                onRefresh: loadTags,
-                onMenuItemClick: (action) => {
-                    console.log('菜单项点击:', action);
-                    if (action === 'logout') {
-                        // 处理退出登录
-                        if (window.confirmLogout) {
-                            window.confirmLogout();
-                    }
-                    } else if (action === 'settings') {
-                        // 打开设置页面
-                        window.location.href = 'settings.html';
-                    } else if (action === 'edit-profile') {
-                        // 打开个人资料页面
-                        window.location.href = 'profile-edit.html';
-                    }
-                        }
-                    });
+                onRefresh: loadTags
+            });
                     
             // 初始化主题切换
             const themeToggle = document.getElementById('themeToggle');
@@ -197,12 +167,6 @@
     
             // 加载标签
             loadTags();
-            
-            // 添加新建标签按钮事件
-            const newTagBtn = document.getElementById('newTagBtn');
-            if (newTagBtn) {
-                newTagBtn.addEventListener('click', showNewTagModal);
-            }
             
             // 添加移动端新增标签按钮事件
             const mobileAddTagBtn = document.getElementById('mobileAddTagBtn');
