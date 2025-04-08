@@ -298,7 +298,7 @@
             <button type="submit" class="register-button">注册</button>
             
             <div class="login-link">
-                已有账户? <a href="index.html">立即登录</a>
+                已有账户? <a href="login.html">立即登录</a>
             </div>
         </form>
     </div>
@@ -346,14 +346,12 @@
             }
         });
         
-        // API基础URL - 自动适配当前环境
         const getBaseUrl = () => {
             // 从当前页面URL获取主机和端口
             const { protocol, hostname, port } = window.location;
             // 返回完整的基础URL
             return `${protocol}//${hostname}${port ? ':' + port : ''}`;
         };
-        const API_BASE_URL = getBaseUrl();
         
         // 获取表单元素
         const registerForm = document.querySelector('.register-form');
@@ -459,7 +457,7 @@
             registerButton.textContent = '注册中...';
             
             try {
-                const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
+                const response = await fetch(`${getBaseUrl()}/api/auth/register`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'

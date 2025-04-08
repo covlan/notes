@@ -14,9 +14,11 @@ services:
       - NODE_ENV=production
       - PORT=5660
       - MONGODB_URI=mongodb://mongo:27017/note-app
-      - JWT_SECRET=${JWT_SECRET:-note_app_secret_key}
-      - JWT_EXPIRE=30d
+      - JWT_SECRET=${JWT_SECRET:-YB4bshsj3fLD9IbOmvNlzW1NGFMvEoXpfznOuKn7YUjMa3txA4PQCSLiIqRw}
+      - JWT_EXPIRE=7d
+      - JWT_COOKIE_EXPIRE=7
       - FRONTEND_URL=http://localhost:5660
+      - CORS_ORIGIN=http://localhost:5660
     depends_on:
       mongo:
         condition: service_healthy

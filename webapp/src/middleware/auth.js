@@ -5,13 +5,17 @@ const User = require('../models/User');
 exports.protect = async (req, res, next) => {
   let token;
 
-  // 从请求头中获取token
+  // 尝试从请求头中获取token
   if (
     req.headers.authorization &&
     req.headers.authorization.startsWith('Bearer')
   ) {
     // 获取Bearer token
     token = req.headers.authorization.split(' ')[1];
+  } 
+  // 如果请求头中没有，尝试从cookies中获取
+  else if (req.cookies && req.cookies.token) {
+    token = req.cookies.token;
   }
 
   // 如果没有token

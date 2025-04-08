@@ -88,11 +88,6 @@ exports.getNotes = async (req, res, next) => {
       trash
     } = req.query;
 
-    console.log('获取笔记请求参数:', {
-      page, limit, sort, order, category, tag, search, starred, trash,
-      userId: req.user.id
-    });
-
     const options = {
       page: parseInt(page, 10),
       limit: parseInt(limit, 10),
@@ -103,21 +98,17 @@ exports.getNotes = async (req, res, next) => {
     const query = { userId: req.user.id };
 
     // 处理回收站和星标筛选
-    if (trash === 'true') {
+    if (req.originalUrl.includes('/api/notes/trash') || trash === 'true') {
       query.inTrash = true;
-      console.log('查询回收站笔记，inTrash=true');
+      // 回收站视图不对starred进行过滤，显示所有inTrash=true的笔记，包括星标和非星标
     } else {
       query.inTrash = false;
-      console.log('查询非回收站笔记，inTrash=false');
       
       // 修改星标筛选条件，确保字符串'true'被正确处理
       if (starred === 'true' || starred === true) {
         query.starred = true;
-        console.log('查询星标笔记，starred=true');
       }
     }
-
-    console.log('笔记查询条件:', query);
 
     // 分类筛选
     if (category) {
@@ -143,7 +134,6 @@ exports.getNotes = async (req, res, next) => {
 
     // 执行查询并填充分类和标签信息
     const notesCount = await Note.countDocuments(query);
-    console.log('查询到的笔记总数:', notesCount);
     
     const notes = await Note.find(query)
       .sort(options.sort)
@@ -153,14 +143,9 @@ exports.getNotes = async (req, res, next) => {
       .select('title content fileName categoryId userId starred inTrash createdAt updatedAt')
       .lean();
     
-    console.log('查询到的笔记数量:', notes.length);
     if (notes.length > 0) {
-      console.log('第一条笔记:', notes[0]);
-      // 确保每条笔记都有fileName字段
       notes.forEach(note => {
         if (!note.fileName) {
-          console.log('笔记缺少fileName字段:', note._id);
-          // 生成一个默认的fileName
           note.fileName = `${note._id}_${Date.now()}`;
         }
       });
@@ -171,12 +156,8 @@ exports.getNotes = async (req, res, next) => {
       const noteTags = await NoteTag.find({ noteId: note._id })
         .populate('tagId', 'id name');
       
-      // 确保note对象包含fileName字段
       if (!note.fileName) {
-        console.log('笔记缺少fileName字段:', note._id);
-        // 生成一个默认的fileName
         note.fileName = `${note._id}_${Date.now()}`;
-        // 更新数据库中的笔记
         await Note.findByIdAndUpdate(note._id, { fileName: note.fileName });
       }
       
@@ -188,11 +169,6 @@ exports.getNotes = async (req, res, next) => {
     });
 
     const notesWithTags = await Promise.all(noteTagsPromises);
-
-    console.log('最终返回的笔记数量:', notesWithTags.length);
-    if (notesWithTags.length > 0) {
-      console.log('最终返回的第一条笔记:', notesWithTags[0]);
-    }
 
     res.status(200).json({
       success: true,
@@ -248,7 +224,7 @@ exports.getNote = async (req, res, next) => {
 // @access  Private
 exports.updateNote = async (req, res, next) => {
   try {
-    const { title, content, categoryId, tags } = req.body;
+    const { title, content, categoryId, tags, inTrash, starred } = req.body;
 
     // 检查笔记是否存在
     let note = await Note.findOne({ 
@@ -274,14 +250,18 @@ exports.updateNote = async (req, res, next) => {
       }
     }
 
+    // 准备更新数据
+    const updateData = {};
+    if (title !== undefined) updateData.title = title;
+    if (content !== undefined) updateData.content = content;
+    if (categoryId !== undefined) updateData.categoryId = categoryId || null;
+    if (inTrash !== undefined) updateData.inTrash = inTrash;
+    if (starred !== undefined) updateData.starred = starred;
+
     // 更新笔记
     note = await Note.findByIdAndUpdate(
       req.params.id, 
-      { 
-        title,
-        content,
-        categoryId: categoryId || null
-      },
+      updateData,
       { new: true }
     );
 
@@ -380,13 +360,25 @@ exports.trashNote = async (req, res, next) => {
       });
     }
 
-    // 设置为回收站状态
+    // 记录当前的starred状态
+    const wasStarred = note.starred;
+
+    // 设置为回收站状态，但保留starred状态
     note.inTrash = true;
+    
+    // 显式保留星标状态(不改变)
+    note.starred = wasStarred;
+    
     await note.save();
 
     res.status(200).json({
       success: true,
-      message: '笔记已移至回收站'
+      message: '笔记已移至回收站',
+      note: {
+        id: note._id,
+        inTrash: true,
+        starred: note.starred
+      }
     });
   } catch (err) {
     next(err);
@@ -412,13 +404,25 @@ exports.restoreNote = async (req, res, next) => {
       });
     }
 
-    // 恢复笔记
+    // 记录当前的starred状态
+    const wasStarred = note.starred;
+
+    // 恢复笔记，但保留starred状态
     note.inTrash = false;
+    
+    // 显式保留星标状态(不改变)
+    note.starred = wasStarred;
+    
     await note.save();
 
     res.status(200).json({
       success: true,
-      message: '笔记已恢复'
+      message: '笔记已恢复',
+      note: {
+        id: note._id,
+        inTrash: false,
+        starred: note.starred
+      }
     });
   } catch (err) {
     next(err);
@@ -656,6 +660,153 @@ exports.updateNoteTags = async (req, res, next) => {
       message: '笔记标签已更新'
     });
   } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    获取收藏笔记
+// @route   GET /api/notes/starred
+// @access  Private
+exports.getStarredNotes = async (req, res, next) => {
+  try {
+    const { page = 1, limit = 20, sort = 'updatedAt', order = 'desc' } = req.query;
+
+    const options = {
+      page: parseInt(page, 10),
+      limit: parseInt(limit, 10),
+      sort: { [sort]: order === 'asc' ? 1 : -1 }
+    };
+
+    // 构建查询条件 - 只查询当前用户的已收藏且不在回收站的笔记
+    const query = { 
+      userId: req.user.id,
+      starred: true,
+      inTrash: false
+    };
+
+    // 执行查询并填充分类信息
+    const notesCount = await Note.countDocuments(query);
+    
+    const notes = await Note.find(query)
+      .sort(options.sort)
+      .skip((options.page - 1) * options.limit)
+      .limit(options.limit)
+      .populate('categoryId', 'name')
+      .select('title content fileName categoryId userId starred inTrash createdAt updatedAt')
+      .lean();
+    
+    // 确保所有笔记都有文件名
+    if (notes.length > 0) {
+      notes.forEach(note => {
+        if (!note.fileName) {
+          note.fileName = `${note._id}_${Date.now()}`;
+        }
+      });
+    }
+
+    // 获取笔记的标签
+    const noteTagsPromises = notes.map(async (note) => {
+      const noteTags = await NoteTag.find({ noteId: note._id })
+        .populate('tagId', 'id name');
+      
+      return {
+        ...note,
+        isStarred: true, // 确保客户端知道这是收藏的笔记
+        tags: noteTags.map(nt => ({ id: nt.tagId._id, name: nt.tagId.name })),
+        categoryName: note.categoryId ? note.categoryId.name : null
+      };
+    });
+
+    const notesWithTags = await Promise.all(noteTagsPromises);
+
+    res.status(200).json({
+      success: true,
+      notes: notesWithTags,
+      pagination: {
+        page: options.page,
+        limit: options.limit,
+        total: notesCount,
+        pages: Math.ceil(notesCount / options.limit)
+      }
+    });
+  } catch (err) {
+    console.error('获取收藏笔记出错:', err);
+    next(err);
+  }
+};
+
+// @desc    获取回收站笔记
+// @route   GET /api/notes/trash
+// @access  Private
+exports.getTrashedNotes = async (req, res, next) => {
+  try {
+    const { page = 1, limit = 10, sort = 'updatedAt', order = 'desc' } = req.query;
+
+    const options = {
+      page: parseInt(page, 10),
+      limit: parseInt(limit, 10),
+      sort: { [sort]: order === 'asc' ? 1 : -1 }
+    };
+
+    // 明确设置inTrash=true
+    const query = { 
+      userId: req.user.id,
+      inTrash: true  // 这里强制设置为true，不再依赖URL或参数判断
+    };
+
+    // 执行查询并填充分类和标签信息
+    const notesCount = await Note.countDocuments(query);
+    
+    const notes = await Note.find(query)
+      .sort(options.sort)
+      .skip((options.page - 1) * options.limit)
+      .limit(options.limit)
+      .populate('categoryId', 'name')
+      .select('title content fileName categoryId userId starred inTrash createdAt updatedAt')
+      .lean();
+    
+    if (notes.length > 0) {
+      notes.forEach(note => {
+        if (!note.fileName) {
+          note.fileName = `${note._id}_${Date.now()}`;
+        }
+      });
+    }
+
+    // 获取笔记的标签
+    const noteTagsPromises = notes.map(async (note) => {
+      const noteTags = await NoteTag.find({ noteId: note._id })
+        .populate('tagId', 'id name');
+      
+      if (!note.fileName) {
+        note.fileName = `${note._id}_${Date.now()}`;
+        await Note.findByIdAndUpdate(note._id, { fileName: note.fileName });
+      }
+      
+      return {
+        ...note,
+        tags: noteTags.map(nt => ({ id: nt.tagId._id, name: nt.tagId.name })),
+        categoryName: note.categoryId ? note.categoryId.name : null
+      };
+    });
+
+    const notesWithTags = await Promise.all(noteTagsPromises);
+
+    // 输出调试信息
+    console.log(`回收站笔记: 找到${notesWithTags.length}条笔记，查询条件:`, query);
+
+    res.status(200).json({
+      success: true,
+      notes: notesWithTags,
+      pagination: {
+        page: options.page,
+        limit: options.limit,
+        total: notesCount,
+        pages: Math.ceil(notesCount / options.limit)
+      }
+    });
+  } catch (err) {
+    console.error('获取回收站笔记出错:', err);
     next(err);
   }
 }; 

@@ -5,50 +5,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>回收站 - 笔记平台</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="./css/styles.css">
-    <script src="./js/api.js"></script>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/note-actions-menu.css">
+    <link rel="stylesheet" href="css/sidebar-menu.css">
+    <link rel="stylesheet" href="css/content-header.css">
+    <script src="./component/api.js"></script>
+    <!-- 引入站点信息加载脚本 -->
+    <script src="component/site-info.js"></script>
+    <!-- 引入通用笔记加载组件 -->
+    <script src="component/notes-loader.js"></script>
+    <!-- 引入笔记操作菜单组件 -->
+    <script src="component/note-actions-menu.js"></script>
+    <!-- 引入侧边栏菜单组件 -->
+    <script src="component/sidebar-menu.js"></script>
+    <!-- 引入确认对话框组件 -->
+    <script src="component/confirm-dialog.js"></script>
+    <!-- 引入内容头部组件 -->
+    <script src="component/content-header.js"></script>
+    <!-- 引入提示消息组件 -->
+    <script src="component/toast-message.js"></script>
 </head>
 <body>
-    <!-- 移动端菜单按钮 -->
-    <div class="mobile-menu-toggle" id="mobileMenuToggle">
-        <i class="fas fa-bars"></i>
-    </div>
-
-    <!-- 侧边栏 -->
-    <div class="sidebar" id="sidebar">
-        <div class="sidebar-header">
-            <div class="logo" id="toggleSidebar">
-                <i class="fas fa-book"></i>
-                <span>笔记平台</span>
-            </div>
-        </div>
-        <div class="nav-menu">
-            <div class="nav-item" data-tooltip="我的笔记">
-                <i class="fas fa-home"></i>
-                <span>我的笔记</span>
-            </div>
-            <div class="nav-item" data-tooltip="收藏笔记">
-                <i class="fas fa-star"></i>
-                <span>收藏笔记</span>
-            </div>
-            <div class="nav-item" data-tooltip="笔记分类">
-                <i class="fas fa-folder"></i>
-                <span>笔记分类</span>
-            </div>
-            <div class="nav-item" data-tooltip="标签管理">
-                <i class="fas fa-tags"></i>
-                <span>标签管理</span>
-            </div>
-            <div class="nav-item" data-tooltip="分享笔记">
-                <i class="fas fa-share-alt"></i>
-                <span>分享笔记</span>
-            </div>
-            <div class="nav-item active" data-tooltip="回收站">
-                <i class="fas fa-trash"></i>
-                <span>回收站</span>
-            </div>
-        </div>
-    </div>
+    <!-- 侧边栏容器 -->
+    <div id="sidebar"></div>
 
     <!-- 主题切换按钮 -->
     <div class="theme-toggle" id="themeToggle">
@@ -56,776 +35,376 @@
     </div>
 
     <!-- 主内容区域 -->
-    <div class="main-content" id="mainContent">
-        <div class="content-header">
+    <div class="main-content view-grid" id="mainContent">
+        <div class="content-header" id="contentHeader">
             <div style="display: flex; align-items: center; gap: 15px;">
                 <h1 class="welcome-text">回收站</h1>
-                <div class="trash-actions">
-                    <button class="restore-all-btn" id="restoreAllBtn" title="恢复所有笔记">
-                        <i class="fas fa-undo"></i>
-                        全部恢复
+                <div class="view-toggle">
+                    <button class="view-toggle-btn active" data-view="grid">
+                        <i class="fas fa-th-large"></i>
+                        卡片视图
                     </button>
-                    <button class="empty-trash-btn" id="emptyTrashBtn" title="清空回收站">
-                        <i class="fas fa-trash"></i>
-                        清空回收站
+                    <button class="view-toggle-btn" data-view="list">
+                        <i class="fas fa-list"></i>
+                        列表视图
                     </button>
                 </div>
-                <button class="refresh-btn" id="refreshNotesBtn" title="刷新回收站">
-                    <i class="fas fa-sync-alt"></i>
-                </button>
             </div>
-            <div class="user-profile">
-                <div class="user-avatar">
-                    <i class="fas fa-user"></i>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <div class="trash-actions">
+                    <div class="batch-action-btn restore-all-btn" id="restoreAllBtn">
+                        <i class="fas fa-trash-restore"></i>
+                        <span>恢复所有</span>
+                    </div>
+                    <div class="batch-action-btn delete-all-btn" id="emptyTrashBtn">
+                        <i class="fas fa-trash"></i>
+                        <span>清空回收站</span>
+                    </div>
+                    <button class="refresh-btn" id="refreshBtn" title="刷新">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
                 </div>
-                <span>管理员</span>
+                <div class="user-profile-container" id="user-profile-container"></div>
             </div>
         </div>
-        <div class="trash-notes">
-            <!-- 回收站笔记列表将由 JavaScript 动态生成 -->
+        <div class="trash-notes-container">
+            <div class="trash-notes">
+                <!-- 回收站笔记卡片将由 JavaScript 动态生成 -->
+            </div>
         </div>
     </div>
+
+    <!-- 编辑器弹窗容器 -->
+    <div class="editor-modal-container" id="editorModal"></div>
 
     <!-- 用户头像菜单 -->
-    <div class="user-profile-menu" id="userProfileMenu">
-        <div class="menu-item" data-action="profile">
-            <i class="fas fa-user-circle"></i>
-            个人信息
-        </div>
-        <div class="menu-item" data-action="edit-profile">
-            <i class="fas fa-user-edit"></i>
-            编辑个人资料
-        </div>
-        <div class="menu-divider"></div>
-        <div class="menu-item" data-action="settings">
-            <i class="fas fa-cog"></i>
-            系统设置
-        </div>
-        <div class="menu-item" data-action="logout">
-            <i class="fas fa-sign-out-alt"></i>
-            退出登录
-        </div>
-    </div>
-
+    <div class="user-profile-menu" id="userProfileMenu"></div>
+    
     <script>
-        const sidebar = document.getElementById('sidebar');
-        const mainContent = document.getElementById('mainContent');
-        const toggleSidebar = document.getElementById('toggleSidebar');
-        const mobileMenuToggle = document.getElementById('mobileMenuToggle');
-        const themeToggle = document.getElementById('themeToggle');
-        const restoreAllBtn = document.getElementById('restoreAllBtn');
-        const emptyTrashBtn = document.getElementById('emptyTrashBtn');
-        const refreshBtn = document.getElementById('refreshNotesBtn');
-        const body = document.body;
+        // 全局变量声明
+        let restoreAllBtn, emptyTrashBtn;
 
-        // 检查本地存储中的主题偏好
-        const currentTheme = localStorage.getItem('theme');
-        if (currentTheme === 'dark') {
-            body.classList.add('dark-mode');
-        }
-
-        // 切换主题
-        themeToggle.addEventListener('click', () => {
-            body.classList.toggle('dark-mode');
-            const theme = body.classList.contains('dark-mode') ? 'dark' : 'light';
-            localStorage.setItem('theme', theme);
-        });
-
-        // 切换侧边栏
-        function toggleSidebarState() {
-            sidebar.classList.toggle('collapsed');
-            mainContent.classList.toggle('expanded');
+        // 全局错误处理
+        window.onerror = function(message, source, lineno, colno, error) {
+            console.error('全局错误:', { message, source, lineno, colno, error });
             
-            // 保存侧边栏状态
-            const isCollapsed = sidebar.classList.contains('collapsed');
-            localStorage.setItem('sidebar-collapsed', isCollapsed);
-        }
-
-        // 添加点击事件监听器
-        toggleSidebar.addEventListener('click', toggleSidebarState);
-
-        // 初始化侧边栏状态
-        const isCollapsed = localStorage.getItem('sidebar-collapsed') === 'true';
-        if (isCollapsed) {
-            sidebar.classList.add('collapsed');
-            mainContent.classList.add('expanded');
-        }
-
-        // 刷新按钮事件
-        refreshBtn.addEventListener('click', () => {
-            console.log('手动刷新回收站');
-            // 添加旋转动画
-            refreshBtn.classList.add('loading');
-            
-            // 强制清除缓存
-            localStorage.removeItem('trash_notes_cache');
-            localStorage.removeItem('trash_notes_timestamp');
-            
-            // 刷新回收站
-            loadTrashNotes(true).finally(() => {
-                // 无论成功失败，1秒后移除加载状态
-                setTimeout(() => {
-                    refreshBtn.classList.remove('loading');
-                }, 1000);
-            });
-        });
-
-        // 加载回收站笔记
-        async function loadTrashNotes(forceRefresh = false, deletedNoteId = null) {
-            const trashContainer = document.querySelector('.trash-notes');
-            
-            // 如果有指定删除的笔记ID，先从已有的笔记列表中移除
-            if (deletedNoteId) {
-                console.log('从UI中删除笔记:', deletedNoteId);
-                const noteElement = document.querySelector(`.trash-note-card[data-id="${deletedNoteId}"]`);
-                
-                if (noteElement) {
-                    noteElement.remove();
+            // 防止页面渲染失败
+            setTimeout(() => {
+                const notesContainer = document.querySelector('.trash-notes');
+                if (notesContainer && notesContainer.innerHTML === '') {
+                    notesContainer.innerHTML = `
+                        <div class="empty-trash error">
+                            <i class="fas fa-exclamation-circle"></i>
+                            <p>页面加载出错: ${message}</p>
+                            <button class="retry-btn">重试</button>
+                        </div>
+                    `;
                     
-                    // 如果没有笔记了，显示空状态
-                    const remainingNotes = document.querySelectorAll('.trash-note-card');
-                    if (remainingNotes.length === 0) {
-                        trashContainer.innerHTML = `
-                            <div class="empty-trash">
-                                <i class="fas fa-trash-alt"></i>
-                                <p>回收站是空的</p>
-                            </div>
-                        `;
-                    }
-                    
-                    // 如果只是视图更新，可以直接返回
-                    if (!forceRefresh) {
-                        return;
-                    }
-                }
-            }
-            
-            trashContainer.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> 加载中...</div>';
-            
-            let trashNotes = [];
-            
-            try {
-                // 检查是否可以使用缓存
-                const cachedTrashNotes = localStorage.getItem('trash_notes_cache');
-                const cacheTimestamp = localStorage.getItem('trash_notes_timestamp');
-                const now = Date.now();
-                const cacheExpiry = 2 * 60 * 1000; // 2分钟缓存过期，回收站需要更频繁的刷新
-                
-                // 如果不强制刷新且缓存有效，使用缓存数据
-                if (!forceRefresh && cachedTrashNotes && cacheTimestamp && (now - parseInt(cacheTimestamp)) <= cacheExpiry) {
-                    console.log('使用缓存的回收站笔记数据');
-                    trashNotes = JSON.parse(cachedTrashNotes);
-                    
-                    if (trashNotes.length > 0) {
-                        console.log(`从缓存加载了 ${trashNotes.length} 条回收站笔记`);
-                        updateTrashUI(trashNotes);
-                        return;
-                    } else {
-                        console.log('缓存中没有回收站笔记，尝试从API获取');
-                    }
-                }
-                
-                // 明确只请求已在回收站中的笔记
-                console.log('获取回收站笔记...');
-                const response = await api.getNotes({ inTrash: true });
-                console.log('API返回的回收站笔记:', response);
-                
-                if (response && response.success) {
-                    let rawNotes = [];
-                    
-                    // 确定API返回的笔记数组
-                    if (response.notes && Array.isArray(response.notes)) {
-                        rawNotes = response.notes;
-                        console.log('API返回的notes数组长度:', rawNotes.length);
-                    } else if (response.data && Array.isArray(response.data)) {
-                        rawNotes = response.data;
-                        console.log('API返回的data数组长度:', rawNotes.length);
-                    }
-                    
-                    // 第二次确认笔记是否在回收站中
-                    trashNotes = rawNotes.filter(note => note.inTrash === true);
-                    console.log('筛选回收站状态后的笔记数量:', trashNotes.length);
-                    
-                    if (trashNotes.length !== rawNotes.length) {
-                        console.warn(`API返回的笔记中有${rawNotes.length - trashNotes.length}条不是回收站笔记`);
-                        
-                        // 检查每条不在回收站的笔记
-                        rawNotes.forEach(note => {
-                            if (note.inTrash !== true) {
-                                console.warn(`此笔记不在回收站: id=${note.id || note._id}, inTrash=${note.inTrash}, title=${note.title}`);
-                            }
+                    const retryBtn = notesContainer.querySelector('.retry-btn');
+                    if (retryBtn) {
+                        retryBtn.addEventListener('click', () => {
+                            window.location.reload();
                         });
                     }
-                    
-                    console.log(`API返回的笔记数量: ${rawNotes.length}, 处理后的回收站笔记数量: ${trashNotes.length}`);
-                    
-                    // 更新本地存储，确保数据一致性
-                    if (trashNotes.length > 0) {
-                        updateLocalStorage(trashNotes);
-                        // 同步更新普通笔记缓存数据，删除所有"在回收站中"的笔记
-                        syncNotesCache(trashNotes);
-                    }
-                } else {
-                    console.warn('API请求成功但未返回有效数据', response);
                 }
-            } catch (error) {
-                console.error('API获取回收站笔记失败:', error);
-                // 如果API失败，回退到本地存储
-                const notes = JSON.parse(localStorage.getItem('notes') || '[]');
-                console.log('从本地存储获取笔记数量:', notes.length);
-                
-                // 筛选回收站笔记
-                trashNotes = notes.filter(note => note.inTrash === true);
-                console.log('从本地存储过滤出的回收站笔记数量:', trashNotes.length);
-            }
+            }, 1000);
             
-            // 如果API没有返回数据，尝试从本地存储获取
-            if (trashNotes.length === 0) {
-                console.log('API未返回回收站笔记，尝试从本地存储获取');
-                const notes = JSON.parse(localStorage.getItem('notes') || '[]');
-                console.log('本地存储笔记总数量:', notes.length);
-                
-                // 筛选回收站笔记
-                trashNotes = notes.filter(note => note.inTrash === true);
-                console.log('本地存储过滤出的回收站笔记数量:', trashNotes.length);
-            }
-            
-            // 标准化笔记数据
-            trashNotes = trashNotes.map(note => {
-                if (!note) return null;
-                
-                // 确保同时有id和_id字段
-                if (note._id && !note.id) {
-                    note.id = note._id;
-                } else if (note.id && !note._id) {
-                    note._id = note.id;
-                }
-                
-                // 确保有deletedAt字段
-                if (!note.deletedAt) {
-                    note.deletedAt = note.updatedAt || new Date().toISOString();
-                }
-                
-                return note;
-            }).filter(note => note !== null);
-            
-            console.log(`最终准备显示的回收站笔记数量: ${trashNotes.length}`);
-            
-            if (trashNotes.length === 0) {
-                console.log('没有找到任何回收站笔记，显示空状态');
-                trashContainer.innerHTML = `
-                    <div class="empty-trash">
-                        <i class="fas fa-trash-alt"></i>
-                        <p>回收站是空的</p>
-                    </div>
-                `;
-                return;
-            }
-            
-            // 更新UI显示
-            updateTrashUI(trashNotes);
+            return false; // 让错误继续传播
+        };
 
-            // 缓存回收站笔记
-            localStorage.setItem('trash_notes_cache', JSON.stringify(trashNotes));
-            localStorage.setItem('trash_notes_timestamp', Date.now().toString());
-            console.log(`已缓存 ${trashNotes.length} 条回收站笔记`);
+        // 初始化页面布局函数
+        function initLayout() {
+            console.log('初始化页面布局');
+            
+            // 初始化侧边栏
+            const mainContent = document.getElementById('mainContent');
+            if (mainContent) {
+                mainContent.classList.add('with-sidebar');
+            }
         }
         
-        // 更新本地存储中的笔记
-        function updateLocalStorage(apiNotes) {
-            if (!apiNotes || apiNotes.length === 0) {
-                console.log('没有要更新到本地存储的回收站笔记');
-                return;
-            }
-            
-            console.log(`开始更新本地存储，处理${apiNotes.length}个回收站笔记`);
-            const localNotes = JSON.parse(localStorage.getItem('notes') || '[]');
-            
-            // 对于从inTrash=true API请求获取的笔记，我们可以确信它们应该在回收站中
-            apiNotes.forEach(apiNote => {
-                const localIndex = localNotes.findIndex(note => 
-                    note.id === apiNote.id || note.id === apiNote._id || 
-                    note._id === apiNote.id || note._id === apiNote._id
-                );
-                
-                // 确保apiNote始终有inTrash字段设置为true
-                if (apiNote.inTrash === undefined) {
-                    apiNote.inTrash = true;
-                }
-                
-                console.log(`处理回收站笔记: ${apiNote.id || apiNote._id}, 标题: ${apiNote.title || '无标题'}, inTrash: ${apiNote.inTrash}, 在本地${localIndex !== -1 ? '已存在' : '不存在'}`);
-                
-                if (localIndex !== -1) {
-                    // 更新现有笔记
-                    const updatedNote = {
-                        ...localNotes[localIndex],
-                        ...apiNote,
-                        // 明确设置为回收站状态
-                        inTrash: true,
-                        // 确保ID字段一致
-                        id: apiNote.id || apiNote._id,
-                        _id: apiNote._id || apiNote.id,
-                        // 确保有删除时间
-                        deletedAt: apiNote.deletedAt || apiNote.updatedAt || new Date().toISOString()
-                    };
-                    
-                    localNotes[localIndex] = updatedNote;
-                    console.log(`更新本地笔记: ${updatedNote.id}, 标题: ${updatedNote.title || '无标题'}, inTrash: ${updatedNote.inTrash}`);
+        // 更新面包屑函数
+        function updateBreadcrumb(title, iconClass) {
+            console.log('更新面包屑:', title);
+            // 查找标题元素
+            const welcomeText = document.querySelector('.welcome-text');
+            if (welcomeText) {
+                if (iconClass) {
+                    welcomeText.innerHTML = `<i class="fas ${iconClass}"></i> ${title}`;
                 } else {
-                    // 添加新笔记
-                    const newNote = {
-                        ...apiNote,
-                        inTrash: true,
-                        // 确保ID字段一致
-                        id: apiNote.id || apiNote._id,
-                        _id: apiNote._id || apiNote.id,
-                        // 确保有删除时间
-                        deletedAt: apiNote.deletedAt || apiNote.updatedAt || new Date().toISOString()
-                    };
-                    
-                    localNotes.push(newNote);
-                    console.log(`添加新回收站笔记: ${newNote.id}, 标题: ${newNote.title || '无标题'}, inTrash: ${newNote.inTrash}`);
+                    welcomeText.textContent = title;
                 }
-            });
-            
-            localStorage.setItem('notes', JSON.stringify(localNotes));
-            console.log(`本地存储更新完成，当前共有${localNotes.length}个笔记`);
+            }
         }
 
-        // 同步更新笔记缓存
-        function syncNotesCache(trashNotes) {
-            if (!trashNotes || trashNotes.length === 0) {
-                console.log('没有有效的回收站笔记，跳过缓存同步');
-                return;
-            }
+        // 页面初始化 - 只保留一个DOMContentLoaded事件处理
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('回收站页面DOMContentLoaded事件触发');
             
-            console.log(`开始同步笔记缓存，处理${trashNotes.length}个回收站笔记`);
-            
-            // 获取所有回收站笔记的ID
-            const trashIds = trashNotes.map(note => note.id || note._id)
-                .filter(id => id); // 过滤掉无效ID
+            try {
+                const mainContent = document.getElementById('mainContent');
+                const themeToggle = document.getElementById('themeToggle');
+                const body = document.body;
+                // 初始化全局按钮变量
+                restoreAllBtn = document.getElementById('restoreAllBtn');
+                emptyTrashBtn = document.getElementById('emptyTrashBtn');
+                const refreshBtn = document.getElementById('refreshBtn');
                 
-            if (trashIds.length === 0) {
-                console.log('没有有效的回收站笔记ID，跳过缓存同步');
-                return;
-            }
-            
-            console.log(`要从缓存中排除的回收站笔记ID: ${trashIds.join(', ')}`);
-            
-            // 清除现有缓存
-            localStorage.removeItem('notes_cache');
-            localStorage.removeItem('notes_cache_timestamp');
-            console.log('已清除笔记缓存');
-            
-            // 更新本地存储中的所有笔记，确保回收站状态一致
-            const localNotes = JSON.parse(localStorage.getItem('notes') || '[]');
-            let updated = false;
-            
-            // 确保所有在trashIds中的笔记都被标记为inTrash=true
-            localNotes.forEach(note => {
-                const noteId = note.id || note._id;
-                if (trashIds.includes(noteId) && note.inTrash !== true) {
-                    note.inTrash = true;
-                    note.deletedAt = note.deletedAt || new Date().toISOString();
-                    updated = true;
-                    console.log(`更新本地笔记状态为回收站: ${noteId}, 标题: ${note.title || '无标题'}`);
+                // 初始化API实例
+                window.api = new API();
+                
+                // 检查本地存储中的主题偏好
+                const currentTheme = localStorage.getItem('theme');
+                if (currentTheme === 'dark') {
+                    body.classList.add('dark-mode');
                 }
-            });
-            
-            if (updated) {
-                localStorage.setItem('notes', JSON.stringify(localNotes));
-                console.log('更新了本地存储中的笔记回收站状态');
-            }
-            
-            // 如果存在笔记缓存，需要更新它
-            const cachedNotes = JSON.parse(localStorage.getItem('notes_cache') || '[]');
-            if (cachedNotes && cachedNotes.length > 0) {
-                console.log(`原始缓存中有${cachedNotes.length}个笔记`);
                 
-                // 从缓存中过滤掉在回收站的笔记
-                const filteredCache = cachedNotes.filter(note => {
-                    if (!note || (!note.id && !note._id)) {
-                        console.warn('发现无效的笔记对象，已从缓存中移除');
-                        return false;
-                    }
-                    
-                    const noteId = note.id || note._id;
-                    if (!noteId) {
-                        console.warn('发现没有ID的笔记对象，已从缓存中移除');
-                        return false;
-                    }
-                    
-                    // 如果笔记在回收站列表中，或者笔记本身标记为在回收站
-                    const isInTrash = trashIds.includes(noteId) || note.inTrash === true;
-                    
-                    if (isInTrash) {
-                        console.log(`从缓存中移除回收站笔记: ${noteId}, 标题: ${note.title || '无标题'}`);
-                    }
-                    
-                    return !isInTrash;
+                // 切换主题
+                themeToggle.addEventListener('click', () => {
+                    body.classList.toggle('dark-mode');
+                    const theme = body.classList.contains('dark-mode') ? 'dark' : 'light';
+                    localStorage.setItem('theme', theme);
                 });
                 
-                console.log(`过滤后缓存中剩余${filteredCache.length}个笔记`);
+                // 初始化布局和组件
+                initLayout();
                 
-                if (filteredCache.length > 0) {
-                    localStorage.setItem('notes_cache', JSON.stringify(filteredCache));
-                    localStorage.setItem('notes_cache_timestamp', Date.now().toString());
-                    console.log(`更新笔记缓存完成，当前有${filteredCache.length}个非回收站笔记`);
-                } else {
-                    console.log('过滤后没有笔记留在缓存中');
+                // 设置页面标题和面包屑
+                document.title = '回收站 - 笔记应用';
+                updateBreadcrumb('回收站', 'fa-trash');
+                
+                // 初始化侧边栏菜单
+                const sidebarMenu = new SidebarMenu({
+                    containerId: 'sidebar',
+                    logoText: '笔记平台',
+                    logoIcon: 'fas fa-book',
+                    menuItems: [
+                        { id: 'home', text: '我的笔记', icon: 'fas fa-home', page: 'dashboard.html' },
+                        { id: 'starred', text: '收藏笔记', icon: 'fas fa-star', page: 'starred-notes.html' },
+                        { id: 'categories', text: '笔记分类', icon: 'fas fa-folder', page: 'note-categories.html' },
+                        { id: 'tags', text: '标签管理', icon: 'fas fa-tags', page: 'tags.html' },
+                        { id: 'shared', text: '分享笔记', icon: 'fas fa-share-alt', page: 'note-share.html' },
+                        { id: 'trash', text: '回收站', icon: 'fas fa-trash', active: true, page: 'trash.html' }
+                    ],
+                    autoNavigate: true
+                });
+                
+                // 初始化内容头部组件
+                const contentHeader = new ContentHeader({
+                    containerId: 'contentHeader',
+                    title: '回收站',
+                    showViewToggle: false,
+                    showRefreshButton: false,
+                    defaultView: 'grid',
+                    hideOnMobile: false,
+                    actionButtons: [
+                        {
+                            icon: 'fas fa-trash-restore',
+                            text: '恢复所有',
+                            tooltip: '恢复所有笔记',
+                            callback: confirmRestoreAll
+                        },
+                        {
+                            icon: 'fas fa-trash-alt',
+                            text: '清空回收站',
+                            tooltip: '永久删除所有笔记',
+                            callback: confirmEmptyTrash
+                        }
+                    ],
+                    onMenuItemClick: (action) => {
+                        console.log('菜单项点击:', action);
+                        if (action === 'logout') {
+                            // 处理退出登录
+                            if (window.confirmLogout) {
+                                window.confirmLogout();
+                            }
+                        } else if (action === 'settings') {
+                            window.location.href = 'settings.html';
+                        } else if (action === 'edit-profile') {
+                            window.location.href = 'profile-edit.html';
+                        }
+                    }
+                });
+                
+                // 保存到全局对象，使其他组件可以访问
+                window.contentHeader = contentHeader;
+                
+                // 确保主内容区域使用grid视图模式
+                if (mainContent) {
+                    mainContent.classList.add('view-grid');
+                    mainContent.classList.remove('view-list');
+                    localStorage.setItem('viewMode', 'grid');
                 }
-            } else {
-                console.log('缓存中没有笔记，无需同步');
+                
+                // 添加按钮事件监听
+                if (restoreAllBtn) {
+                    restoreAllBtn.addEventListener('click', confirmRestoreAll);
+                }
+                if (emptyTrashBtn) {
+                    emptyTrashBtn.addEventListener('click', confirmEmptyTrash);
+                }
+                if (refreshBtn) {
+                    refreshBtn.addEventListener('click', () => loadTrashNotes(true));
+                }
+                
+                // 加载回收站笔记
+                loadTrashNotes();
+            } catch (error) {
+                console.error('回收站页面初始化失败:', error);
+                // 显示错误信息
+                const notesContainer = document.querySelector('.trash-notes');
+                if (notesContainer) {
+                    notesContainer.innerHTML = `
+                        <div class="empty-trash error">
+                            <i class="fas fa-exclamation-circle"></i>
+                            <p>初始化失败: ${error.message || '未知错误'}</p>
+                            <button class="retry-btn">重试</button>
+                        </div>
+                    `;
+                    
+                    const retryBtn = notesContainer.querySelector('.retry-btn');
+                    if (retryBtn) {
+                        retryBtn.addEventListener('click', () => {
+                            window.location.reload();
+                        });
+                    }
+                }
+            }
+        });
+
+        // 监听笔记更新事件
+        window.addEventListener('storage', function(event) {
+            if (event.key === 'notes_updated') {
+                console.log('检测到笔记更新，刷新回收站');
+                loadTrashNotes(true);
+            }
+        });
+
+        // 初始化通用笔记加载组件实例
+        let notesLoader = null;
+
+        // 处理回收站笔记加载成功
+        function handleTrashNotesLoaded(notes, options) {
+            console.log('回收站笔记加载成功:', notes.length, '条笔记');
+            
+            // 获取回收站容器
+            const trashContainer = document.querySelector('.trash-notes');
+            if (!trashContainer) {
+                console.error('找不到回收站容器元素');
+                return;
+            }
+            
+            // 如果API返回零条笔记，但本地存储中有回收站笔记，使用本地存储
+            if (notes.length === 0) {
+                console.log('API返回空回收站，尝试从本地加载回收站笔记');
+                
+                // 从localStorage和专用trash_notes_cache缓存中检查
+                const localNotes = JSON.parse(localStorage.getItem('notes') || '[]');
+                const localTrashNotes = localNotes.filter(note => note.inTrash === true);
+                
+                // 尝试从专用回收站缓存获取
+                const trashedNotesCache = JSON.parse(localStorage.getItem('trash_notes_cache') || '[]');
+                
+                // 选择有更多笔记的来源
+                let sourceToUse = localTrashNotes;
+                let sourceDesc = '本地存储';
+                if (trashedNotesCache.length > localTrashNotes.length) {
+                    sourceToUse = trashedNotesCache;
+                    sourceDesc = '专用回收站缓存';
+                    console.log(`使用${sourceDesc}中的${trashedNotesCache.length}条笔记`);
+                } else {
+                    console.log(`使用${sourceDesc}中的${localTrashNotes.length}条回收站笔记`);
+                }
+                
+                if (sourceToUse.length > 0) {
+                    console.log(`API返回空回收站，但${sourceDesc}有${sourceToUse.length}条回收站笔记`);
+                    
+                    // 使用renderTrashNote函数而不是renderTrashNotes
+                    renderTrashNote(sourceToUse, trashContainer);
+                    
+                    // 尝试更新API缓存
+                    try {
+                        if (window.api && typeof window.api.updateTrashCache === 'function') {
+                            console.log('更新回收站API缓存');
+                            sourceToUse.forEach(note => window.api.updateTrashCache(note.id || note._id));
+                        }
+                    } catch (e) {
+                        console.error('更新回收站缓存失败:', e);
+                    }
+                    
+                    return;
+                }
+            }
+            
+            // 正常渲染笔记
+            console.log('使用API返回的回收站笔记进行渲染');
+            renderTrashNote(notes, trashContainer);
+        }
+        
+        // 创建一个renderTrashNotes函数作为renderTrashNote的别名
+        function renderTrashNotes(notes) {
+            const trashContainer = document.querySelector('.trash-notes');
+            renderTrashNote(notes, trashContainer);
+        }
+        
+        // 处理回收站笔记加载错误
+        function handleTrashNotesError(error) {
+            console.error('回收站笔记加载失败:', error);
+            const trashContainer = document.querySelector('.trash-notes');
+            
+            trashContainer.innerHTML = `
+                <div class="empty-trash error">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <p>加载回收站失败: ${error.message || '未知错误'}</p>
+                    <button class="retry-btn">重试</button>
+                </div>
+            `;
+            
+            // 添加重试按钮事件
+            const retryBtn = trashContainer.querySelector('.retry-btn');
+            if (retryBtn) {
+                retryBtn.addEventListener('click', () => {
+                    loadTrashNotes(true);
+                });
             }
         }
 
         // 恢复笔记
-        async function restoreNote(noteId) {
-            try {
-                // 显示加载状态
-                const card = document.querySelector(`.trash-note-card[data-id="${noteId}"]`);
-                if (card) {
-                    const restoreBtn = card.querySelector('.restore-btn');
-                    if (restoreBtn) {
-                        restoreBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 恢复中...';
-                        restoreBtn.disabled = true;
-                    }
-                }
-                
-                // 尝试使用API恢复笔记
-                if (typeof api !== 'undefined') {
-                    const response = await api.restoreNote(noteId);
-                    console.log('恢复笔记响应:', response);
-                    
+        function restoreNote(noteId) {
+            if (!noteId) {
+                ToastMessage.error('笔记ID不存在');
+                return;
+            }
+            
+            // 首先尝试使用restoreNoteFromTrash方法
+            const restoreNotePromise = api.restoreNoteFromTrash 
+                ? api.restoreNoteFromTrash(noteId) 
+                : api.restoreNote(noteId);
+            
+            restoreNotePromise
+                .then(response => {
                     if (response && response.success) {
-                        // 从DOM中立即移除该笔记卡片
-                        if (card) {
-                            card.remove();
+                        // 重新加载回收站
+                        loadTrashNotes(true);
+                        
+                        // 使用标志防止显示重复提示
+                        if (!window._noteRestoreToastShown) {
+                            window._noteRestoreToastShown = true;
+                            ToastMessage.success('笔记已恢复');
+                            
+                            // 2秒后重置标志，允许下一次操作显示提示
+                            setTimeout(() => {
+                                window._noteRestoreToastShown = false;
+                            }, 2000);
                         }
                         
-                        // 清除笔记缓存，确保后续操作使用最新数据
-                        localStorage.removeItem('notes_cache');
-                        localStorage.removeItem('notes_cache_timestamp');
-                        localStorage.removeItem('trash_notes_cache');
-                        localStorage.removeItem('trash_notes_timestamp');
-                        
-                        // 更新本地存储
-                        const notes = JSON.parse(localStorage.getItem('notes') || '[]');
-                        const noteIndex = notes.findIndex(n => n.id === noteId || n._id === noteId);
-                        
-                        if (noteIndex !== -1) {
-                            notes[noteIndex].inTrash = false;
-                            delete notes[noteIndex].deletedAt;
-                            localStorage.setItem('notes', JSON.stringify(notes));
-                            console.log(`笔记 ${noteId} 已在本地更新为非回收站状态`);
-                        }
-                        
-                        // 触发笔记更新事件
-                        localStorage.setItem('notes_updated', Date.now().toString());
-                        
-                        showToast('笔记已成功恢复', 'success');
-                        
-                        // 强制刷新回收站列表
-                        await loadTrashNotes(true);
-                    } else {
-                        throw new Error('恢复笔记失败：服务器响应异常');
-                    }
-                }
-            } catch (error) {
-                console.error('恢复笔记失败:', error);
-                showToast(`恢复失败: ${error.message}`, 'error');
-                
-                // 尝试仅在本地恢复
-                const notes = JSON.parse(localStorage.getItem('notes') || '[]');
-                const noteIndex = notes.findIndex(n => n.id === noteId || n._id === noteId);
-                
-                if (noteIndex !== -1) {
-                    notes[noteIndex].inTrash = false;
-                    delete notes[noteIndex].deletedAt;
-                    localStorage.setItem('notes', JSON.stringify(notes));
-                    
-                    // 清除笔记缓存，确保后续操作使用最新数据
-                    localStorage.removeItem('notes_cache');
-                    localStorage.removeItem('notes_cache_timestamp');
-                    localStorage.removeItem('trash_notes_cache');
-                    localStorage.removeItem('trash_notes_timestamp');
-                    
-                    // 触发笔记更新事件
-                    localStorage.setItem('notes_updated', Date.now().toString());
-                    
-                    // 强制刷新回收站
-                    await loadTrashNotes(true);
-                    showToast('笔记已在本地恢复', 'info');
-                }
-            } finally {
-                // 恢复按钮状态，如果笔记卡片还存在的话
-                const card = document.querySelector(`.trash-note-card[data-id="${noteId}"]`);
-                if (card) {
-                    const restoreBtn = card.querySelector('.restore-btn');
-                    if (restoreBtn) {
-                        restoreBtn.innerHTML = '<i class="fas fa-undo"></i> 恢复';
-                        restoreBtn.disabled = false;
-                    }
-                }
-            }
-        }
-
-        // 永久删除笔记
-        async function deleteNote(noteId) {
-            if (confirm('确定要永久删除这个笔记吗？此操作不可恢复。')) {
-                try {
-                    // 显示加载状态
-                    const card = document.querySelector(`.trash-note-card[data-id="${noteId}"]`);
-                    if (card) {
-                        const deleteBtn = card.querySelector('.delete-btn');
-                        if (deleteBtn) {
-                            deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 删除中...';
-                            deleteBtn.disabled = true;
-                        }
-                    }
-                    
-                    // 尝试使用API删除笔记
-                    if (typeof api !== 'undefined') {
-                        await api.deleteNote(noteId);
-                        
-                        // 从DOM中立即移除该笔记卡片
-                        if (card) {
-                            card.remove();
-                        }
-                        
-                        // 清除笔记缓存，确保后续操作使用最新数据
-                        localStorage.removeItem('notes_cache');
-                        localStorage.removeItem('notes_cache_timestamp');
-                        localStorage.removeItem('trash_notes_cache');
-                        localStorage.removeItem('trash_notes_timestamp');
-                        
-                        // 更新本地存储
-                        const notes = JSON.parse(localStorage.getItem('notes') || '[]');
-                        const updatedNotes = notes.filter(note => 
-                            note.id !== noteId && note._id !== noteId
-                        );
-                        localStorage.setItem('notes', JSON.stringify(updatedNotes));
-                        
-                        // 触发笔记更新事件
-                        localStorage.setItem('notes_updated', Date.now().toString());
-                        
-                        showToast('笔记已永久删除', 'success');
-                        
-                        // 刷新回收站列表
-                        await loadTrashNotes(true);
-                    }
-                } catch (error) {
-                    console.error('永久删除笔记失败:', error);
-                    showToast(`删除失败: ${error.message}`, 'error');
-                    
-                    // 尝试仅在本地删除
-                    const notes = JSON.parse(localStorage.getItem('notes') || '[]');
-                    const updatedNotes = notes.filter(note => 
-                        note.id !== noteId && note._id !== noteId
-                    );
-                    localStorage.setItem('notes', JSON.stringify(updatedNotes));
-                    
-                    // 清除笔记缓存，确保后续操作使用最新数据
-                    localStorage.removeItem('notes_cache');
-                    localStorage.removeItem('notes_cache_timestamp');
-                    localStorage.removeItem('trash_notes_cache');
-                    localStorage.removeItem('trash_notes_timestamp');
-                    
-                    // 触发笔记更新事件
-                    localStorage.setItem('notes_updated', Date.now().toString());
-                    
-                    // 从DOM中移除该笔记卡片
-                    const card = document.querySelector(`.trash-note-card[data-id="${noteId}"]`);
-                    if (card) {
-                        card.remove();
-                    }
-                    
-                    // 刷新回收站
-                    await loadTrashNotes(true);
-                    showToast('笔记已在本地删除', 'info');
-                }
-            }
-        }
-        
-        // 显示提示消息
-        function showToast(message, type = 'success') {
-            const toast = document.createElement('div');
-            toast.className = `toast-message ${type}`;
-            toast.innerHTML = `<i class="fas fa-${getToastIcon(type)}"></i> ${message}`;
-            document.body.appendChild(toast);
-            
-            setTimeout(() => {
-                toast.classList.add('show');
-                setTimeout(() => {
-                    toast.classList.remove('show');
-                    setTimeout(() => {
-                        document.body.removeChild(toast);
-                    }, 300);
-                }, 3000);
-            }, 100);
-            
-            return toast;
-        }
-        
-        // 获取提示图标
-        function getToastIcon(type) {
-            switch (type) {
-                case 'success': return 'check-circle';
-                case 'error': return 'exclamation-circle';
-                case 'info': return 'info-circle';
-                default: return 'info-circle';
-            }
-        }
-
-        // 恢复所有笔记
-        restoreAllBtn.addEventListener('click', async () => {
-            if (confirm('确定要恢复所有笔记吗？')) {
-                try {
-                    // 获取回收站中的所有笔记
-                    const notes = JSON.parse(localStorage.getItem('notes') || '[]');
-                    const trashNotes = notes.filter(note => note.inTrash === true);
-                    
-                    if (trashNotes.length === 0) {
-                        showToast('回收站中没有笔记可恢复', 'info');
-                        return;
-                    }
-                    
-                    // 显示加载状态
-                    restoreAllBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 恢复中...';
-                    restoreAllBtn.disabled = true;
-                    
-                    // 如果有API可用，尝试通过API恢复笔记
-                    if (typeof api !== 'undefined') {
-                        let successCount = 0;
-                        
-                        // 逐个恢复笔记，以适应后端API设计
-                        for (const note of trashNotes) {
-                            try {
-                                const noteId = note.id || note._id;
-                                await api.restoreNote(noteId);
-                                successCount++;
-                            } catch (error) {
-                                console.error(`恢复笔记 ${note.id || note._id} 失败:`, error);
-                            }
-                        }
-                        
-                        // 清除所有缓存
-                        localStorage.removeItem('notes_cache');
-                        localStorage.removeItem('notes_cache_timestamp');
-                        localStorage.removeItem('trash_notes_cache');
-                        localStorage.removeItem('trash_notes_timestamp');
-                        
-                        // 本地数据同步
+                        // 更新本地存储中的笔记状态
                         const allNotes = JSON.parse(localStorage.getItem('notes') || '[]');
-                        let updated = false;
-                        
-                        allNotes.forEach(note => {
-                            if (note.inTrash) {
-                                note.inTrash = false;
-                                delete note.deletedAt;
-                                updated = true;
-                            }
-                        });
-                        
-                        if (updated) {
+                        const noteIndex = allNotes.findIndex(n => (n.id === noteId || n._id === noteId));
+                        if (noteIndex !== -1) {
+                            allNotes[noteIndex].inTrash = false;
+                            delete allNotes[noteIndex].deletedAt;
                             localStorage.setItem('notes', JSON.stringify(allNotes));
-                        }
-                        
-                        // 触发笔记更新事件
-                        localStorage.setItem('notes_updated', Date.now().toString());
-                        
-                        // 清空回收站UI
-                        trashContainer.innerHTML = '';
-                        
-                        // 显示成功提示
-                        if (successCount > 0) {
-                            showToast(`成功恢复 ${successCount} 个笔记`, 'success');
-                        } else {
-                            showToast('没有笔记被恢复', 'info');
-                        }
-                    } else {
-                        // 仅在本地恢复笔记
-                        notes.forEach(note => {
-                            if (note.inTrash) {
-                                note.inTrash = false;
-                                delete note.deletedAt;
-                            }
-                        });
-                        localStorage.setItem('notes', JSON.stringify(notes));
-                        
-                        // 清除所有缓存
-                        localStorage.removeItem('notes_cache');
-                        localStorage.removeItem('notes_cache_timestamp');
-                        localStorage.removeItem('trash_notes_cache');
-                        localStorage.removeItem('trash_notes_timestamp');
-                        
-                        // 触发笔记更新事件
-                        localStorage.setItem('notes_updated', Date.now().toString());
-                        
-                        showToast('笔记已在本地恢复', 'info');
-                    }
-                    
-                    // 强制刷新回收站列表
-                    await loadTrashNotes(true);
-                    
-                    // 显示空状态
-                    if (trashContainer.innerHTML === '') {
-                        trashContainer.innerHTML = `
-                            <div class="empty-trash">
-                                <i class="fas fa-trash-alt"></i>
-                                <p>回收站是空的</p>
-                            </div>
-                        `;
-                    }
-                } catch (error) {
-                    console.error('恢复所有笔记失败:', error);
-                    showToast(`恢复失败: ${error.message}`, 'error');
-                } finally {
-                    // 恢复按钮状态
-                    restoreAllBtn.innerHTML = '<i class="fas fa-undo"></i> 全部恢复';
-                    restoreAllBtn.disabled = false;
-                }
-            }
-        });
-
-        // 清空回收站
-        emptyTrashBtn.addEventListener('click', async () => {
-            if (confirm('确定要清空回收站吗？此操作不可恢复。')) {
-                try {
-                    // 显示加载状态
-                    emptyTrashBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 处理中...';
-                    emptyTrashBtn.disabled = true;
-                    
-                    // 如果有API可用，尝试通过API清空回收站
-                    if (typeof api !== 'undefined') {
-                        try {
-                            // 尝试使用专门的清空回收站API
-                            await api.request('/api/notes/empty-trash', 'DELETE');
-                            showToast('回收站已清空', 'success');
-                        } catch (apiError) {
-                            console.error('API清空回收站失败:', apiError);
-                            
-                            // 如果专门的API失败，尝试逐个删除笔记
-                            const notes = JSON.parse(localStorage.getItem('notes') || '[]');
-                            const trashNotes = notes.filter(note => note.inTrash === true);
-                            
-                            let successCount = 0;
-                            for (const note of trashNotes) {
-                                try {
-                                    const noteId = note.id || note._id;
-                                    await api.deleteNote(noteId);
-                                    successCount++;
-                                } catch (deleteError) {
-                                    console.error(`删除笔记 ${note.id || note._id} 失败:`, deleteError);
-                                }
-                            }
-                            
-                            if (successCount > 0) {
-                                showToast(`已删除 ${successCount} 个笔记`, 'success');
-                            } else {
-                                // 如果API都失败了，只在本地删除
-                                throw new Error('删除笔记失败');
-                            }
                         }
                         
                         // 清除笔记缓存
@@ -833,232 +412,581 @@
                         localStorage.removeItem('notes_cache_timestamp');
                         localStorage.removeItem('trash_notes_cache');
                         localStorage.removeItem('trash_notes_timestamp');
-                    }
-                    
-                    // 无论API是否成功，也更新本地存储
-                    const notes = JSON.parse(localStorage.getItem('notes') || '[]');
-                    const updatedNotes = notes.filter(note => !note.inTrash);
-                    localStorage.setItem('notes', JSON.stringify(updatedNotes));
-                    
-                    // 刷新回收站列表
-                    await loadTrashNotes();
-                } catch (error) {
-                    console.error('清空回收站失败:', error);
-                    showToast(`操作失败: ${error.message}`, 'error');
-                    
-                    // 确保本地存储同步
-                    const notes = JSON.parse(localStorage.getItem('notes') || '[]');
-                    const updatedNotes = notes.filter(note => !note.inTrash);
-                    localStorage.setItem('notes', JSON.stringify(updatedNotes));
-                    await loadTrashNotes();
-                    showToast('笔记已在本地删除', 'info');
-                } finally {
-                    // 恢复按钮状态
-                    emptyTrashBtn.innerHTML = '<i class="fas fa-trash"></i> 清空回收站';
-                    emptyTrashBtn.disabled = false;
-                }
-            }
-        });
-
-        // 初始加载回收站笔记列表
-        document.addEventListener('DOMContentLoaded', async () => {
-            // 显示初始加载状态
-            const trashContainer = document.querySelector('.trash-notes');
-            trashContainer.innerHTML = `
-                <div class="loading-container">
-                    <div class="loading-spinner"></div>
-                    <p>正在加载回收站笔记...</p>
-                </div>
-            `;
-            
-            // 加载笔记
-            await loadTrashNotes();
-            
-            // 注册事件监听，当检测到笔记更新时刷新回收站
-            if ('serviceWorker' in navigator) {
-                window.addEventListener('storage', (event) => {
-                    if (event.key === 'notes_updated') {
-                        console.log('检测到笔记数据更新，刷新回收站');
-                        loadTrashNotes(true);
-                    }
-                });
-            }
-            
-            // 导航菜单项点击事件
-            document.querySelectorAll('.nav-item').forEach(item => {
-                item.addEventListener('click', () => {
-                    const icon = item.querySelector('i');
-                    if (icon.classList.contains('fa-trash')) {
-                        // 已经在回收站页面，不需要跳转
-                        return;
-                    }
-                    
-                    // 根据图标类名确定目标页面
-                    let targetPage = '';
-                    if (icon.classList.contains('fa-home')) {
-                        targetPage = 'dashboard.html';
-                    } else if (icon.classList.contains('fa-star')) {
-                        targetPage = 'starred-notes.html';
-                    } else if (icon.classList.contains('fa-folder')) {
-                        targetPage = 'note-categories.html';
-                    } else if (icon.classList.contains('fa-tags')) {
-                        targetPage = 'tags.html';
-                    } else if (icon.classList.contains('fa-share-alt')) {
-                        targetPage = 'note-share.html';
-                    }
-
-                    // 如果找到目标页面，则进行跳转
-                    if (targetPage) {
-                        try {
-                            console.log('准备跳转到页面:', targetPage);
-                            console.log('当前页面路径:', window.location.pathname);
-                            // 使用 replace 方法进行跳转
-                            window.location.replace(targetPage);
-                        } catch (error) {
-                            console.error('页面跳转失败:', error);
-                            alert('页面跳转失败，请检查页面是否存在');
-                        }
+                        
+                        // 触发笔记更新事件
+                        localStorage.setItem('notes_updated', Date.now().toString());
                     } else {
-                        console.error('未找到目标页面');
+                        throw new Error(response?.message || '恢复笔记失败');
                     }
-                });
-            });
-            
-            // 移动端菜单切换
-            mobileMenuToggle.addEventListener('click', () => {
-                sidebar.classList.toggle('show');
-            });
-
-            // 点击主内容区域时在移动端关闭侧边栏
-            mainContent.addEventListener('click', () => {
-                if (window.innerWidth <= 768) {
-                    sidebar.classList.remove('show');
-                }
-            });
-
-            // 窗口大小改变时处理侧边栏状态
-            window.addEventListener('resize', () => {
-                if (window.innerWidth > 768) {
-                    sidebar.classList.remove('show');
-                }
-            });
-            
-            // 用户头像菜单
-            const userProfile = document.querySelector('.user-profile');
-            const userProfileMenu = document.getElementById('userProfileMenu');
-            
-            userProfile.addEventListener('mouseenter', () => {
-                const rect = userProfile.getBoundingClientRect();
-                const menuWidth = userProfileMenu.offsetWidth || 200; // 估计菜单宽度
-                const windowWidth = window.innerWidth;
-                
-                // 计算右侧是否会溢出
-                if (rect.left + menuWidth > windowWidth) {
-                    // 如果会溢出，将菜单向左对齐
-                    userProfileMenu.style.left = `${rect.right - menuWidth}px`;
-                } else {
-                    userProfileMenu.style.left = `${rect.left}px`;
-                }
-                
-                userProfileMenu.style.top = `${rect.bottom}px`;
-                userProfileMenu.classList.add('show');
-            });
-            
-            userProfile.addEventListener('mouseleave', (event) => {
-                // 检查鼠标是否移动到菜单上
-                const toElement = event.relatedTarget;
-                if (!userProfileMenu.contains(toElement)) {
-                    userProfileMenu.classList.remove('show');
-                }
-            });
-            
-            userProfileMenu.addEventListener('mouseleave', () => {
-                userProfileMenu.classList.remove('show');
-            });
-            
-            // 用户菜单项点击事件
-            userProfileMenu.querySelectorAll('.menu-item').forEach(item => {
-                item.addEventListener('click', () => {
-                    const action = item.dataset.action;
-                    userProfileMenu.classList.remove('show');
+                })
+                .catch(error => {
+                    console.error('恢复笔记失败:', error);
                     
-                    // 处理不同的菜单操作
-                    switch(action) {
-                        case 'profile':
-                            alert('查看个人信息');
-                            break;
-                        case 'edit-profile':
-                            window.location.href = 'profile-edit.html';
-                            break;
-                        case 'settings':
-                            window.location.replace('settings.html');
-                            break;
-                        case 'logout':
-                            alert('退出登录');
-                            break;
+                    // 如果API调用失败，尝试在本地恢复笔记
+                    if (error.message.includes('404') || error.message.includes('不存在')) {
+                        console.log('API恢复失败，尝试在本地恢复笔记');
+                        const allNotes = JSON.parse(localStorage.getItem('notes') || '[]');
+                        const noteIndex = allNotes.findIndex(n => (n.id === noteId || n._id === noteId));
+                        
+                        if (noteIndex !== -1) {
+                            allNotes[noteIndex].inTrash = false;
+                            delete allNotes[noteIndex].deletedAt;
+                            localStorage.setItem('notes', JSON.stringify(allNotes));
+                            
+                            // 触发笔记更新事件
+                            localStorage.setItem('notes_updated', Date.now().toString());
+                            
+                            // 重新加载回收站
+                            loadTrashNotes(true);
+                            
+                            // 使用标志防止显示重复提示
+                            if (!window._noteRestoreToastShown) {
+                                window._noteRestoreToastShown = true;
+                                ToastMessage.success('笔记已在本地恢复');
+                                
+                                // 2秒后重置标志，允许下一次操作显示提示
+                                setTimeout(() => {
+                                    window._noteRestoreToastShown = false;
+                                }, 2000);
+                            }
+                            return;
+                        }
+                    }
+                    
+                    // 显示错误信息
+                    ToastMessage.error(`恢复失败: ${error.message}`);
+                });
+        }
+
+        // 永久删除笔记
+        function deleteNote(noteId) {
+            if (!noteId) {
+                showToast('笔记ID不存在', 'error');
+                return;
+            }
+            
+            ConfirmDialog.danger('永久删除确认', '确定要永久删除这个笔记吗？此操作无法撤销！', function(confirmed) {
+                if (confirmed) {
+                    api.deleteNotePermanently(noteId)
+                        .then(response => {
+                            if (response && response.success) {
+                                // 重新加载回收站
+                                loadTrashNotes(true);
+                                
+                                // 使用标志防止显示重复提示
+                                if (!window._noteDeleteToastShown) {
+                                    window._noteDeleteToastShown = true;
+                                    showToast('笔记已永久删除', 'success');
+                                    
+                                    // 2秒后重置标志，允许下一次操作显示提示
+                                    setTimeout(() => {
+                                        window._noteDeleteToastShown = false;
+                                    }, 2000);
+                                }
+                            } else {
+                                throw new Error(response.message || '永久删除笔记失败');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('永久删除笔记失败:', error);
+                            showToast(`删除失败: ${error.message}`, 'error');
+                        });
+                }
+            });
+        }
+        
+        // 显示提示消息
+        function showToast(message, type = 'success', duration = 3000) {
+            // 使用通用Toast组件替代原有实现
+            ToastMessage[type](message, { duration });
+        }
+
+        // 加载回收站笔记列表
+        function loadTrashNotes(forceRefresh = false) {
+            console.log('开始加载回收站笔记，forceRefresh:', forceRefresh);
+            
+            // 初始化NotesLoader实例
+            if (!notesLoader) {
+                console.log('初始化NotesLoader实例');
+                notesLoader = new NotesLoader({
+                    containerSelector: '.trash-notes',
+                    apiClient: window.api,
+                    onLoadSuccess: handleTrashNotesLoaded,
+                    onLoadError: handleTrashNotesError,
+                    renderFunction: renderTrashNote,
+                    actionsConfig: {
+                        showMoreButton: false,
+                        additionalButtons: [
+                            {
+                                text: '恢复',
+                                className: 'restore-btn',
+                                icon: 'fas fa-trash-restore',
+                                action: 'restore',
+                                onClick: restoreNote
+                            },
+                            {
+                                text: '删除',
+                                className: 'delete-btn',
+                                icon: 'fas fa-trash-alt',
+                                action: 'delete',
+                                onClick: deleteNote
+                            }
+                        ]
                     }
                 });
-            });
-        });
-
-        // 更新回收站UI
-        function updateTrashUI(trashNotes) {
-            console.log(`更新回收站UI，显示 ${trashNotes.length} 条笔记`);
-            const trashContainer = document.querySelector('.trash-notes');
+            }
             
-            trashContainer.innerHTML = trashNotes.map(note => `
-                <div class="trash-note-card" data-id="${note.id || note._id}">
-                    <div class="note-header">
-                        <h3 class="note-title">${note.title || '无标题'}</h3>
-                        <div class="note-meta">
-                            <span class="delete-date">
-                                <i class="far fa-calendar"></i>
-                                删除于 ${new Date(note.deletedAt).toLocaleDateString()}
-                            </span>
-                        </div>
-                    </div>
-                    <div class="note-preview">${note.content ? (note.content.substring(0, 200) + (note.content.length > 200 ? '...' : '')) : '无内容'}</div>
-                    <div class="note-footer">
-                        <div class="note-actions">
-                            <button class="restore-btn" data-id="${note.id || note._id}">
-                                <i class="fas fa-undo"></i>
-                                恢复
-                            </button>
-                            <button class="delete-btn" data-id="${note.id || note._id}">
-                                <i class="fas fa-times-circle"></i>
-                                永久删除
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `).join('');
+            console.log('调用notesLoader.loadNotes获取回收站笔记');
+            // 使用通用组件加载回收站笔记
+            notesLoader.loadNotes({
+                inTrash: true,
+                forceRefresh: forceRefresh,
+                fallbackToLocalStorage: true,  // 启用本地存储回退，确保API失败时仍能显示笔记
+                viewMode: 'grid'  // 明确指定使用grid卡片视图
+            });
+        }
 
-            // 更新按钮点击事件
-            document.querySelectorAll('.trash-note-card').forEach(card => {
-                const restoreBtn = card.querySelector('.restore-btn');
-                const deleteBtn = card.querySelector('.delete-btn');
-                
-                restoreBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    restoreNote(card.dataset.id);
-                });
+        // 添加 loadDeletedNotes 作为 loadTrashNotes 的别名
+        function loadDeletedNotes(forceRefresh = false) {
+            console.log('loadDeletedNotes 被调用，转发到 loadTrashNotes');
+            return loadTrashNotes(forceRefresh);
+        }
 
-                deleteBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    deleteNote(card.dataset.id);
-                });
+        // 自定义渲染函数，添加按钮和样式
+        function renderTrashNote(notes, trashContainer) {
+            console.log(`renderTrashNote被调用，笔记数量:`, notes?.length);
+            
+            // 安全检查
+            if (!trashContainer) {
+                console.error('找不到回收站容器');
+                trashContainer = document.querySelector('.trash-notes');
+                if (!trashContainer) {
+                    console.error('无法找到回收站容器元素');
+                    return;
+                }
+            }
+            
+            trashContainer.innerHTML = '';
+            
+            if (!notes || notes.length === 0) {
+                console.log('没有回收站笔记可显示');
+                trashContainer.innerHTML = `
+                    <div class="empty-trash">
+                        <i class="fas fa-trash"></i>
+                        <p>回收站是空的</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            console.log('开始渲染回收站笔记');
+            notes.forEach(note => {
+                try {
+                    const noteCard = document.createElement('div');
+                    noteCard.className = 'note-card trash-note';
+                    noteCard.dataset.id = note.id || note._id;
+                    
+                    const noteTitle = document.createElement('div');
+                    noteTitle.className = 'note-title';
+                    noteTitle.textContent = note.title || '无标题笔记';
+                    noteCard.appendChild(noteTitle);
+                    
+                    const noteContent = document.createElement('div');
+                    noteContent.className = 'note-content';
+                    
+                    // 安全检查notesLoader
+                    if (notesLoader && typeof notesLoader.getContentPreview === 'function') {
+                        noteContent.textContent = notesLoader.getContentPreview(note.content || '');
+                    } else {
+                        // 降级处理，简单截取内容
+                        noteContent.textContent = (note.content || '').slice(0, 150) + (note.content && note.content.length > 150 ? '...' : '');
+                    }
+                    noteCard.appendChild(noteContent);
+                    
+                    const noteFooter = document.createElement('div');
+                    noteFooter.className = 'note-footer';
+                    
+                    const noteDate = document.createElement('div');
+                    noteDate.className = 'note-date';
+                    
+                    // 安全检查notesLoader的formatDate方法
+                    let dateText;
+                    if (notesLoader && typeof notesLoader.formatDate === 'function') {
+                        dateText = notesLoader.formatDate(note.deletedAt || note.updatedAt || note.createdAt);
+                    } else {
+                        // 降级处理，显示简单的日期
+                        const date = new Date(note.deletedAt || note.updatedAt || note.createdAt);
+                        dateText = date.toLocaleDateString();
+                    }
+                    
+                    noteDate.innerHTML = `<i class="fas fa-clock"></i> ${dateText}`;
+                    noteFooter.appendChild(noteDate);
+                    
+                    noteCard.appendChild(noteFooter);
+                    
+                    // 添加操作按钮
+                    const actionsDiv = document.createElement('div');
+                    actionsDiv.className = 'trash-note-actions';
+                    
+                    // 恢复按钮
+                    const restoreBtn = document.createElement('button');
+                    restoreBtn.className = 'restore-btn';
+                    restoreBtn.innerHTML = '<i class="fas fa-trash-restore"></i> 恢复';
+                    restoreBtn.dataset.id = note.id || note._id;
+                    restoreBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        restoreNote(note.id || note._id);
+                    });
+                    actionsDiv.appendChild(restoreBtn);
+                    
+                    // 永久删除按钮
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'delete-btn';
+                    deleteBtn.innerHTML = '<i class="fas fa-trash-alt"></i> 删除';
+                    deleteBtn.dataset.id = note.id || note._id;
+                    deleteBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        deleteNote(note.id || note._id);
+                    });
+                    actionsDiv.appendChild(deleteBtn);
+                    
+                    noteCard.appendChild(actionsDiv);
+                    trashContainer.appendChild(noteCard);
+                } catch (err) {
+                    console.error('渲染笔记时出错:', err, note);
+                }
+            });
+            
+            console.log('回收站笔记渲染完成');
+        }
+
+        // 显示自定义确认框
+        function showCustomConfirm(title, message, callback) {
+            ConfirmDialog.danger(title, message, callback);
+        }
+        
+        // 确认恢复所有笔记函数
+        function confirmRestoreAll() {
+            restoreAllNotes();
+        }
+        
+        // 确认清空回收站函数
+        function confirmEmptyTrash() {
+            emptyTrash();
+        }
+        
+        // 恢复所有笔记
+        function restoreAllNotes() {
+            showCustomConfirm('确认恢复', '确定要恢复所有笔记吗？', function(confirmed) {
+                if (confirmed) {
+                    try {
+                        // 获取回收站中的所有笔记
+                        const notes = JSON.parse(localStorage.getItem('notes') || '[]');
+                        const trashNotes = notes.filter(note => note.inTrash === true);
+                        
+                        if (trashNotes.length === 0) {
+                            showToast('回收站中没有笔记可恢复', 'info');
+                            return;
+                        }
+                        
+                        // 显示加载状态
+                        restoreAllBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 恢复中...';
+                        restoreAllBtn.disabled = true;
+                        
+                        // 如果有API可用，尝试通过API恢复笔记
+                        if (typeof api !== 'undefined') {
+                            let successCount = 0;
+                            
+                            // 逐个恢复笔记，以适应后端API设计
+                            const restorePromises = trashNotes.map(note => {
+                                const noteId = note.id || note._id;
+                                return api.restoreNoteFromTrash(noteId)
+                                    .then(() => {
+                                        successCount++;
+                                    })
+                                    .catch(error => {
+                                        console.error(`恢复笔记 ${noteId} 失败:`, error);
+                                    });
+                            });
+                            
+                            Promise.all(restorePromises).then(() => {
+                                // 清除所有缓存
+                                localStorage.removeItem('notes_cache');
+                                localStorage.removeItem('notes_cache_timestamp');
+                                localStorage.removeItem('trash_notes_cache');
+                                localStorage.removeItem('trash_notes_timestamp');
+                                
+                                // 本地数据同步
+                                const allNotes = JSON.parse(localStorage.getItem('notes') || '[]');
+                                
+                                allNotes.forEach(note => {
+                                    if (note.inTrash) {
+                                        note.inTrash = false;
+                                        delete note.deletedAt;
+                                    }
+                                });
+                                
+                                localStorage.setItem('notes', JSON.stringify(allNotes));
+                                
+                                // 触发笔记更新事件
+                                localStorage.setItem('notes_updated', Date.now().toString());
+                                
+                                // 显示成功提示
+                                if (successCount > 0) {
+                                    showToast(`成功恢复 ${successCount} 个笔记`, 'success');
+                                } else {
+                                    showToast('没有笔记被恢复', 'info');
+                                }
+                                
+                                // 强制刷新回收站列表
+                                loadTrashNotes(true);
+                                
+                                // 恢复按钮状态
+                                restoreAllBtn.innerHTML = '<i class="fas fa-trash-restore"></i><span>恢复所有</span>';
+                                restoreAllBtn.disabled = false;
+                            });
+                        } else {
+                            // 仅在本地恢复笔记
+                            notes.forEach(note => {
+                                if (note.inTrash) {
+                                    note.inTrash = false;
+                                    delete note.deletedAt;
+                                }
+                            });
+                            localStorage.setItem('notes', JSON.stringify(notes));
+                            
+                            // 清除所有缓存
+                            localStorage.removeItem('notes_cache');
+                            localStorage.removeItem('notes_cache_timestamp');
+                            localStorage.removeItem('trash_notes_cache');
+                            localStorage.removeItem('trash_notes_timestamp');
+                            
+                            // 触发笔记更新事件
+                            localStorage.setItem('notes_updated', Date.now().toString());
+                            
+                            showToast('笔记已在本地恢复', 'info');
+                            
+                            // 强制刷新回收站列表
+                            loadTrashNotes(true);
+                            
+                            // 恢复按钮状态
+                            restoreAllBtn.innerHTML = '<i class="fas fa-trash-restore"></i><span>恢复所有</span>';
+                            restoreAllBtn.disabled = false;
+                        }
+                    } catch (error) {
+                        console.error('恢复所有笔记失败:', error);
+                        showToast(`恢复失败: ${error.message}`, 'error');
+                        
+                        // 恢复按钮状态
+                        restoreAllBtn.innerHTML = '<i class="fas fa-trash-restore"></i><span>恢复所有</span>';
+                        restoreAllBtn.disabled = false;
+                    }
+                }
+            });
+        }
+
+        // 清空回收站
+        function emptyTrash() {
+            showCustomConfirm('清空回收站', '确定要清空回收站吗？此操作将永久删除所有回收站中的笔记，不可恢复！', function(confirmed) {
+                if (confirmed) {
+                    try {
+                        // 获取回收站中的所有笔记
+                        const notes = JSON.parse(localStorage.getItem('notes') || '[]');
+                        const trashNotes = notes.filter(note => note.inTrash === true);
+                        
+                        if (trashNotes.length === 0) {
+                            showToast('回收站已经是空的', 'info');
+                            return;
+                        }
+                        
+                        // 显示加载状态
+                        emptyTrashBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 清空中...';
+                        emptyTrashBtn.disabled = true;
+                        
+                        // 如果有API可用，尝试通过API删除笔记
+                        if (typeof api !== 'undefined') {
+                            let successCount = 0;
+                            
+                            // 逐个删除笔记，以适应后端API设计
+                            const deletePromises = trashNotes.map(note => {
+                                const noteId = note.id || note._id;
+                                return api.deleteNotePermanently(noteId)
+                                    .then(() => {
+                                        successCount++;
+                                    })
+                                    .catch(error => {
+                                        console.error(`删除笔记 ${noteId} 失败:`, error);
+                                    });
+                            });
+                            
+                            Promise.all(deletePromises).then(() => {
+                                // 清除所有缓存
+                                localStorage.removeItem('notes_cache');
+                                localStorage.removeItem('notes_cache_timestamp');
+                                localStorage.removeItem('trash_notes_cache');
+                                localStorage.removeItem('trash_notes_timestamp');
+                                
+                                // 本地数据同步
+                                const allNotes = JSON.parse(localStorage.getItem('notes') || '[]');
+                                const remainingNotes = allNotes.filter(note => !note.inTrash);
+                                localStorage.setItem('notes', JSON.stringify(remainingNotes));
+                                
+                                // 触发笔记更新事件
+                                localStorage.setItem('notes_updated', Date.now().toString());
+                                
+                                // 清空回收站UI并显示空状态
+                                loadTrashNotes(true);
+                                
+                                // 显示成功提示
+                                if (successCount > 0) {
+                                    showToast(`成功删除 ${successCount} 个笔记`, 'success');
+                                } else {
+                                    showToast('没有笔记被删除', 'info');
+                                }
+                                
+                                // 恢复按钮状态
+                                emptyTrashBtn.innerHTML = '<i class="fas fa-trash"></i><span>清空回收站</span>';
+                                emptyTrashBtn.disabled = false;
+                            });
+                        } else {
+                            // 仅在本地删除笔记
+                            const remainingNotes = notes.filter(note => !note.inTrash);
+                            localStorage.setItem('notes', JSON.stringify(remainingNotes));
+                            
+                            // 清除所有缓存
+                            localStorage.removeItem('notes_cache');
+                            localStorage.removeItem('notes_cache_timestamp');
+                            localStorage.removeItem('trash_notes_cache');
+                            localStorage.removeItem('trash_notes_timestamp');
+                            
+                            // 触发笔记更新事件
+                            localStorage.setItem('notes_updated', Date.now().toString());
+                            
+                            // 更新UI
+                            loadTrashNotes(true);
+                            
+                            showToast('回收站已清空', 'success');
+                            
+                            // 恢复按钮状态
+                            emptyTrashBtn.innerHTML = '<i class="fas fa-trash"></i><span>清空回收站</span>';
+                            emptyTrashBtn.disabled = false;
+                        }
+                    } catch (error) {
+                        console.error('清空回收站失败:', error);
+                        showToast(`清空失败: ${error.message}`, 'error');
+                        
+                        // 恢复按钮状态
+                        emptyTrashBtn.innerHTML = '<i class="fas fa-trash"></i><span>清空回收站</span>';
+                        emptyTrashBtn.disabled = false;
+                    }
+                }
             });
         }
     </script>
 
     <style>
+        /* 已移除重复定义的CSS变量，使用全局styles.css中的定义 */
+        /* 统一使用全局变量，确保背景颜色与dashboard一致 */
+        
+        /* 回收站操作按钮样式 */
+        .trash-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-left: 15px;
+        }
+        
+        .batch-action-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+        
+        .batch-action-btn:hover {
+            background-color: var(--sidebar-hover);
+        }
+        
+        .restore-all-btn {
+            color: #34a853;
+        }
+        
+        .delete-all-btn {
+            color: #ea4335;
+        }
+        
+        /* 美化刷新按钮 */
+        .refresh-btn {
+            background: transparent;
+            border: none;
+            color: #1a73e8;
+            cursor: pointer;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+        
+        .refresh-btn:hover {
+            background-color: rgba(26, 115, 232, 0.1);
+        }
+        
+        .refresh-btn i {
+            font-size: 18px;
+        }
+        
+        .refresh-btn.loading {
+            pointer-events: none;
+        }
+        
+        .refresh-btn.loading i {
+            animation: spin 1s linear infinite;
+        }
+        
+        .dark-mode .refresh-btn {
+            color: #4b8bf4;
+        }
+        
+        .dark-mode .refresh-btn:hover {
+            background-color: rgba(75, 139, 244, 0.1);
+        }
+        
+        .dark-mode .batch-action-btn {
+            background-color: var(--card-bg);
+            border-color: var(--border-color);
+        }
+        
+        .dark-mode .restore-all-btn {
+            color: #81c995;
+        }
+        
+        .dark-mode .delete-all-btn {
+            color: #f28b82;
+        }
+        
+        /* 回收站卡片样式 */
         .trash-notes {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
             gap: 20px;
             padding: 20px;
         }
-
+        
+        .trash-notes-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0;
+        }
+        
         .empty-trash {
             grid-column: 1 / -1;
             text-align: center;
@@ -1098,15 +1026,15 @@
         }
         
         @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
 
         .empty-trash p {
             font-size: 18px;
             margin: 0;
         }
-
+        
         .dark-mode .empty-trash {
             color: #bbb;
         }
@@ -1127,285 +1055,137 @@
             border-color: rgba(255, 255, 255, 0.1);
             border-top-color: #4b8bf4;
         }
-
+        
         .trash-note-card {
-            background-color: #fff;
-            border-radius: 8px;
-            padding: 16px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            background-color: var(--card-bg);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: var(--card-shadow);
+            position: relative;
             transition: all 0.3s ease;
-        }
-
-        .dark-mode .trash-note-card {
-            background-color: #2d2d2d;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border-color);
         }
 
         .trash-note-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+            transform: var(--hover-transform);
+            box-shadow: 0 8px 16px var(--shadow-color);
         }
 
-        .note-header {
-            margin-bottom: 12px;
-        }
-
-        .note-title {
-            margin: 0 0 8px 0;
+        .trash-note-title {
+            margin-bottom: 10px;
             font-size: 18px;
-            color: #333;
-        }
-
-        .dark-mode .note-title {
-            color: #fff;
-        }
-
-        .note-meta {
-            display: flex;
-            justify-content: space-between;
-            color: #666;
-            font-size: 12px;
-        }
-
-        .dark-mode .note-meta {
-            color: #bbb;
-        }
-
-        .delete-date {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .note-preview {
-            margin-bottom: 16px;
-            font-size: 14px;
-            color: #666;
-            line-height: 1.5;
-            max-height: 100px;
+            font-weight: 600;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            line-clamp: 2;
+            -webkit-box-orient: vertical;
             overflow: hidden;
         }
 
-        .dark-mode .note-preview {
-            color: #bbb;
+        .trash-note-content {
+            color: var(--text-color);
+            opacity: 0.8;
+            margin-bottom: 15px;
+            font-size: 14px;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
         }
 
-        .note-footer {
+        .trash-note-footer {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-top: auto;
+            font-size: 12px;
+            color: var(--text-color);
+            opacity: 0.6;
         }
 
-        .note-actions {
+        .trash-note-actions {
             display: flex;
-            gap: 8px;
-        }
-
-        .restore-btn, 
-        .delete-btn {
-            padding: 6px 12px;
-            border-radius: 4px;
-            border: none;
-            font-size: 13px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            transition: all 0.2s ease;
-        }
-
-        .restore-btn {
-            background-color: #1a73e8;
-            color: white;
-        }
-
-        .restore-btn:hover {
-            background-color: #1557b0;
-        }
-
-        .delete-btn {
-            background-color: #ea4335;
-            color: white;
-        }
-
-        .delete-btn:hover {
-            background-color: #d93025;
-        }
-        
-        .restore-btn:disabled,
-        .delete-btn:disabled {
-            opacity: 0.7;
-            cursor: not-allowed;
-        }
-
-        .restore-all-btn,
-        .empty-trash-btn {
-            background-color: #fff;
-            border: 1px solid #dadce0;
-            border-radius: 4px;
-            padding: 8px 16px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 14px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            color: #5f6368;
-        }
-
-        .restore-all-btn:hover,
-        .empty-trash-btn:hover {
-            background-color: #f8f9fa;
-        }
-
-        .dark-mode .restore-all-btn,
-        .dark-mode .empty-trash-btn {
-            background-color: #2d2d2d;
-            border-color: #444;
-            color: #bbb;
-        }
-
-        .dark-mode .restore-all-btn:hover,
-        .dark-mode .empty-trash-btn:hover {
-            background-color: #3d3d3d;
-        }
-
-        .empty-trash-btn {
-            color: #ea4335;
-        }
-
-        .dark-mode .empty-trash-btn {
-            color: #f28b82;
-        }
-
-        .trash-actions {
-            display: flex;
-            gap: 12px;
-        }
-        
-        /* 提示消息样式 */
-        .toast-message {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 12px 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            display: flex;
-            align-items: center;
             gap: 10px;
-            font-size: 14px;
-            transition: all 0.3s ease;
-            transform: translateY(-20px);
-            opacity: 0;
-            z-index: 9999;
-            max-width: 80%;
+            margin-top: 15px;
+            justify-content: flex-end;
         }
         
-        .toast-message.show {
-            transform: translateY(0);
-            opacity: 1;
+        /* 仅保留dark-mode下content-header的特殊样式 */
+        .dark-mode .content-header {
+            background-color: #282828;
+            border-bottom-color: rgba(255, 255, 255, 0.1);
         }
         
-        .toast-message.success {
-            background-color: #e7f7e8;
-            color: #1e8e3e;
-            border-left: 4px solid #1e8e3e;
-        }
-        
-        .toast-message.error {
-            background-color: #fce8e6;
-            color: #d93025;
-            border-left: 4px solid #d93025;
-        }
-        
-        .toast-message.info {
-            background-color: #e8f0fe;
-            color: #1a73e8;
-            border-left: 4px solid #1a73e8;
-        }
-        
-        .toast-message i {
-            font-size: 18px;
-        }
-        
-        .dark-mode .toast-message.success {
-            background-color: #0d3218;
-            color: #81c995;
-            border-left: 4px solid #81c995;
-        }
-        
-        .dark-mode .toast-message.error {
-            background-color: #3d1412;
-            color: #f28b82;
-            border-left: 4px solid #f28b82;
-        }
-        
-        .dark-mode .toast-message.info {
-            background-color: #0d2a4e;
-            color: #8ab4f8;
-            border-left: 4px solid #8ab4f8;
-        }
-
-        .content-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            padding: 0 20px;
-        }
-
-        .trash-actions {
+        .header-right-actions {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 15px;
         }
-
-        .refresh-btn {
-            background-color: #fff;
-            border: 1px solid #dadce0;
-            border-radius: 4px;
-            width: 36px;
-            height: 36px;
-            display: flex;
+        
+        /* 页面使用全局CSS定义，以下是特定于回收站页面的样式 */
+        /* 注: 已删除所有与dashboard重复的样式定义 */
+        
+        /* 笔记卡片按钮样式 - 美化版本 */
+        .restore-btn, .delete-btn {
+            display: inline-flex;
+            align-items: center;
             justify-content: center;
-            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            border-radius: 6px;
             cursor: pointer;
-            transition: all 0.2s ease;
-            color: #5f6368;
-        }
-
-        .refresh-btn:hover {
-            background-color: #f8f9fa;
-        }
-        
-        .refresh-btn.loading {
-            pointer-events: none;
-        }
-        
-        .refresh-btn.loading i {
-            animation: spin 1s linear infinite;
-        }
-
-        .dark-mode .refresh-btn {
-            background-color: #2d2d2d;
-            border-color: #444;
-            color: #bbb;
-        }
-        
-        .dark-mode .refresh-btn:hover {
-            background-color: #3d3d3d;
-        }
-
-        .welcome-text {
-            font-size: 24px;
+            font-size: 14px;
             font-weight: 500;
-            margin: 0;
+            transition: all 0.2s ease;
+            border: none;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
         
-        .dark-mode .welcome-text {
-            color: #fff;
+        .restore-btn {
+            color: #ffffff;
+            background-color: #34a853;
+        }
+        
+        .restore-btn:hover {
+            background-color: #2e9648;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+        }
+        
+        .delete-btn {
+            color: #ffffff;
+            background-color: #ea4335;
+        }
+        
+        .delete-btn:hover {
+            background-color: #d33426;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+        }
+        
+        .restore-btn:active, .delete-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+        
+        .restore-btn i, .delete-btn i {
+            font-size: 14px;
+        }
+        
+        .dark-mode .restore-btn {
+            background-color: #2d8544;
+        }
+        
+        .dark-mode .restore-btn:hover {
+            background-color: #34a853;
+        }
+        
+        .dark-mode .delete-btn {
+            background-color: #c32f23;
+        }
+        
+        .dark-mode .delete-btn:hover {
+            background-color: #ea4335;
         }
     </style>
 </body>

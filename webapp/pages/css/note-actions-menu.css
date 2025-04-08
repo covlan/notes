@@ -1,0 +1,187 @@
+/**
+ * 笔记操作菜单样式
+ */
+
+/* 遮罩层样式 */
+.menu-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.2);
+    z-index: 9999;
+    display: none;
+}
+
+/* 遮罩层显示状态 */
+.menu-overlay.show {
+    display: block !important;
+}
+
+/* 菜单样式 */
+.note-actions-menu {
+    position: absolute;
+    min-width: 180px;
+    max-width: 250px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.25);
+    z-index: 10000;
+    overflow: hidden;
+    opacity: 0;
+    transform: translateY(-5px);
+    transition: opacity 0.15s ease, transform 0.15s ease;
+    pointer-events: none;
+    display: none;
+}
+
+/* 显示菜单状态 */
+.note-actions-menu.show {
+    display: block !important;
+    opacity: 1 !important;
+    transform: translateY(0) !important;
+    pointer-events: auto !important;
+}
+
+/* 菜单项样式 */
+.menu-item {
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #333;
+    transition: background-color 0.2s;
+    user-select: none;
+}
+
+.menu-item:hover {
+    background-color: #f5f5f5;
+}
+
+.menu-item i {
+    width: 16px;
+    text-align: center;
+    font-size: 15px;
+    color: #555;
+}
+
+/* 分隔线样式 */
+.menu-divider {
+    height: 1px;
+    background-color: #e0e0e0;
+    margin: 4px 0;
+}
+
+/* 警告操作样式 */
+.menu-item.warning {
+    color: #f57c00;
+}
+
+.menu-item.warning i {
+    color: #f57c00;
+}
+
+/* 删除操作样式 */
+.menu-item.delete {
+    color: #e53935;
+}
+
+.menu-item.delete i {
+    color: #e53935;
+}
+
+/* 淡入动画 */
+@keyframes menuFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 深色模式适配 */
+.dark-mode .note-actions-menu {
+    background-color: #2d2d2d;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+}
+
+.dark-mode .menu-item {
+    color: #e0e0e0;
+}
+
+.dark-mode .menu-item:hover {
+    background-color: #3d3d3d;
+}
+
+.dark-mode .menu-item i {
+    color: #b0b0b0;
+}
+
+.dark-mode .menu-divider {
+    background-color: #444;
+}
+
+.dark-mode .menu-item.warning {
+    color: #ffb74d;
+}
+
+.dark-mode .menu-item.warning i {
+    color: #ffb74d;
+}
+
+.dark-mode .menu-item.delete {
+    color: #ef5350;
+}
+
+.dark-mode .menu-item.delete i {
+    color: #ef5350;
+}
+
+/* 更多按钮样式 */
+.more-btn {
+    background: transparent;
+    border: none;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #777;
+    transition: all 0.2s ease;
+}
+
+.more-btn:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+    color: #333;
+}
+
+.dark-mode .more-btn {
+    color: #aaa;
+}
+
+.dark-mode .more-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #ddd;
+}
+
+/* 响应式样式 */
+@media screen and (max-width: 768px) {
+  .note-actions-menu {
+    width: calc(100% - 40px);
+    max-width: none;
+    left: 20px !important;
+    right: 20px !important;
+  }
+  
+  .note-actions-menu .menu-item {
+    padding: 14px 16px;
+  }
+} 

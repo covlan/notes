@@ -981,7 +981,18 @@ docker compose down -v
     "email": "新邮箱",
     "displayName": "显示名称",
     "phone": "电话号码",
-    "bio": "个人简介"
+    "bio": "个人简介",
+    "birthday": "1990-01-01",
+    "gender": "male",
+    "location": "北京市",
+    "occupation": "软件工程师",
+    "website": "https://example.com",
+    "socialLinks": {
+      "weibo": "weibo_username",
+      "wechat": "wechat_id",
+      "github": "github_username",
+      "zhihu": "zhihu_username"
+    }
   }
   ```
 - **响应**:
@@ -995,6 +1006,17 @@ docker compose down -v
       "displayName": "显示名称",
       "phone": "电话号码",
       "bio": "个人简介",
+      "birthday": "1990-01-01",
+      "gender": "male",
+      "location": "北京市",
+      "occupation": "软件工程师",
+      "website": "https://example.com",
+      "socialLinks": {
+        "weibo": "weibo_username",
+        "wechat": "wechat_id",
+        "github": "github_username",
+        "zhihu": "zhihu_username"
+      },
       "updatedAt": "更新时间"
     }
   }

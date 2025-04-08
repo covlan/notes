@@ -4,9 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>编辑笔记</title>
+    <meta name="description" content="一个简单易用的个人笔记管理平台">
+    <meta name="keywords" content="笔记,Markdown,知识管理">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.css">
+    <script src="component/site-info.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.js"></script>
+    <script src="component/api.js"></script>
+    <!-- 引入确认对话框组件 -->
+    <script src="component/confirm-dialog.js"></script>
+    <!-- 引入提示消息组件 -->
+    <script src="component/toast-message.js"></script>
     <style>
         :root {
             --primary-color: #4a6bff;
@@ -247,176 +255,138 @@
     <div class="save-status" id="saveStatus">已保存</div>
 
     <script>
-        // 初始化 EasyMDE 编辑器
-        const easyMDE = new EasyMDE({
-            element: document.getElementById('editor'),
-            spellChecker: false,
-            status: false,
-            toolbar: [
-                {
-                    name: "bold",
-                    action: EasyMDE.toggleBold,
-                    className: "fa fa-bold",
-                    title: "加粗",
-                },
-                {
-                    name: "italic",
-                    action: EasyMDE.toggleItalic,
-                    className: "fa fa-italic",
-                    title: "斜体",
-                },
-                "|",
-                {
-                    name: "heading",
-                    action: EasyMDE.toggleHeadingSmaller,
-                    className: "fa fa-heading",
-                    title: "标题",
-                },
-                {
-                    name: "quote",
-                    action: EasyMDE.toggleBlockquote,
-                    className: "fa fa-quote-left",
-                    title: "引用",
-                },
-                "|",
-                {
-                    name: "unordered-list",
-                    action: EasyMDE.toggleUnorderedList,
-                    className: "fa fa-list-ul",
-                    title: "无序列表",
-                },
-                {
-                    name: "ordered-list",
-                    action: EasyMDE.toggleOrderedList,
-                    className: "fa fa-list-ol",
-                    title: "有序列表",
-                },
-                "|",
-                {
-                    name: "link",
-                    action: EasyMDE.drawLink,
-                    className: "fa fa-link",
-                    title: "链接",
-                },
-                {
-                    name: "image",
-                    action: EasyMDE.drawImage,
-                    className: "fa fa-image",
-                    title: "图片",
-                },
-                "|",
-                {
-                    name: "preview",
-                    action: EasyMDE.togglePreview,
-                    className: "fa fa-eye no-disable",
-                    title: "预览",
-                },
-                {
-                    name: "side-by-side",
-                    action: EasyMDE.toggleSideBySide,
-                    className: "fa fa-columns no-disable no-mobile",
-                    title: "并排预览",
-                },
-                {
-                    name: "fullscreen",
-                    action: EasyMDE.toggleFullScreen,
-                    className: "fa fa-arrows-alt no-disable no-mobile",
-                    title: "全屏",
-                },
-            ],
-            placeholder: "开始编写...",
-            autofocus: true,
-            autoDownloadFontAwesome: false,
-            sideBySideFullscreen: false,
-            minHeight: "calc(100vh - 110px)",
-            maxHeight: "calc(100vh - 110px)",
-        });
+        document.addEventListener('DOMContentLoaded', function() {
+            const editor = document.getElementById('editor');
+            const noteTitle = document.getElementById('noteTitle');
+            const saveBtn = document.getElementById('saveBtn');
+            const previewBtn = document.getElementById('previewBtn');
+            const closeBtn = document.getElementById('closeBtn');
+            const saveStatus = document.getElementById('saveStatus');
+            
+            // 初始化Markdown编辑器
+            const easyMDE = new EasyMDE({
+                element: editor,
+                spellChecker: false,
+                autofocus: true,
+                placeholder: '开始编写笔记...',
+                toolbar: [
+                    'bold', 'italic', 'heading', '|',
+                    'quote', 'unordered-list', 'ordered-list', '|',
+                    'link', 'image', 'code', 'table', '|',
+                    'preview', 'side-by-side', 'fullscreen'
+                ]
+            });
 
-        // 获取元素
-        const noteTitle = document.getElementById('noteTitle');
-        const saveBtn = document.getElementById('saveBtn');
-        const closeBtn = document.getElementById('closeBtn');
-        const previewBtn = document.getElementById('previewBtn');
-        const saveStatus = document.getElementById('saveStatus');
-
-        // 从 URL 获取笔记 ID
-        const urlParams = new URLSearchParams(window.location.search);
-        const noteId = urlParams.get('id');
-
-        // 加载笔记数据
-        function loadNote() {
+            // 获取URL参数
+            const urlParams = new URLSearchParams(window.location.search);
+            const noteId = urlParams.get('id');
+            
+            // 如果有笔记ID，则加载笔记内容
             if (noteId) {
-                const notes = JSON.parse(localStorage.getItem('notes') || '[]');
-                const note = notes.find(n => n.id === noteId);
-                if (note) {
+                loadNote(noteId);
+            }
+            
+            // 添加保存按钮事件
+            saveBtn.addEventListener('click', saveNote);
+            
+            // 添加预览按钮事件
+            previewBtn.addEventListener('click', function() {
+                easyMDE.togglePreview();
+            });
+            
+            // 添加关闭按钮事件
+            closeBtn.addEventListener('click', function() {
+                const hasChanges = easyMDE.value().trim() || noteTitle.value.trim();
+                
+                if (hasChanges) {
+                    // 使用确认对话框组件替代原生confirm
+                    ConfirmDialog.danger('放弃修改', '确认离开编辑器？未保存的内容将会丢失。', function(confirmed) {
+                        if (confirmed) {
+                            window.location.href = 'dashboard.html';
+                        }
+                    });
+                } else {
+                    window.location.href = 'dashboard.html';
+                }
+            });
+            
+            // 加载笔记
+            async function loadNote(id) {
+                try {
+                    const response = await fetch(`api/notes/${id}`);
+                    if (!response.ok) {
+                        throw new Error('笔记加载失败');
+                    }
+                    
+                    const note = await response.json();
+                    
+                    // 设置标题和内容
                     noteTitle.value = note.title;
                     easyMDE.value(note.content);
+                    
+                    // 更新页面标题
+                    document.title = `编辑: ${note.title} - 笔记平台`;
+                } catch (error) {
+                    ToastMessage.error(`加载笔记失败: ${error.message}`);
                 }
             }
-        }
-
-        // 保存笔记
-        function saveNote() {
-            const title = noteTitle.value.trim();
-            const content = easyMDE.value();
             
-            if (!title) {
-                alert('请输入标题');
-                return;
-            }
-
-            const notes = JSON.parse(localStorage.getItem('notes') || '[]');
-            const noteData = {
-                id: noteId || Date.now().toString(),
-                title,
-                content,
-                updatedAt: new Date().toISOString()
-            };
-
-            if (noteId) {
-                const index = notes.findIndex(n => n.id === noteId);
-                if (index !== -1) {
-                    notes[index] = noteData;
+            // 保存笔记
+            async function saveNote() {
+                const title = noteTitle.value.trim();
+                const content = easyMDE.value();
+                
+                if (!title) {
+                    ToastMessage.error('请输入笔记标题');
+                    return;
                 }
-            } else {
-                notes.push(noteData);
+                
+                // 显示保存中状态
+                showSaveStatus('保存中...', 'saving');
+                
+                try {
+                    const noteData = {
+                        title,
+                        content,
+                        id: noteId
+                    };
+                    
+                    const response = await fetch('api/notes', {
+                        method: noteId ? 'PUT' : 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(noteData)
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error('服务器响应错误');
+                    }
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        showSaveStatus('保存成功', 'success');
+                        
+                        // 如果是新建笔记，保存后跳转到编辑模式
+                        if (!noteId) {
+                            window.location.href = `note-editor.html?id=${result.note.id}`;
+                        }
+                    } else {
+                        throw new Error(result.message || '保存失败');
+                    }
+                } catch (error) {
+                    console.error('保存失败:', error);
+                    showSaveStatus('保存失败: ' + error.message, 'error');
+                }
             }
-
-            localStorage.setItem('notes', JSON.stringify(notes));
-            showSaveStatus();
-        }
-
-        // 显示保存状态
-        function showSaveStatus() {
-            saveStatus.classList.add('show');
-            setTimeout(() => {
-                saveStatus.classList.remove('show');
-            }, 2000);
-        }
-
-        // 关闭编辑器
-        function closeEditor() {
-            if (confirm('确定要关闭吗？未保存的内容将会丢失。')) {
-                window.location.href = 'dashboard.html';
+            
+            // 显示保存状态
+            function showSaveStatus(message, type = 'success') {
+                // 使用通用Toast组件替代原有实现
+                ToastMessage[type](message);
             }
-        }
-
-        // 切换预览模式
-        function togglePreview() {
-            easyMDE.togglePreview();
-        }
-
-        // 事件监听
-        saveBtn.addEventListener('click', saveNote);
-        closeBtn.addEventListener('click', closeEditor);
-        previewBtn.addEventListener('click', togglePreview);
-        noteTitle.addEventListener('input', saveNote);
-
-        // 页面加载时加载笔记数据
-        loadNote();
-
-        // 自动保存
-        setInterval(saveNote, 30000);
+        });
     </script>
 </body>
 </html> 

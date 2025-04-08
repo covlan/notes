@@ -4,11 +4,11 @@
   "description": "笔记应用 - 前后端集成",
   "main": "app.js",
   "scripts": {
-    "start": "node app.js",
-    "dev": "nodemon app.js",
+    "start": "node scripts/process-html.js && node app.js",
+    "dev": "node scripts/process-html.js && nodemon app.js",
     "check-deps": "node scripts/check-dependencies.js",
     "check-share": "node scripts/check-share-model.js",
-    "init-admin": "node scripts/init-admin.js"
+    "process-html": "node scripts/process-html.js"
   },
   "keywords": [
     "notes",
@@ -19,6 +19,7 @@
   "license": "MIT",
   "dependencies": {
     "bcryptjs": "^2.4.3",
+    "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "dotenv": "^16.0.3",
     "express": "^4.18.2",

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>站点信息测试页面</title>
+    <meta name="description" content="站点信息测试页面">
+    <meta name="keywords" content="测试">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="./css/styles.css">
+    <!-- 引入站点信息加载脚本 -->
+    <script src="component/site-info.js"></script>
+    <style>
+        .test-container {
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 30px;
+            background-color: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: var(--card-shadow);
+        }
+        .info-item {
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 15px;
+        }
+        .info-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+        .info-label {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: var(--primary-color);
+        }
+        .info-value {
+            word-break: break-all;
+        }
+        .logo-preview {
+            max-width: 200px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <!-- 主题切换按钮 -->
+    <div class="theme-toggle" id="themeToggle" style="position: fixed; top: 20px; right: 20px;">
+        <div class="theme-toggle-circle"></div>
+    </div>
+
+    <div class="test-container">
+        <h1>站点信息测试页面</h1>
+        <p>此页面用于展示站点信息加载效果。当修改站点设置后，此页面会自动显示最新信息。</p>
+        
+        <div class="info-section">
+            <h2>当前站点信息</h2>
+            
+            <div class="info-item">
+                <div class="info-label">页面标题</div>
+                <div class="info-value" id="pageTitle"></div>
+            </div>
+            
+            <div class="info-item">
+                <div class="info-label">网站名称</div>
+                <div class="info-value" id="siteName"></div>
+            </div>
+            
+            <div class="info-item">
+                <div class="info-label">网站描述</div>
+                <div class="info-value" id="siteDescription"></div>
+            </div>
+            
+            <div class="info-item">
+                <div class="info-label">网站关键词</div>
+                <div class="info-value" id="siteKeywords"></div>
+            </div>
+            
+            <div class="info-item">
+                <div class="info-label">Logo</div>
+                <div class="info-value" id="siteLogo">
+                    <div class="logo-preview"></div>
+                </div>
+            </div>
+            
+            <div class="info-item">
+                <div class="info-label">页脚文本</div>
+                <div class="info-value" id="footerText"></div>
+            </div>
+        </div>
+        
+        <div style="margin-top: 30px;">
+            <a href="settings.html" class="btn" style="display: inline-block; text-decoration: none;">返回设置页修改</a>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 切换主题
+            const themeToggle = document.getElementById('themeToggle');
+            const body = document.body;
+            
+            // 检查本地存储中的主题偏好
+            const currentTheme = localStorage.getItem('theme');
+            if (currentTheme === 'dark') {
+                body.classList.add('dark-mode');
+            }
+            
+            // 切换主题
+            themeToggle.addEventListener('click', () => {
+                body.classList.toggle('dark-mode');
+                const theme = body.classList.contains('dark-mode') ? 'dark' : 'light';
+                localStorage.setItem('theme', theme);
+            });
+            
+            // 展示站点信息（从meta标签和标题获取）
+            document.getElementById('pageTitle').textContent = document.title;
+            
+            const metaDescription = document.querySelector('meta[name="description"]');
+            if (metaDescription) {
+                document.getElementById('siteDescription').textContent = metaDescription.getAttribute('content');
+            }
+            
+            const metaKeywords = document.querySelector('meta[name="keywords"]');
+            if (metaKeywords) {
+                document.getElementById('siteKeywords').textContent = metaKeywords.getAttribute('content');
+            }
+            
+            // 获取站点公开信息
+            async function displaySiteInfo() {
+                try {
+                    const response = await fetch('/api/settings/site/public');
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        const siteInfo = data.siteInfo;
+                        
+                        document.getElementById('siteName').textContent = siteInfo.siteTitle || '（未设置）';
+                        document.getElementById('footerText').textContent = siteInfo.footerText || '（未设置）';
+                        
+                        // 显示Logo
+                        if (siteInfo.siteLogo) {
+                            const logoPreview = document.querySelector('.logo-preview');
+                            logoPreview.innerHTML = `<img src="${siteInfo.siteLogo}" alt="站点Logo" style="max-width: 100%;">`;
+                        } else {
+                            document.querySelector('.logo-preview').innerHTML = '（未设置Logo）';
+                        }
+                    }
+                } catch (error) {
+                    console.error('获取站点信息失败:', error);
+                }
+            }
+            
+            // 调用函数显示站点信息
+            displaySiteInfo();
+        });
+    </script>
+</body>
+</html> 

@@ -3,10 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>查看分享笔记</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <title>查看笔记 - 笔记平台</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="./css/styles.css">
-    <script src="./js/api.js"></script>
+    <script src="./component/api.js"></script>
+    <!-- 引入Toast消息组件 -->
+    <script src="./component/toast-message.js"></script>
 </head>
 <body>
     <!-- 顶部导航栏 -->
@@ -16,7 +18,7 @@
             <span>Cloud Notes</span>
         </div>
         <div class="nav-links">
-            <a href="index.html"><i class="fas fa-sign-in-alt"></i> <span>登录</span></a>
+            <a href="login.html"><i class="fas fa-sign-in-alt"></i> <span>登录</span></a>
         </div>
     </header>
 
@@ -130,6 +132,8 @@
             const shareId = urlParams.get('id');
             const mode = urlParams.get('mode');
             const token = urlParams.get('token');
+            const type = urlParams.get('type');
+            const access = urlParams.get('access');
             
             if (!shareId) {
                 showError('无效的分享链接');
@@ -141,6 +145,9 @@
             
             // 尝试加载笔记函数
             async function loadNote(retryCount = 0, maxRetries = 2) {
+                // 重置笔记加载Toast状态
+                resetNoteLoadedToast();
+                
                 try {
                     // 获取API基础URL
                     const baseUrl = (() => {
@@ -148,120 +155,298 @@
                         return `${protocol}//${hostname}${port ? ':' + port : ''}`;
                     })();
                     
-                    // 检查是否是私有模式访问
-                    if (mode === 'private' && token) {
-                        console.log('使用私有模式加载笔记');
+                    // 检查是否是直接访问笔记模式
+                    if (type === 'note') {
+                        console.log('使用直接笔记模式加载内容');
                         
                         try {
-                            // 使用提供的token直接请求笔记详情
-                            const response = await fetch(`${baseUrl}/api/notes/${shareId}`, {
-                                headers: {
-                                    'Authorization': `Bearer ${token}`
+                            // 先尝试通过API验证笔记分享状态
+                            const token = localStorage.getItem('token');
+                            let isShareCanceled = false;
+                            
+                            // 如果有token，尝试通过API验证
+                            if (token) {
+                                try {
+                                    const shareResponse = await fetch(`${baseUrl}/api/shares/status/${shareId}`, {
+                                        headers: {
+                                            'Authorization': `Bearer ${token}`
+                                        }
+                                    });
+                                    
+                                    if (shareResponse.ok) {
+                                        const shareData = await shareResponse.json();
+                                        if (shareData.isCanceled) {
+                                            showError('此笔记分享已被取消或不存在', false, null, true);
+                                            return;
+                                        }
+                                    } else {
+                                        // 如果API返回错误，记录可能的分享取消状态
+                                        const errorData = await shareResponse.json();
+                                        if (errorData.isCanceled) {
+                                            isShareCanceled = true;
+                                        }
+                                    }
+                                } catch (apiError) {
+                                    console.warn('API验证分享状态失败，回退到本地验证:', apiError);
+                                    // 如果API验证失败，继续使用本地存储验证
                                 }
-                            });
-                            
-                            if (!response.ok) {
-                                throw new Error(`请求失败: ${response.status}`);
                             }
                             
-                            const data = await response.json();
+                            // 从localStorage获取笔记
+                            const notes = JSON.parse(localStorage.getItem('notes') || '[]');
+                            const note = notes.find(n => n.id === shareId || n._id === shareId);
                             
-                            if (data.success && data.note) {
-                                // 显示笔记内容
-                                displayNote({
-                                    noteTitle: data.note.title,
-                                    noteContent: data.note.content,
-                                    username: '当前登录用户', // 使用当前登录用户
-                                    sharedAt: new Date().toISOString(),
-                                    views: 1
-                                });
-                                
-                                // 更改页面模式提示
-                                document.querySelector('.navbar-brand').innerHTML = `
-                                    <i class="fas fa-book-open"></i>
-                                    <span>Cloud Notes <small>(私有查看模式)</small></span>
-                                `;
-                            } else {
-                                showError('无法加载笔记内容');
-                            }
-                        } catch (error) {
-                            console.error('私有模式加载笔记失败:', error);
-                            showError(`加载失败: ${error.message}`);
-                        }
-                    } else {
-                        // 原有的分享模式加载逻辑
-                        const response = await fetch(`${baseUrl}/api/shares/${shareId}`);
-                        const data = await response.json();
-                        
-                        if (response.ok && data.success) {
-                            // 如果成功获取笔记内容（公开分享）
-                            displayNote(data.share);
-                        } else if (data.requirePassword) {
-                            // 如果需要密码（私密分享）
-                            hideLoading();
-                            showPasswordForm();
-                            
-                            // 处理密码提交
-                            document.getElementById('submitPassword').addEventListener('click', async () => {
-                                const password = document.getElementById('accessPassword').value;
-                                if (!password) {
-                                    alert('请输入密码');
+                            if (note) {
+                                // 先检查API验证结果
+                                if (isShareCanceled) {
+                                    showError('此笔记分享已被取消或不存在', false, null, true);
                                     return;
                                 }
                                 
-                                showLoading();
-                                hidePasswordForm();
+                                // 检查笔记是否已取消分享
+                                if (note.isCanceled === true) {
+                                    showError('此笔记分享已被取消或不存在', false, null, true);
+                                    return;
+                                }
                                 
-                                try {
-                                    const accessResponse = await fetch(`${baseUrl}/api/shares/access/${shareId}`, {
-                                        method: 'POST',
-                                        headers: {
-                                            'Content-Type': 'application/json'
-                                        },
-                                        body: JSON.stringify({ password })
+                                // 如果笔记未被分享，也要拒绝访问
+                                if (!note.shared) {
+                                    showError('此笔记未启用分享或分享已取消', false, null, true);
+                                    return;
+                                }
+                                
+                                // 如果是私密分享且没有提供密码
+                                if (access === 'private') {
+                                    hideLoading();
+                                    showPasswordForm();
+                                    
+                                    // 处理密码提交
+                                    document.getElementById('submitPassword').addEventListener('click', () => {
+                                        const password = document.getElementById('accessPassword').value;
+                                        if (!password) {
+                                            ToastMessage.error('请输入密码');
+                                            return;
+                                        }
+                                        
+                                        // 这里简单验证，实际应有后端验证
+                                        showLoading();
+                                        hidePasswordForm();
+                                        
+                                        setTimeout(() => {
+                                            displayNote({
+                                                noteTitle: note.title,
+                                                noteContent: note.content,
+                                                username: note.author || '未知用户',
+                                                sharedAt: note.updatedAt || note.createdAt || new Date().toISOString(),
+                                                views: 1
+                                            });
+                                        }, 500);
+                                    });
+                                } else {
+                                    // 公开分享，直接显示
+                                    displayNote({
+                                        noteTitle: note.title,
+                                        noteContent: note.content,
+                                        username: note.author || '未知用户',
+                                        sharedAt: note.updatedAt || note.createdAt || new Date().toISOString(),
+                                        views: 1
+                                    });
+                                }
+                            } else {
+                                showError('找不到指定的笔记', true);
+                            }
+                        } catch (error) {
+                            console.error('直接模式加载笔记失败:', error);
+                            showError(`加载失败: ${error.message}`);
+                        }
+                    } else {
+                        // 检查是否是私有模式访问
+                        if (mode === 'private' && token) {
+                            console.log('使用私有模式加载笔记');
+                            
+                            try {
+                                // 使用提供的token直接请求笔记详情
+                                const response = await fetch(`${baseUrl}/api/notes/${shareId}`, {
+                                    headers: {
+                                        'Authorization': `Bearer ${token}`
+                                    }
+                                });
+                                
+                                if (!response.ok) {
+                                    const errorData = await response.json();
+                                    console.error('私有模式API请求失败:', errorData);
+                                    throw new Error(`API请求失败: ${response.status} - ${errorData.message || '未知错误'}`);
+                                }
+                                
+                                const data = await response.json();
+                                
+                                if (data.success && data.note) {
+                                    // 简化权限检查: 如果API返回了笔记数据，说明用户有权限查看
+                                    // 除非笔记明确标记为取消分享，才拒绝访问
+                                    if (data.note.isCanceled === true) {
+                                        showError('此笔记分享已被取消或不存在', false, null, true);
+                                        return;
+                                    }
+                                    
+                                    // 显示笔记内容
+                                    displayNote({
+                                        noteTitle: data.note.title,
+                                        noteContent: data.note.content,
+                                        username: data.note.author || '当前登录用户',
+                                        sharedAt: data.note.updatedAt || data.note.createdAt || new Date().toISOString(),
+                                        views: data.note.viewCount || 1
                                     });
                                     
-                                    const accessData = await accessResponse.json();
+                                    // 更改页面模式提示
+                                    document.querySelector('.navbar-brand').innerHTML = `
+                                        <i class="fas fa-book-open"></i>
+                                        <span>Cloud Notes <small>(私有查看模式)</small></span>
+                                    `;
                                     
-                                    if (accessResponse.ok && accessData.success) {
-                                        // 密码正确，显示笔记
+                                    // 显示成功提示，并标记已显示
+                                    if (!window._noteLoadedToastShown) {
+                                        ToastMessage.success('笔记加载成功');
+                                        window._noteLoadedToastShown = true;
+                                    }
+                                } else {
+                                    showError('无法加载笔记内容');
+                                }
+                            } catch (error) {
+                                console.error('私有模式加载笔记失败:', error);
+                                
+                                // 尝试从本地存储加载
+                                try {
+                                    console.log('尝试从本地存储加载笔记');
+                                    const notes = JSON.parse(localStorage.getItem('notes') || '[]');
+                                    const note = notes.find(n => n.id === shareId || n._id === shareId);
+                                    
+                                    if (note) {
                                         displayNote({
-                                            noteTitle: accessData.note.title,
-                                            noteContent: accessData.note.content,
-                                            username: accessData.note.username,
-                                            sharedAt: accessData.note.sharedAt,
+                                            noteTitle: note.title,
+                                            noteContent: note.content,
+                                            username: note.author || '当前登录用户',
+                                            sharedAt: note.updatedAt || note.createdAt || new Date().toISOString(),
                                             views: 1
                                         });
+                                        
+                                        // 更改页面模式提示
+                                        document.querySelector('.navbar-brand').innerHTML = `
+                                            <i class="fas fa-book-open"></i>
+                                            <span>Cloud Notes <small>(私有查看模式 - 本地数据)</small></span>
+                                        `;
+                                        
+                                        ToastMessage.warning('无法连接服务器，已使用本地数据');
+                                        window._noteLoadedToastShown = true;
                                     } else {
-                                        // 密码错误
-                                        showError(accessData.message || '密码错误，无法访问', true, () => {
+                                        showError(`加载失败: ${error.message}`);
+                                    }
+                                } catch (localError) {
+                                    showError(`加载失败: ${error.message}`);
+                                }
+                            }
+                        } else {
+                            // 原有的分享模式加载逻辑
+                            const response = await fetch(`${baseUrl}/api/shares/${shareId}`);
+                            const data = await response.json();
+                            
+                            if (response.ok && data.success) {
+                                // 增加检查分享是否存在的逻辑
+                                if (!data.share) {
+                                    showError('此笔记分享已被取消或不存在', false, null, true);
+                                    return;
+                                }
+                                
+                                // 如果成功获取笔记内容（公开分享）
+                                displayNote(data.share);
+                            } else if (data.requirePassword) {
+                                // 如果需要密码（私密分享）
+                                hideLoading();
+                                showPasswordForm();
+                                
+                                // 处理密码提交
+                                document.getElementById('submitPassword').addEventListener('click', async () => {
+                                    const password = document.getElementById('accessPassword').value;
+                                    if (!password) {
+                                        ToastMessage.error('请输入密码');
+                                        return;
+                                    }
+                                    
+                                    showLoading();
+                                    hidePasswordForm();
+                                    
+                                    try {
+                                        const accessResponse = await fetch(`${baseUrl}/api/shares/access/${shareId}`, {
+                                            method: 'POST',
+                                            headers: {
+                                                'Content-Type': 'application/json'
+                                            },
+                                            body: JSON.stringify({ password })
+                                        });
+                                        
+                                        const accessData = await accessResponse.json();
+                                        
+                                        if (accessResponse.ok && accessData.success) {
+                                            // 密码正确，显示笔记
+                                            displayNote({
+                                                noteTitle: accessData.note.title,
+                                                noteContent: accessData.note.content,
+                                                username: accessData.note.username,
+                                                sharedAt: accessData.note.sharedAt,
+                                                views: 1
+                                            });
+                                            
+                                            // 显示成功提示
+                                            ToastMessage.success('验证成功，已加载笔记内容');
+                                            window._noteLoadedToastShown = true;
+                                        } else {
+                                            // 检查是否是因为分享已被取消
+                                            if (accessResponse.status === 404 && accessData.isShareCanceled) {
+                                                showError('此笔记分享已被取消或不存在', false, null, true);
+                                                return;
+                                            }
+                                            
+                                            // 密码错误提示使用Toast
+                                            ToastMessage.error(accessData.message || '密码错误，无法访问');
+                                            
+                                            // 返回密码输入表单
+                                            hideLoading();
+                                            showPasswordForm();
+                                        }
+                                    } catch (error) {
+                                        console.error('访问私密笔记时发生错误:', error);
+                                        showError('验证密码时出错，请稍后再试', true, () => {
                                             hideLoading();
                                             showPasswordForm();
                                         });
                                     }
-                                } catch (error) {
-                                    console.error('访问私密笔记时发生错误:', error);
-                                    showError('验证密码时出错，请稍后再试', true, () => {
-                                        hideLoading();
-                                        showPasswordForm();
-                                    });
-                                }
-                            });
-                        } else {
-                            // 其他错误
-                            if (retryCount < maxRetries) {
-                                // 显示正在重试
-                                loadingContainer.innerHTML = `
-                                    <div class="spinner"></div>
-                                    <p>加载失败，正在重试 (${retryCount + 1}/${maxRetries + 1})...</p>
-                                `;
-                                
-                                // 使用指数退避策略
-                                const delay = Math.pow(2, retryCount) * 1000;
-                                setTimeout(() => loadNote(retryCount + 1, maxRetries), delay);
+                                });
                             } else {
-                                // 重试失败，显示错误
-                                showError(data.message || '无法加载笔记内容', true);
+                                // 检查是否是因为分享已被取消
+                                if (response.status === 404 && data.isShareCanceled) {
+                                    showError('此笔记分享已被取消或不存在', false, null, true);
+                                    return;
+                                }
+                                
+                                // 其他错误
+                                if (retryCount < maxRetries) {
+                                    // 显示正在重试
+                                    loadingContainer.innerHTML = `
+                                        <div class="spinner"></div>
+                                        <p>加载失败，正在重试 (${retryCount + 1}/${maxRetries + 1})...</p>
+                                    `;
+                                    
+                                    // 显示重试Toast提示
+                                    ToastMessage.warning(`加载失败，正在重试 (${retryCount + 1}/${maxRetries + 1})...`, {
+                                        duration: 2000
+                                    });
+                                    
+                                    // 使用指数退避策略
+                                    const delay = Math.pow(2, retryCount) * 1000;
+                                    setTimeout(() => loadNote(retryCount + 1, maxRetries), delay);
+                                } else {
+                                    // 重试失败，显示错误
+                                    showError(data.message || '无法加载笔记内容', true);
+                                }
                             }
                         }
                     }
@@ -274,6 +459,11 @@
                             <div class="spinner"></div>
                             <p>连接失败，正在重试 (${retryCount + 1}/${maxRetries + 1})...</p>
                         `;
+                        
+                        // 显示重试Toast提示
+                        ToastMessage.warning(`连接失败，正在重试 (${retryCount + 1}/${maxRetries + 1})...`, {
+                            duration: 2000
+                        });
                         
                         // 使用指数退避策略
                         const delay = Math.pow(2, retryCount) * 1000;
@@ -315,6 +505,14 @@
                 
                 // 设置页面标题
                 document.title = `${note.noteTitle} - 分享笔记`;
+                
+                // 显示加载成功的Toast提示（如果尚未显示）
+                if (!window._noteLoadedToastShown) {
+                    ToastMessage.success('笔记内容加载成功', {
+                        duration: 2500
+                    });
+                    window._noteLoadedToastShown = true;
+                }
             }
             
             // 生成目录
@@ -353,10 +551,16 @@
                         e.preventDefault();
                         const targetId = link.getAttribute('href').substring(1);
                         const targetElement = document.getElementById(targetId);
+                        const headingText = link.textContent.trim();
                         
                         window.scrollTo({
                             top: targetElement.offsetTop - 80,
                             behavior: 'smooth'
+                        });
+                        
+                        // 添加跳转成功的提示
+                        ToastMessage.info(`已跳转到"${headingText}"`, {
+                            duration: 1500
                         });
                     });
                 });
@@ -473,43 +677,99 @@
             }
             
             // 显示错误信息
-            function showError(message, withRetry = false, callback = null) {
-                errorMessage.textContent = message;
+            function showError(message, withRetry = false, callback = null, isCanceled = false) {
+                // 应用特殊样式
+                if (isCanceled) {
+                    // 对于已取消的分享，同时使用错误容器和Toast提示
+                    errorContainer.classList.add('share-canceled');
+                    errorMessage.innerHTML = `<strong>此笔记分享已被取消或不存在</strong><br>
+                                              <small>该分享链接已不再有效，请联系分享者获取新的链接</small>`;
+                    
+                    // 使用Toast显示相同的消息
+                    ToastMessage.error('此笔记分享已被取消或不存在', {
+                        duration: 5000,
+                        closable: true
+                    });
+                } else {
+                    errorContainer.classList.remove('share-canceled');
+                    
+                    // 普通错误只使用Toast，除非明确要求显示错误容器
+                    ToastMessage.error(message, {
+                        duration: 5000,
+                        closable: true
+                    });
+                    
+                    // 只有在需要显示错误容器时才设置errorMessage的文本内容
+                    if (message.includes('连接服务器失败') || message.includes('无法加载笔记内容') || withRetry) {
+                        errorMessage.textContent = message;
+                    }
+                }
+                
                 errorActions.innerHTML = '';
                 
-                // 如果需要重试按钮
-                if (withRetry) {
-                    // 创建重试按钮
-                    const retryButton = document.createElement('button');
-                    retryButton.className = 'error-btn retry';
-                    retryButton.innerHTML = '<i class="fas fa-sync"></i> 重试';
-                    retryButton.addEventListener('click', () => {
-                        if (callback) {
-                            callback();
-                        } else {
-                            showLoading();
-                            loadNote();
-                        }
-                    });
-                    
-                    // 创建返回登录按钮
+                // 如果是取消分享的情况，显示不同的界面
+                if (isCanceled) {
+                    // 创建返回首页按钮
                     const homeButton = document.createElement('button');
-                    homeButton.className = 'error-btn back';
-                    homeButton.innerHTML = '<i class="fas fa-sign-in-alt"></i> 返回登录';
+                    homeButton.className = 'error-btn home';
+                    homeButton.innerHTML = '<i class="fas fa-home"></i> 返回首页';
                     homeButton.addEventListener('click', () => {
-                        window.location.href = 'login.html';
+                        window.location.href = window.location.origin;
                     });
+                    errorActions.appendChild(homeButton);
+                } else {
+                    // 如果需要重试按钮
+                    if (withRetry) {
+                        // 创建重试按钮
+                        const retryButton = document.createElement('button');
+                        retryButton.className = 'error-btn retry';
+                        retryButton.innerHTML = '<i class="fas fa-sync"></i> 重试';
+                        retryButton.addEventListener('click', () => {
+                            if (callback) {
+                                callback();
+                            } else {
+                                showLoading();
+                                loadNote();
+                            }
+                        });
+                        errorActions.appendChild(retryButton);
+                    }
                     
-                    // 添加按钮到页面
-                    errorActions.appendChild(retryButton);
+                    // 创建返回首页按钮
+                    const homeButton = document.createElement('button');
+                    homeButton.className = 'error-btn home';
+                    homeButton.innerHTML = '<i class="fas fa-home"></i> 返回首页';
+                    homeButton.addEventListener('click', () => {
+                        window.location.href = window.location.origin;
+                    });
                     errorActions.appendChild(homeButton);
                 }
                 
-                hideLoading();
-                hidePasswordForm();
-                noteContent.style.display = 'none';
-                rightbar.style.display = 'none';
-                errorContainer.style.display = 'flex';
+                // 显示错误容器，隐藏其他容器
+                // 对于非取消分享的错误，通常不显示错误容器
+                if (isCanceled) {
+                    hideLoading();
+                    hidePasswordForm();
+                    noteContent.style.display = 'none';
+                    rightbar.style.display = 'none';
+                    errorContainer.style.display = 'flex';
+                } else if (withRetry || message.includes('连接服务器失败') || message.includes('无法加载笔记内容')) {
+                    // 严重错误或需要重试按钮的错误才显示错误容器
+                    hideLoading();
+                    hidePasswordForm();
+                    noteContent.style.display = 'none';
+                    rightbar.style.display = 'none';
+                    errorContainer.style.display = 'flex';
+                } else {
+                    // 对于普通错误，不显示错误容器，只显示Toast
+                    hideLoading();
+                    errorContainer.style.display = 'none';
+                }
+            }
+            
+            // 重置笔记加载Toast状态的函数
+            function resetNoteLoadedToast() {
+                window._noteLoadedToastShown = false;
             }
         });
     </script>
@@ -1038,12 +1298,12 @@
             background-color: var(--primary-hover);
         }
         
-        .error-btn.back {
+        .error-btn.home {
             background-color: var(--light-bg);
             color: var(--text-color);
         }
         
-        .error-btn.back:hover {
+        .error-btn.home:hover {
             background-color: var(--border-color);
         }
         
@@ -1160,6 +1420,25 @@
             .article-title {
                 font-size: 1.5rem;
             }
+        }
+        
+        /* 分享已取消状态的特殊样式 */
+        .error-container.share-canceled {
+            background-color: #fce8e6;
+            border: 2px solid #ea4335;
+        }
+        
+        .error-container.share-canceled .error-icon {
+            color: #ea4335;
+        }
+        
+        .dark-mode .error-container.share-canceled {
+            background-color: #3d1412;
+            border: 2px solid #f28b82;
+        }
+        
+        .dark-mode .error-container.share-canceled .error-icon {
+            color: #f28b82;
         }
     </style>
 </body>

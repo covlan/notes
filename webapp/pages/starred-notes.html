@@ -5,8 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>收藏笔记 - 笔记平台</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="./css/styles.css">
-    <script src="./js/api.js"></script>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/note-actions-menu.css">
+    <link rel="stylesheet" href="css/sidebar-menu.css">
+    <link rel="stylesheet" href="css/content-header.css">
+    <script src="./component/api.js"></script>
+    <!-- 引入站点信息加载脚本 -->
+    <script src="component/site-info.js"></script>
+    <!-- 引入通用笔记加载组件 -->
+    <script src="component/notes-loader.js"></script>
+    <!-- 引入笔记操作菜单组件 -->
+    <script src="component/note-actions-menu.js"></script>
+    <!-- 引入侧边栏菜单组件 -->
+    <script src="component/sidebar-menu.js"></script>
+    <!-- 引入确认对话框组件 -->
+    <script src="component/confirm-dialog.js"></script>
+    <!-- 引入提示消息组件 -->
+    <script src="component/toast-message.js"></script>
+    <!-- 引入内容头部组件 -->
+    <script src="component/content-header.js"></script>
 </head>
 <body>
     <!-- 移动端菜单按钮 -->
@@ -14,41 +31,8 @@
         <i class="fas fa-bars"></i>
     </div>
 
-    <!-- 侧边栏 -->
-    <div class="sidebar" id="sidebar">
-        <div class="sidebar-header">
-            <div class="logo" id="toggleSidebar">
-                <i class="fas fa-book"></i>
-                <span>笔记平台</span>
-            </div>
-        </div>
-        <div class="nav-menu">
-            <div class="nav-item" data-tooltip="我的笔记">
-                <i class="fas fa-home"></i>
-                <span>我的笔记</span>
-            </div>
-            <div class="nav-item active" data-tooltip="收藏笔记">
-                <i class="fas fa-star"></i>
-                <span>收藏笔记</span>
-            </div>
-            <div class="nav-item" data-tooltip="笔记分类">
-                <i class="fas fa-folder"></i>
-                <span>笔记分类</span>
-            </div>
-            <div class="nav-item" data-tooltip="标签管理">
-                <i class="fas fa-tags"></i>
-                <span>标签管理</span>
-            </div>
-            <div class="nav-item" data-tooltip="分享笔记">
-                <i class="fas fa-share-alt"></i>
-                <span>分享笔记</span>
-            </div>
-            <div class="nav-item" data-tooltip="回收站">
-                <i class="fas fa-trash"></i>
-                <span>回收站</span>
-            </div>
-        </div>
-    </div>
+    <!-- 侧边栏容器 -->
+    <div id="sidebar"></div>
 
     <!-- 主题切换按钮 -->
     <div class="theme-toggle" id="themeToggle">
@@ -57,7 +41,7 @@
 
     <!-- 主内容区域 -->
     <div class="main-content view-grid" id="mainContent">
-        <div class="content-header">
+        <div class="content-header" id="contentHeader">
             <div style="display: flex; align-items: center; gap: 15px;">
                 <h1 class="welcome-text">收藏笔记</h1>
                 <div class="view-toggle">
@@ -71,12 +55,7 @@
                     </button>
                 </div>
             </div>
-            <div class="user-profile">
-                <div class="user-avatar">
-                    <i class="fas fa-user"></i>
-                </div>
-                <span>管理员</span>
-            </div>
+            <div class="user-profile-container" id="user-profile-container"></div>
         </div>
         <div class="notes-grid">
             <!-- 笔记卡片将由 JavaScript 动态生成 -->
@@ -89,66 +68,21 @@
     <!-- 编辑器弹窗容器 -->
     <div class="editor-modal-container" id="editorModal"></div>
 
-    <!-- 笔记操作菜单 -->
+    <!-- 笔记操作菜单和用户菜单将由组件生成 -->
+    <div class="note-actions-menu" id="noteActionsMenu"></div>
     <div class="menu-overlay" id="menuOverlay"></div>
-    <div class="note-actions-menu" id="noteActionsMenu">
-        <div class="menu-item" data-action="edit">
-            <i class="fas fa-edit"></i>
-            编辑笔记
-        </div>
-        <div class="menu-item" data-action="share">
-            <i class="fas fa-share-alt"></i>
-            分享笔记
-        </div>
-        <div class="menu-item" data-action="unstar">
-            <i class="fas fa-star"></i>
-            取消收藏
-        </div>
-        <div class="menu-divider"></div>
-        <div class="menu-item" data-action="move">
-            <i class="fas fa-folder-open"></i>
-            移动到分类
-        </div>
-        <div class="menu-item" data-action="tag">
-            <i class="fas fa-tags"></i>
-            添加标签
-        </div>
-        <div class="menu-divider"></div>
-        <div class="menu-item" data-action="trash">
-            <i class="fas fa-trash"></i>
-            移至回收站
-        </div>
-    </div>
-
-    <!-- 用户头像菜单 -->
-    <div class="user-profile-menu" id="userProfileMenu">
-        <div class="menu-item" data-action="profile">
-            <i class="fas fa-user-circle"></i>
-            个人信息
-        </div>
-        <div class="menu-item" data-action="edit-profile">
-            <i class="fas fa-user-edit"></i>
-            编辑个人资料
-        </div>
-        <div class="menu-divider"></div>
-        <div class="menu-item" data-action="settings">
-            <i class="fas fa-cog"></i>
-            系统设置
-        </div>
-        <div class="menu-item" data-action="logout">
-            <i class="fas fa-sign-out-alt"></i>
-            退出登录
-        </div>
-    </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const sidebar = document.getElementById('sidebar');
+            // 确保API实例已初始化
+            if (!window.api) {
+                window.api = new API();
+            }
+            
             const mainContent = document.getElementById('mainContent');
-            const toggleSidebar = document.getElementById('toggleSidebar');
-            const mobileMenuToggle = document.getElementById('mobileMenuToggle');
             const themeToggle = document.getElementById('themeToggle');
             const body = document.body;
+            const refreshBtn = document.getElementById('refreshNotesBtn');
     
             // 检查本地存储中的主题偏好
             const currentTheme = localStorage.getItem('theme');
@@ -169,630 +103,547 @@
                 }
             });
     
-            // 切换侧边栏
-            function toggleSidebarState() {
-                sidebar.classList.toggle('collapsed');
-                mainContent.classList.toggle('expanded');
-                
-                // 保存侧边栏状态
-                const isCollapsed = sidebar.classList.contains('collapsed');
-                localStorage.setItem('sidebar-collapsed', isCollapsed);
-            }
-    
-            // 添加点击事件监听器
-            toggleSidebar.addEventListener('click', toggleSidebarState);
-    
-            // 初始化侧边栏状态
-            function initSidebarState() {
-                const isCollapsed = localStorage.getItem('sidebar-collapsed') === 'true';
-                if (isCollapsed) {
-                    sidebar.classList.add('collapsed');
-                    mainContent.classList.add('expanded');
-                } else {
-                    sidebar.classList.remove('collapsed');
-                    mainContent.classList.remove('expanded');
-                }
-            }
+            // 初始化侧边栏菜单
+            const sidebarMenu = new SidebarMenu({
+                containerId: 'sidebar',
+                logoText: '笔记平台',
+                logoIcon: 'fas fa-book',
+                menuItems: [
+                    { id: 'home', text: '我的笔记', icon: 'fas fa-home', page: 'dashboard.html' },
+                    { id: 'starred', text: '收藏笔记', icon: 'fas fa-star', active: true, page: 'starred-notes.html' },
+                    { id: 'categories', text: '笔记分类', icon: 'fas fa-folder', page: 'note-categories.html' },
+                    { id: 'tags', text: '标签管理', icon: 'fas fa-tags', page: 'tags.html' },
+                    { id: 'shared', text: '分享笔记', icon: 'fas fa-share-alt', page: 'note-share.html' },
+                    { id: 'trash', text: '回收站', icon: 'fas fa-trash', page: 'trash.html' }
+                ],
+                autoNavigate: true
+            });
             
-            // 页面加载时初始化侧边栏状态
-            initSidebarState();
-            
-            // 也在window load事件时再次检查，确保DOM完全加载
-            window.addEventListener('load', initSidebarState);
-    
-            // 加载收藏笔记列表
-            function loadStarredNotes() {
-                const notesGrid = document.querySelector('.notes-grid');
-                const notesList = document.querySelector('.notes-list');
-                
-                // 显示加载状态
-                notesGrid.innerHTML = `
-                    <div class="loading-notes">
-                        <i class="fas fa-spinner fa-spin"></i>
-                        <p>加载收藏笔记中...</p>
-                    </div>
-                `;
-                notesList.innerHTML = notesGrid.innerHTML;
-                
-                // 尝试从API获取收藏笔记
-                if (typeof api !== 'undefined') {
-                    api.getNotes({ starred: 'true' })
-                        .then(response => {
-                            console.log('API返回收藏笔记数据:', response);
-                            if (response && (response.success || response.notes || response.data)) {
-                                // 提取笔记数据
-                                const apiNotes = response.notes || response.data || [];
-                                
-                                // 即使结果为空也视为有效结果，不视为错误
-                                updateLocalNotesWithStarred(apiNotes);
-                                renderStarredNotes(apiNotes);
-                                return;
-                            }
-                            throw new Error('API未返回有效的收藏笔记数据');
-                        })
-                        .catch(error => {
-                            console.error('从API获取收藏笔记失败:', error);
-                            // 回退到本地存储
-                            const notes = JSON.parse(localStorage.getItem('notes') || '[]');
-                            const starredNotes = notes.filter(note => note.starred && !note.inTrash);
-                            renderStarredNotes(starredNotes);
-                        });
-                } else {
-                    // 如果API对象不存在，使用本地存储
-                    const notes = JSON.parse(localStorage.getItem('notes') || '[]');
-                    const starredNotes = notes.filter(note => note.starred && !note.inTrash);
-                    renderStarredNotes(starredNotes);
-                }
-            }
-            
-            // 更新本地存储中的笔记收藏状态
-            function updateLocalNotesWithStarred(apiNotes) {
-                const localNotes = JSON.parse(localStorage.getItem('notes') || '[]');
-                let updated = false;
-                
-                // 遍历API返回的收藏笔记，确保本地存储中对应的笔记被标记为收藏
-                apiNotes.forEach(apiNote => {
-                    const noteId = apiNote._id || apiNote.id;
-                    const localIndex = localNotes.findIndex(note => 
-                        (note._id === noteId || note.id === noteId)
-                    );
-                    
-                    if (localIndex !== -1) {
-                        // 更新本地笔记的收藏状态
-                        if (!localNotes[localIndex].starred) {
-                            localNotes[localIndex].starred = true;
-                            updated = true;
-                        }
-                    } else {
-                        // 本地没有这个笔记，添加到本地存储
-                        const newNote = {
-                            ...apiNote,
-                            starred: true
-                        };
-                        
-                        // 确保同时有id和_id
-                        if (newNote.id && !newNote._id) {
-                            newNote._id = newNote.id;
-                        } else if (newNote._id && !newNote.id) {
-                            newNote.id = newNote._id;
-                        }
-                        
-                        localNotes.push(newNote);
-                        updated = true;
+            // 初始化内容头部组件
+            const contentHeader = new ContentHeader({
+                containerId: 'contentHeader',
+                title: '收藏笔记',
+                showViewToggle: true,
+                showRefreshButton: true,
+                hideOnMobile: false,
+                onViewToggle: (view) => {
+                    // 切换视图
+                    if (notesLoader) {
+                        notesLoader.setViewMode(view);
                     }
-                });
+                },
+                onRefresh: loadStarredNotes,
+                onMenuItemClick: (action) => {
+                    console.log('菜单项点击:', action);
+                    if (action === 'logout') {
+                        // 处理退出登录
+                        if (window.confirmLogout) {
+                            window.confirmLogout();
+                        }
+                    } else if (action === 'settings') {
+                        // 打开设置页面
+                        window.location.href = 'settings.html';
+                    } else if (action === 'edit-profile') {
+                        // 打开个人资料页面
+                        window.location.href = 'profile-edit.html';
+                    }
+                }
+            });
+            
+            // 保存到全局对象，使其他组件可以访问
+            window.contentHeader = contentHeader;
+            
+            // 初始化笔记操作菜单组件
+            const noteActionsMenu = new NoteActionsMenu({
+                menuId: 'noteActionsMenu',
+                overlayId: 'menuOverlay',
+                menuItems: [
+                    { action: 'edit', icon: 'fas fa-edit', text: '编辑笔记' },
+                    { action: 'share', icon: 'fas fa-share-alt', text: '分享笔记' },
+                    { action: 'unstar', icon: 'fas fa-star', text: '取消收藏', className: 'warning' },
+                    { divider: true },
+                    { action: 'move', icon: 'fas fa-folder', text: '移动到分类' },
+                    { action: 'tag', icon: 'fas fa-tags', text: '添加标签' },
+                    { divider: true },
+                    { action: 'trash', icon: 'fas fa-trash', text: '移至回收站', className: 'warning' }
+                ],
+                onMenuItemClick: handleNoteAction
+            });
+            
+            // 确保菜单已添加到DOM
+            document.addEventListener('DOMContentLoaded', function() {
+                // 确保菜单元素和遮罩层已添加到DOM
+                if (!document.getElementById('noteActionsMenu') && noteActionsMenu && noteActionsMenu.menu) {
+                    document.body.appendChild(noteActionsMenu.menu);
+                }
+                if (!document.getElementById('menuOverlay') && noteActionsMenu && noteActionsMenu.overlay) {
+                    document.body.appendChild(noteActionsMenu.overlay);
+                }
+            });
+            
+            // 定义全局函数，用于显示笔记菜单
+            window.showNoteMenu = (position, noteId) => {
+                try {
+                    console.log('调用window.showNoteMenu:', {
+                        position: position,
+                        noteId: noteId,
+                        menuInstance: !!noteActionsMenu
+                    });
+                    
+                    if (!noteActionsMenu) {
+                        console.error('笔记操作菜单未初始化!');
+                        
+                        // 尝试重新初始化菜单
+                        const newMenu = new NoteActionsMenu({
+                            menuId: 'noteActionsMenu',
+                            overlayId: 'menuOverlay',
+                            menuItems: [
+                                { action: 'edit', icon: 'fas fa-edit', text: '编辑笔记' },
+                                { action: 'share', icon: 'fas fa-share-alt', text: '分享笔记' },
+                                { action: 'unstar', icon: 'fas fa-star', text: '取消收藏', className: 'warning' },
+                                { divider: true },
+                                { action: 'move', icon: 'fas fa-folder', text: '移动到分类' },
+                                { action: 'tag', icon: 'fas fa-tags', text: '添加标签' },
+                                { divider: true },
+                                { action: 'trash', icon: 'fas fa-trash', text: '移至回收站', className: 'warning' }
+                            ],
+                            onMenuItemClick: handleNoteAction
+                        });
+                        
+                        if (newMenu && typeof newMenu.show === 'function') {
+                            console.log('菜单重新初始化成功，尝试显示');
+                            newMenu.show(position, noteId);
+                            return;
+                        }
+                        
+                        ToastMessage.error('菜单组件不可用，请刷新页面');
+                        return;
+                    }
+                    
+                    if (typeof noteActionsMenu.show !== 'function') {
+                        console.error('noteActionsMenu.show不是一个函数!', noteActionsMenu);
+                        ToastMessage.error('菜单显示功能不可用，请刷新页面');
+                        return;
+                    }
+                    
+                    // 调用菜单的show方法
+                    noteActionsMenu.show(position, noteId);
+                } catch (error) {
+                    console.error('showNoteMenu函数执行出错:', error);
+                    ToastMessage.error('菜单显示错误: ' + error.message);
+                }
+            };
+            
+            // 处理笔记菜单操作
+            function handleNoteAction(action, noteId) {
+                console.log('笔记操作:', action, noteId);
                 
-                // 如果有更新，保存到本地存储
-                if (updated) {
-                    localStorage.setItem('notes', JSON.stringify(localNotes));
+                switch(action) {
+                    case 'edit':
+                        openNoteEditor(noteId);
+                        break;
+                    case 'share':
+                        // 跳转到分享页面
+                        window.location.href = `note-share.html?id=${noteId}`;
+                        break;
+                    case 'move':
+                        // 跳转到分类页面
+                        window.location.href = `note-categories.html?noteId=${noteId}`;
+                        break;
+                    case 'tag':
+                        // 跳转到标签页面
+                        window.location.href = `tags.html?noteId=${noteId}`;
+                        break;
+                    case 'star':
+                        // 星标笔记操作由父组件处理
+                        break;
+                    case 'trash':
+                        // 移至回收站
+                        if (window.trashNote) {
+                            window.trashNote(noteId);
+                        } else {
+                            // 如果全局函数不可用，尝试使用API
+                            api.trashNote(noteId)
+                                .then(() => loadStarredNotes(true))
+                                .catch(err => console.error('移动到回收站失败:', err));
+                        }
+                        break;
+                    case 'unstar':
+                        // 从收藏夹中移除
+                        removeFromFavorites(noteId);
+                        break;
+                    default:
+                        console.log('未处理的操作:', action);
                 }
             }
             
-            // 渲染收藏笔记
-            function renderStarredNotes(starredNotes) {
-                const notesGrid = document.querySelector('.notes-grid');
-                const notesList = document.querySelector('.notes-list');
+            // 初始化NotesLoader实例
+            let notesLoader = new NotesLoader({
+                containerSelector: '.notes-grid', // 默认的容器选择器
+                listContainerSelector: '.notes-list', // 列表视图容器选择器
+                apiClient: window.api,
+                onLoadSuccess: handleStarredNotesLoaded,
+                onLoadError: handleStarredNotesError
+            });
+            
+            // 加载收藏笔记列表
+            async function loadStarredNotes(forceRefresh = false) {
+                // 获取当前视图模式
+                const viewMode = localStorage.getItem('viewMode') || 'grid';
                 
-                // 如果没有收藏笔记，显示提示信息
-                if (starredNotes.length === 0) {
-                    notesGrid.innerHTML = `
-                        <div class="empty-starred">
-                            <i class="fas fa-star"></i>
-                            <p>还没有收藏的笔记</p>
+                // 根据视图模式选择正确的容器
+                const containerSelector = viewMode === 'grid' ? '.notes-grid' : '.notes-list';
+                
+                // 使用已初始化的NotesLoader实例
+                return notesLoader.loadNotes({
+                    isStarred: true,      // 只加载已收藏的笔记
+                    inTrash: false,       // 明确排除回收站中的笔记
+                    forceRefresh: forceRefresh,
+                    viewMode: viewMode,
+                    fallbackToLocalStorage: true  // 启用本地存储回退，确保API失败时仍能显示笔记
+                });
+            }
+            
+            // 处理收藏笔记加载成功
+            function handleStarredNotesLoaded(notes, options) {
+                console.log('收藏笔记加载成功:', notes.length, '条笔记');
+                
+                // 添加笔记点击事件
+                attachNoteEvents(notes);
+            }
+            
+            // 处理收藏笔记加载错误
+            function handleStarredNotesError(error) {
+                console.error('收藏笔记加载失败:', error);
+                
+                const container = document.querySelector('.notes-grid');
+                if (container) {
+                    container.innerHTML = `
+                        <div class="empty-starred error">
+                            <i class="fas fa-exclamation-circle"></i>
+                            <p>加载收藏笔记失败: ${error.message || '未知错误'}</p>
+                            <button class="retry-btn">重试</button>
                         </div>
                     `;
-                    notesList.innerHTML = notesGrid.innerHTML;
                     
-                    // 更新收藏笔记数量
-                    const welcomeText = document.querySelector('.welcome-text');
-                    welcomeText.textContent = `收藏笔记 (0)`;
+                    // 添加重试按钮事件
+                    const retryBtn = container.querySelector('.retry-btn');
+                    if (retryBtn) {
+                        retryBtn.addEventListener('click', () => {
+                            loadStarredNotes(true);
+                        });
+                    }
+                }
+                
+                // 列表视图中也显示错误状态
+                const notesList = document.querySelector('.notes-list');
+                if (notesList) {
+                    notesList.innerHTML = container.innerHTML;
+                }
+            }
+            
+            // 添加笔记点击和操作事件
+            function attachNoteEvents(notes) {
+                // 笔记卡片点击事件，打开在新标签页中
+                document.querySelectorAll('.note-card, .note-list-item').forEach(noteCard => {
+                    noteCard.addEventListener('click', (e) => {
+                        if (!e.target.closest('.more-btn') && !e.target.closest('.note-action-btn')) {
+                            const noteId = noteCard.dataset.id;
+                            const note = notes.find(n => n.id === noteId || n._id === noteId);
+                            if (note) {
+                                // 检查笔记是否已经被分享
+                                if (note.shared) {
+                                    // 如果已分享，使用常规分享链接格式
+                                    const shareUrl = `${window.location.origin}/view-shared-note.html?id=${note.shareId || noteId}`;
+                                    window.open(shareUrl, '_blank');
+                                } else {
+                                    // 如果未分享，传递用户令牌以便查看
+                                    const token = localStorage.getItem('token');
+                                    const viewUrl = `${window.location.origin}/view-shared-note.html?id=${noteId}&mode=private&token=${encodeURIComponent(token)}`;
+                                    window.open(viewUrl, '_blank');
+                                }
+                            }
+                        }
+                    });
+                });
+                
+                // 更多操作按钮处理
+                document.querySelectorAll('.more-btn, .note-action-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const noteId = btn.dataset.id;
+                        showNoteActionMenu(btn, noteId, notes);
+                    });
+                });
+            }
+            
+            // 打开笔记编辑器
+            function openNoteEditor(noteId) {
+                const editorModal = document.createElement('div');
+                editorModal.className = 'editor-modal-container';
+                editorModal.id = 'editorModal';
+                editorModal.style.display = 'block';
+                editorModal.innerHTML = `<iframe src="note-editor-modal.html?id=${noteId}" style="width:100%; height:100%; border:none;"></iframe>`;
+                document.body.appendChild(editorModal);
+            }
+            
+            // 显示笔记操作菜单
+            function showNoteActionMenu(btn, noteId, notes) {
+                try {
+                    const note = notes.find(n => n.id === noteId || n._id === noteId);
+                    if (!note) {
+                        console.error('无法找到ID为', noteId, '的笔记');
+                        return;
+                    }
+                    
+                    // 获取按钮位置
+                    const btnRect = btn.getBoundingClientRect();
+                    const position = {
+                        x: btnRect.right,
+                        y: btnRect.top
+                    };
+                    
+                    console.log('显示笔记菜单:', {
+                        position: position,
+                        noteId: noteId,
+                        menuAvailable: !!window.showNoteMenu,
+                        noteActionsMenuAvailable: !!noteActionsMenu
+                    });
+                    
+                    // 使用全局菜单显示函数
+                    if (typeof window.showNoteMenu === 'function') {
+                        window.showNoteMenu(position, noteId);
+                    } else if (noteActionsMenu && typeof noteActionsMenu.show === 'function') {
+                        noteActionsMenu.show(position, noteId);
+                    } else {
+                        console.error('菜单组件不可用! 无法显示笔记菜单');
+                        ToastMessage.error('菜单显示失败，请刷新页面重试');
+                    }
+                } catch (error) {
+                    console.error('显示笔记菜单时出错:', error);
+                    ToastMessage.error('菜单显示失败: ' + error.message);
+                }
+            }
+            
+            // 设置视图切换功能
+            function setupViewToggle() {
+                const viewToggleBtns = document.querySelectorAll('.view-toggle-btn');
+                
+                viewToggleBtns.forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const view = btn.dataset.view;
+                        mainContent.className = `main-content view-${view}`;
+                        
+                        // 确保保持侧边栏状态
+                        const isCollapsed = localStorage.getItem('sidebar-collapsed') === 'true';
+                        if (isCollapsed) {
+                            mainContent.classList.add('expanded');
+                        }
+                        
+                        // 更新按钮状态
+                        viewToggleBtns.forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        
+                        // 保存视图偏好
+                        localStorage.setItem('viewMode', view);
+                        
+                        // 如果切换到列表视图，需要更新列表内容
+                        if (view === 'list' && notesLoader) {
+                            if (notesLoader.lastQuery) {
+                                // 使用上次查询参数来重新加载笔记
+                                const options = {...notesLoader.lastQuery, viewMode: 'list'};
+                                notesLoader.loadNotes(options);
+                            } else {
+                                // 没有上次查询，加载默认笔记
+                                notesLoader.loadNotes({
+                                    isStarred: true,
+                                    inTrash: false,
+                                    viewMode: 'list'
+                                });
+                            }
+                        }
+                    });
+                });
+                
+                // 加载保存的视图偏好
+                const preferredView = localStorage.getItem('viewMode') || 'grid';
+                mainContent.className = `main-content view-${preferredView}`;
+                viewToggleBtns.forEach(btn => {
+                    if (btn.dataset.view === preferredView) {
+                        btn.classList.add('active');
+                    } else {
+                        btn.classList.remove('active');
+                    }
+                });
+            }
+            
+            // 实现updateListView函数，用于在列表视图模式下渲染笔记
+            window.updateListView = function(notes) {
+                const listContainer = document.querySelector('.notes-list');
+                if (!listContainer) return;
+                
+                if (!notes || notes.length === 0) {
+                    listContainer.innerHTML = `
+                        <div class="empty-starred">
+                            <i class="fas fa-star"></i>
+                            <p>没有收藏的笔记</p>
+                        </div>
+                    `;
                     return;
                 }
                 
-                // 生成卡片视图
-                notesGrid.innerHTML = starredNotes.map(note => `
-                    <div class="note-card" data-id="${note._id || note.id}">
-                        <div class="note-card-content">
-                            <h3 class="note-title">${note.title}</h3>
-                            <p class="note-preview">${note.content.substring(0, 100)}${note.content.length > 100 ? '...' : ''}</p>
-                        </div>
-                        <div class="note-card-footer">
-                            <span class="note-date">
-                                <i class="far fa-clock"></i>
-                                ${new Date(note.updatedAt).toLocaleDateString()}
-                            </span>
-                            <button class="note-action-btn" data-id="${note._id || note.id}">
-                                <i class="fas fa-ellipsis-v"></i>
-                            </button>
-                        </div>
-                    </div>
-                `).join('');
-    
                 // 生成列表视图
-                notesList.innerHTML = starredNotes.map(note => `
+                listContainer.innerHTML = notes.map(note => `
                     <div class="note-list-item" data-id="${note._id || note.id}">
                         <div class="note-list-content">
-                            <div class="note-list-title">${note.title}</div>
-                            <div class="note-list-preview">${note.content.substring(0, 200)}${note.content.length > 200 ? '...' : ''}</div>
+                            <div class="note-list-title">
+                                ${note.title || '无标题笔记'}
+                                ${note.shared ? `<span class="note-badge-small ${note.shareType === 'private' ? 'private' : 'public'}">
+                                    <i class="fas ${note.shareType === 'private' ? 'fa-lock' : 'fa-share-alt'}"></i>
+                                    ${note.shareType === 'private' ? '私密' : '已分享'}
+                                </span>` : ''}
+                            </div>
+                            <div class="note-list-preview">${notesLoader.getContentPreview(note.content || '', 200)}</div>
                         </div>
                         <div class="note-list-meta">
-                            <span><i class="far fa-clock"></i> ${new Date(note.updatedAt).toLocaleDateString()}</span>
-                            <span><i class="fas fa-star"></i> 已收藏</span>
+                            <span><i class="far fa-clock"></i> ${notesLoader.formatDate(note.updatedAt || note.createdAt)}</span>
+                            <span><i class="far fa-file-alt"></i> ${note.category ? note.category.name : '未分类'}</span>
                         </div>
                         <button class="note-action-btn" data-id="${note._id || note.id}">
                             <i class="fas fa-ellipsis-v"></i>
                         </button>
                     </div>
                 `).join('');
-    
-                // 更新笔记点击事件
-                document.querySelectorAll('.note-card, .note-list-item').forEach(item => {
-                    const actionBtn = item.querySelector('.note-action-btn');
-                    
-                    // 点击笔记内容区域打开编辑器
-                    item.addEventListener('click', (e) => {
-                        if (!e.target.closest('.note-action-btn')) {
-                            const noteId = item.dataset.id;
-                            const editorModal = document.getElementById('editorModal');
-                            editorModal.style.display = 'block';
-                            editorModal.innerHTML = `<iframe src="note-editor-modal.html?id=${noteId}" style="width:100%; height:100%; border:none;"></iframe>`;
-                        }
-                    });
-    
-                    // 点击操作按钮显示菜单
-                    actionBtn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        e.preventDefault(); // 阻止默认事件
-                        
-                        // 关闭任何已打开的菜单
-                        const menu = document.getElementById('noteActionsMenu');
-                        const overlay = document.getElementById('menuOverlay');
-                        if(menu.classList.contains('show')) {
-                            menu.classList.remove('show');
-                            overlay.classList.remove('show');
-                        }
-                        
-                        // 保存按钮位置信息，供延迟执行时使用
-                        const buttonRect = e.currentTarget.getBoundingClientRect();
-                        const buttonInfo = {
-                            left: buttonRect.left,
-                            top: buttonRect.top,
-                            right: buttonRect.right,
-                            bottom: buttonRect.bottom,
-                            width: buttonRect.width,
-                            height: buttonRect.height
-                        };
-                        
-                        // 保存笔记ID，避免在setTimeout中引用可能已失效的变量
-                        const noteId = item.dataset.id;
-                        
-                        // 延迟一小段时间再显示菜单，确保前一个菜单的关闭事件已处理完毕
-                        setTimeout(() => {
-                            showNoteMenu(buttonInfo, noteId);
-                        }, 10);
-                    });
-                });
-    
-                // 显示收藏笔记数量
-                const welcomeText = document.querySelector('.welcome-text');
-                welcomeText.textContent = `收藏笔记 (${starredNotes.length})`;
-            }
-    
-            // 视图切换
-            const viewToggleBtns = document.querySelectorAll('.view-toggle-btn');
-            viewToggleBtns.forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const view = btn.dataset.view;
-                    mainContent.className = `main-content view-${view}`;
-                    
-                    // 确保保持侧边栏状态
-                    const isCollapsed = localStorage.getItem('sidebar-collapsed') === 'true';
-                    if (isCollapsed) {
-                        mainContent.classList.add('expanded');
-                    }
-                    
-                    // 更新按钮状态
-                    viewToggleBtns.forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
-                    
-                    // 保存视图偏好
-                    localStorage.setItem('preferred-view', view);
-                });
-            });
-    
-            // 加载保存的视图偏好
-            const preferredView = localStorage.getItem('preferred-view') || 'grid';
-            mainContent.className = `main-content view-${preferredView}`;
-            viewToggleBtns.forEach(btn => {
-                if (btn.dataset.view === preferredView) {
-                    btn.classList.add('active');
-                } else {
-                    btn.classList.remove('active');
-                }
-            });
+                
+                // 添加列表项点击事件
+                attachNoteEvents(notes);
+            };
             
-            // 确保侧边栏状态被正确应用
-            initSidebarState();
-    
-            // 初始加载收藏笔记列表
+            setupViewToggle();
+            
+            // 加载收藏的笔记
             loadStarredNotes();
-    
-            // 导航菜单项点击事件
-            document.querySelectorAll('.nav-item').forEach(item => {
-                item.addEventListener('click', () => {
-                    const icon = item.querySelector('i');
-                    if (icon.classList.contains('fa-star')) {
-                        // 已经在收藏页面，不需要跳转
-                        return;
-                    }
-                    
-                    // 根据图标类名确定目标页面
-                    let targetPage = '';
-                    if (icon.classList.contains('fa-home')) {
-                        targetPage = 'dashboard.html';
-                    } else if (icon.classList.contains('fa-folder')) {
-                        targetPage = 'note-categories.html';
-                    } else if (icon.classList.contains('fa-tags')) {
-                        targetPage = 'tags.html';
-                    } else if (icon.classList.contains('fa-share-alt')) {
-                        targetPage = 'note-share.html';
-                    } else if (icon.classList.contains('fa-trash')) {
-                        targetPage = 'trash.html';
-                    }
-    
-                    // 如果找到目标页面，则进行跳转
-                    if (targetPage) {
-                        try {
-                            console.log('准备跳转到页面:', targetPage);
-                            console.log('当前页面路径:', window.location.pathname);
-                            // 使用 replace 方法进行跳转
-                            window.location.replace(targetPage);
-                        } catch (error) {
-                            console.error('页面跳转失败:', error);
-                            alert('页面跳转失败，请检查页面是否存在');
-                        }
-                    } else {
-                        console.error('未找到目标页面');
-                    }
-                });
-            });
-    
-            /**
-             * 显示笔记操作菜单
-             * @param {Object} buttonInfo - 按钮位置信息对象 {left, top, right, bottom, width, height}
-             * @param {String} noteId - 笔记ID
-             */
-            function showNoteMenu(buttonInfo, noteId) {
-                // 确保有按钮信息
-                if (!buttonInfo) {
-                    console.error('未提供按钮位置信息');
-                    return;
-                }
-                
-                const menu = document.getElementById('noteActionsMenu');
-                const overlay = document.getElementById('menuOverlay');
-                
-                // 如果没有获取到菜单元素，直接返回
-                if (!menu || !overlay) {
-                    console.error('未找到菜单元素');
-                    return;
-                }
-                
-                // 设置菜单关联的笔记ID
-                menu.dataset.noteId = noteId;
-                
-                // 暂时设置菜单可见但不显示，用于获取尺寸
-                menu.style.visibility = 'hidden';
-                menu.style.display = 'block';
-                
-                // 获取菜单尺寸
-                const menuWidth = menu.offsetWidth || 180;
-                const menuHeight = menu.offsetHeight || 250;
-                
-                // 计算菜单位置 - 默认显示在按钮右侧
-                let left = buttonInfo.right; // 显示在按钮右侧
-                let top = buttonInfo.top;
-                
-                // 确保菜单右侧不超出窗口
-                const windowWidth = window.innerWidth;
-                if (left + menuWidth > windowWidth - 10) {
-                    // 如果右侧放不下，就显示在按钮左侧
-                    left = buttonInfo.left - menuWidth;
-                    
-                    // 如果左侧也放不下，就居中显示在按钮下方
-                    if (left < 10) {
-                        left = Math.max(10, buttonInfo.left + (buttonInfo.width - menuWidth) / 2);
-                        top = buttonInfo.bottom + 5; // 显示在按钮下方
-                    }
-                }
-                
-                // 检查底部是否超出视口
-                const windowHeight = window.innerHeight;
-                if (top + menuHeight > windowHeight - 10) {
-                    top = windowHeight - menuHeight - 10; // 保持在视口内
-                }
-                
-                // 确保菜单顶部不超出视口
-                if (top < 10) {
-                    top = 10;
-                }
-                
-                // 设置最终位置并显示
-                menu.style.top = `${top}px`;
-                menu.style.left = `${left}px`;
-                menu.style.visibility = 'visible';
-                menu.classList.add('show');
-                
-                // 显示遮罩层
-                overlay.classList.add('show');
-            }
-    
-            // 确保DOM加载后初始化菜单
-            document.addEventListener('DOMContentLoaded', () => {
-                // 初始化菜单状态
-                const menu = document.getElementById('noteActionsMenu');
-                const overlay = document.getElementById('menuOverlay');
-                if (menu) {
-                    menu.classList.remove('show');
-                    menu.style.visibility = 'hidden';
-                }
-                if (overlay) {
-                    overlay.classList.remove('show');
-                }
-            });
             
-            // 关闭菜单的通用函数
-            function closeNoteMenu() {
-                const menu = document.getElementById('noteActionsMenu');
-                const overlay = document.getElementById('menuOverlay');
-                if (menu) {
-                    menu.classList.remove('show');
-                    menu.style.visibility = 'hidden';
-                }
-                if (overlay) {
-                    overlay.classList.remove('show');
-                }
-            }
-            
-            // 优化处理笔记操作
-            document.querySelectorAll('.note-actions-menu .menu-item').forEach(item => {
-                item.addEventListener('click', (e) => {
-                    // 防止事件冒泡
-                    e.stopPropagation();
-                    
-                    const action = e.currentTarget.dataset.action;
-                    const noteId = document.getElementById('noteActionsMenu').dataset.noteId;
-                    const notes = JSON.parse(localStorage.getItem('notes') || '[]');
-                    const noteIndex = notes.findIndex(n => n.id === noteId || n._id === noteId);
-    
-                    switch (action) {
-                        case 'edit':
-                            const editorModal = document.getElementById('editorModal');
-                            editorModal.style.display = 'block';
-                            editorModal.innerHTML = `<iframe src="note-editor-modal.html?id=${noteId}" style="width:100%; height:100%; border:none;"></iframe>`;
-                            break;
-                        case 'share':
-                            const shareUrl = `${window.location.origin}/pages/note-share.html?id=${noteId}`;
-                            navigator.clipboard.writeText(shareUrl).then(() => {
-                                alert('分享链接已复制到剪贴板');
-                            });
-                            break;
-                        case 'unstar':
-                            if (noteIndex !== -1) {
-                                // 先尝试通过API取消收藏
-                                if (typeof api !== 'undefined') {
-                                    api.starNote(noteId)
-                                        .then(response => {
-                                            if (response && response.success !== undefined) {
-                                                // API操作成功，更新本地存储
-                                                notes[noteIndex].starred = false;
-                                                localStorage.setItem('notes', JSON.stringify(notes));
-                                                // 重新加载收藏笔记列表
-                                                loadStarredNotes();
-                                                // 显示成功消息
-                                                showToast('笔记已取消收藏', 'success');
-                                            } else {
-                                                throw new Error('取消收藏失败');
-                                            }
-                                        })
-                                        .catch(error => {
-                                            console.error('API取消收藏失败:', error);
-                                            // 显示错误信息
-                                            showToast('API取消收藏失败，尝试本地操作', 'error');
-                                            // 回退到本地操作
-                                            notes[noteIndex].starred = false;
-                                            localStorage.setItem('notes', JSON.stringify(notes));
-                                            loadStarredNotes();
-                                        });
-                                } else {
-                                    // API不可用，直接本地操作
-                                    notes[noteIndex].starred = false;
-                                    localStorage.setItem('notes', JSON.stringify(notes));
-                                    loadStarredNotes();
-                                }
-                            }
-                            break;
-                        case 'move':
-                            // 重定向到dashboard页面并传递参数，让dashboard页面处理移动分类
-                            window.location.href = `dashboard.html?action=move&noteId=${noteId}`;
-                            break;
-                        case 'tag':
-                            alert('添加标签功能开发中...');
-                            break;
-                        case 'trash':
-                            if (confirm('确定要将此笔记移至回收站吗？')) {
-                                if (noteIndex !== -1) {
-                                    notes[noteIndex].inTrash = true;
-                                    notes[noteIndex].deletedAt = new Date().toISOString();
-                                    localStorage.setItem('notes', JSON.stringify(notes));
-                                    loadStarredNotes();
-                                }
-                            }
-                            break;
-                    }
-    
-                    // 使用通用函数关闭菜单
-                    closeNoteMenu();
-                });
-            });
-    
-            // 优化点击遮罩层关闭菜单
-            document.getElementById('menuOverlay').addEventListener('click', closeNoteMenu);
-            
-            // 点击页面任意位置关闭菜单
-            window.addEventListener('click', (e) => {
-                const menu = document.getElementById('noteActionsMenu');
-                
-                // 如果菜单显示且点击的不是菜单本身也不是菜单触发按钮
-                if (menu && menu.classList.contains('show') && 
-                    !menu.contains(e.target) && 
-                    !e.target.closest('.note-action-btn')) {
-                    closeNoteMenu();
-                }
-            }, true); // 使用捕获阶段，确保在其他事件处理前执行
-            
-            // 监听来自编辑器的消息
-            window.addEventListener('message', (event) => {
-                if (event.data.type === 'closeEditor') {
-                    const editorModal = document.getElementById('editorModal');
-                    editorModal.style.display = 'none';
-                    editorModal.innerHTML = '';
-                } else if (event.data.type === 'noteUpdated') {
-                    // 刷新笔记列表
-                    loadStarredNotes();
-                }
-            });
-
-            // 用户头像菜单
-            const userProfile = document.querySelector('.user-profile');
-            const userProfileMenu = document.getElementById('userProfileMenu');
-            const menuOverlay = document.getElementById('menuOverlay');
-            
-            userProfile.addEventListener('mouseenter', () => {
-                const rect = userProfile.getBoundingClientRect();
-                const menuWidth = userProfileMenu.offsetWidth || 200; // 估计菜单宽度
-                const windowWidth = window.innerWidth;
-                
-                // 计算右侧是否会溢出
-                if (rect.left + menuWidth > windowWidth) {
-                    // 如果会溢出，将菜单向左对齐
-                    userProfileMenu.style.left = `${rect.right - menuWidth}px`;
-                } else {
-                    userProfileMenu.style.left = `${rect.left}px`;
-                }
-                
-                userProfileMenu.style.top = `${rect.bottom}px`;
-                userProfileMenu.classList.add('show');
-            });
-            
-            userProfile.addEventListener('mouseleave', (event) => {
-                // 检查鼠标是否移动到菜单上
-                const toElement = event.relatedTarget;
-                if (!userProfileMenu.contains(toElement)) {
-                    userProfileMenu.classList.remove('show');
-                }
-            });
-            
-            userProfileMenu.addEventListener('mouseleave', () => {
-                userProfileMenu.classList.remove('show');
-            });
-            
-            // 用户菜单项点击事件
-            userProfileMenu.querySelectorAll('.menu-item').forEach(item => {
-                item.addEventListener('click', () => {
-                    const action = item.dataset.action;
-                    userProfileMenu.classList.remove('show');
-                    
-                    // 处理不同的菜单操作
-                    switch(action) {
-                        case 'profile':
-                            alert('查看个人信息');
-                            break;
-                        case 'edit-profile':
-                            window.location.href = 'profile-edit.html';
-                            break;
-                        case 'settings':
-                            window.location.replace('settings.html');
-                            break;
-                        case 'logout':
-                            alert('退出登录');
-                            break;
-                    }
-                });
-            });
-            
-            // 移动端菜单切换
-            mobileMenuToggle.addEventListener('click', () => {
-                sidebar.classList.toggle('show');
-            });
-
-            // 点击主内容区域时在移动端关闭侧边栏
-            mainContent.addEventListener('click', () => {
-                if (window.innerWidth <= 768) {
-                    sidebar.classList.remove('show');
-                }
-            });
-
-            // 窗口大小改变时处理侧边栏状态
-            window.addEventListener('resize', () => {
-                if (window.innerWidth > 768) {
-                    sidebar.classList.remove('show');
-                }
-                // 确保侧边栏状态在窗口大小变化时保持一致
-                initSidebarState();
-            });
-
-            // 显示消息提示
-            function showToast(message, type = 'success') {
-                const toast = document.createElement('div');
-                toast.className = `toast-message ${type}`;
-                toast.innerHTML = `<i class="fas fa-${getToastIcon(type)}"></i> ${message}`;
-                document.body.appendChild(toast);
-                
-                setTimeout(() => {
-                    toast.classList.add('show');
-                    setTimeout(() => {
-                        toast.classList.remove('show');
+            // 设置刷新按钮
+            if (refreshBtn) {
+                refreshBtn.addEventListener('click', () => {
+                    refreshBtn.classList.add('loading');
+                    loadStarredNotes(true).finally(() => {
                         setTimeout(() => {
-                            document.body.removeChild(toast);
-                        }, 300);
-                    }, 3000);
-                }, 100);
+                            refreshBtn.classList.remove('loading');
+                        }, 500);
+                    });
+                });
             }
             
-            // 获取提示消息图标
-            function getToastIcon(type) {
-                switch (type) {
-                    case 'success': return 'check-circle';
-                    case 'error': return 'exclamation-circle';
-                    case 'info': return 'info-circle';
-                    default: return 'info-circle';
+            // 取消收藏笔记
+            function removeFromFavorites(noteId) {
+                ConfirmDialog.confirm('取消收藏', '确定要将这个笔记从收藏夹中移除吗？', function(confirmed) {
+                    if (confirmed) {
+                        // 获取笔记当前状态，确保只修改星标状态
+                        const allNotes = JSON.parse(localStorage.getItem('notes') || '[]');
+                        const noteIndex = allNotes.findIndex(n => n.id === noteId || n._id === noteId);
+                        
+                        // 本地更新星标状态
+                        if (noteIndex !== -1) {
+                            allNotes[noteIndex].isStarred = false;
+                            // 保留其他状态不变
+                            localStorage.setItem('notes', JSON.stringify(allNotes));
+                        }
+                        
+                        api.starNote(noteId)  // 使用starNote方法，后端会自动切换星标状态
+                            .then(response => {
+                                if (response && response.success) {
+                                    loadStarredNotes(true); // 强制刷新收藏夹
+                                    ToastMessage.success('已从收藏夹中移除');
+                                    
+                                    // 清理收藏笔记缓存
+                                    localStorage.removeItem('starred_notes_cache');
+                                    localStorage.removeItem('starred_notes_timestamp');
+                                } else {
+                                    throw new Error(response.message || '取消收藏失败');
+                                }
+                            })
+                            .catch(error => {
+                                console.error('取消收藏失败:', error);
+                                
+                                // 如果API失败，尝试在本地取消收藏
+                                const allNotes = JSON.parse(localStorage.getItem('notes') || '[]');
+                                const noteIndex = allNotes.findIndex(n => n.id === noteId || n._id === noteId);
+                                
+                                if (noteIndex !== -1) {
+                                    allNotes[noteIndex].isStarred = false;
+                                    localStorage.setItem('notes', JSON.stringify(allNotes));
+                                    localStorage.setItem('notes_updated', Date.now().toString());
+                                    
+                                    // 清理收藏笔记缓存
+                                    localStorage.removeItem('starred_notes_cache');
+                                    localStorage.removeItem('starred_notes_timestamp');
+                                    
+                                    loadStarredNotes(true); // 强制刷新收藏夹
+                                    ToastMessage.success('已在本地从收藏夹中移除');
+                                    return; // 避免显示错误提示
+                                }
+                                
+                                ToastMessage.error(`操作失败: ${error.message}`);
+                            });
+                    }
+                });
+            }
+            
+            // 将笔记移到回收站函数
+            async function trashNote(noteId) {
+                try {
+                    const response = await api.trashNote(noteId);
+                    if (response && response.success) {
+                        ToastMessage.success('笔记已移至回收站');
+                        
+                        // 刷新笔记列表
+                        loadStarredNotes(true);
+                    } else {
+                        ToastMessage.error('移动失败: ' + (response?.message || '未知错误'));
+                    }
+                } catch (error) {
+                    console.error('删除笔记失败:', error);
+                    ToastMessage.error('删除失败: ' + (error.message || '未知错误'));
                 }
             }
+            
+            // 导出为全局函数
+            window.trashNote = trashNote;
         });
+
+        function showToast(message, type = 'success') {
+            // 使用通用Toast组件替代原有实现
+            ToastMessage[type](message);
+        }
+        
+        // 添加调试辅助函数
+        window.debugMenu = function() {
+            console.log('=== 菜单调试信息 ===');
+            console.log('菜单实例:', noteActionsMenu);
+            console.log('菜单DOM元素:', document.getElementById('noteActionsMenu'));
+            console.log('遮罩层DOM元素:', document.getElementById('menuOverlay'));
+            if (noteActionsMenu) {
+                console.log('菜单函数:', {
+                    show: typeof noteActionsMenu.show === 'function',
+                    hide: typeof noteActionsMenu.hide === 'function',
+                    bindEvents: typeof noteActionsMenu.bindEvents === 'function',
+                    createMenu: typeof noteActionsMenu.createMenu === 'function'
+                });
+            }
+            return '调试信息已打印到控制台';
+        };
     </script>
     
     <style>
+        /* 旋转动画关键帧 */
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        /* 空收藏笔记样式 */
         .empty-starred {
             grid-column: 1 / -1;
             text-align: center;
@@ -819,252 +670,88 @@
             color: #666;
         }
         
-        /* 用户头像菜单样式 */
-        .user-profile {
-            position: relative;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .user-avatar {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            background-color: #e8f0fe;
-            color: #1a73e8;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .dark-mode .user-avatar {
-            background-color: #1a73e8;
-            color: white;
-        }
-
-        .user-profile-menu {
-            position: absolute;
-            top: 45px;
-            right: 10px;
-            width: 200px;
-            background-color: #fff;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-            z-index: 1000;
-            display: none;
-        }
-
-        .user-profile-menu.show {
-            display: block;
-        }
-
-        .dark-mode .user-profile-menu {
-            background-color: #2d2d2d;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
-        }
-
-        .menu-item {
-            padding: 12px 16px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            color: #333;
-            transition: background-color 0.3s;
-            cursor: pointer;
-        }
-
-        .dark-mode .menu-item {
-            color: #fff;
-        }
-
-        .menu-item:hover {
-            background-color: #f5f5f5;
-        }
-
-        .dark-mode .menu-item:hover {
-            background-color: #3d3d3d;
-        }
-
-        .menu-divider {
-            height: 1px;
-            background-color: #e0e0e0;
-            margin: 4px 0;
-        }
-
-        .dark-mode .menu-divider {
-            background-color: #444;
-        }
-
-        .menu-item.delete {
-            color: #ea4335;
-        }
-
-        .dark-mode .menu-item.delete {
-            color: #ff6b6b;
+        .empty-starred.error i {
+            color: #e53935;
         }
         
-        /* 加载状态样式 */
-        .loading-notes {
+        .dark-mode .empty-starred.error i {
+            color: #f44336;
+        }
+        
+        /* 加载中状态样式 */
+        .loading-starred {
             grid-column: 1 / -1;
             text-align: center;
             padding: 40px;
             color: #666;
         }
         
-        .loading-notes i {
+        .loading-starred i {
             font-size: 48px;
             margin-bottom: 16px;
             color: #1a73e8;
-            animation: spin 1s linear infinite;
         }
         
-        .loading-notes p {
+        .loading-starred p {
             font-size: 18px;
             margin: 0;
         }
         
-        .dark-mode .loading-notes {
+        .dark-mode .loading-starred {
             color: #bbb;
         }
         
-        .dark-mode .loading-notes i {
+        .dark-mode .loading-starred i {
             color: #4b8bf4;
         }
-        
-        @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
+
+        /* 收藏笔记列表样式 */
+        .notes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            padding: 20px;
         }
         
-        /* 提示消息样式 */
-        .toast-message {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 12px 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 14px;
-            transition: all 0.3s ease;
-            transform: translateY(-20px);
-            opacity: 0;
-            z-index: 9999;
-            max-width: 80%;
-        }
-        
-        .toast-message.show {
-            transform: translateY(0);
-            opacity: 1;
-        }
-        
-        .toast-message.success {
-            background-color: #e7f7e8;
-            color: #1e8e3e;
-            border-left: 4px solid #1e8e3e;
-        }
-        
-        .toast-message.error {
-            background-color: #fce8e6;
-            color: #d93025;
-            border-left: 4px solid #d93025;
-        }
-        
-        .toast-message.info {
-            background-color: #e8f0fe;
-            color: #1a73e8;
-            border-left: 4px solid #1a73e8;
-        }
-        
-        .toast-message i {
-            font-size: 18px;
-        }
-        
-        .dark-mode .toast-message.success {
-            background-color: #0d3218;
-            color: #81c995;
-            border-left: 4px solid #81c995;
-        }
-        
-        .dark-mode .toast-message.error {
-            background-color: #3d1412;
-            color: #f28b82;
-            border-left: 4px solid #f28b82;
-        }
-        
-        .dark-mode .toast-message.info {
-            background-color: #0d2a4e;
-            color: #8ab4f8;
-            border-left: 4px solid #8ab4f8;
-        }
-        
-        /* 覆盖全局笔记操作菜单样式 */
-        .note-actions-menu {
-            position: fixed !important;
-            transform: none !important;
-            transition: none !important;
-            opacity: 1 !important;
-            pointer-events: auto !important;
-            display: none;
-            padding: 8px 0;
-            background-color: var(--bg-color, #fff);
-            border-radius: 8px;
-            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
-            border: 1px solid var(--border-color, #e0e0e0);
-            min-width: 180px;
-            max-width: 250px;
-            z-index: 1050;
-            overflow: hidden;
-        }
-        
-        .note-actions-menu.show {
-            display: block !important;
-            opacity: 1 !important;
-            transform: none !important;
-        }
-        
-        .note-actions-menu .menu-item {
-            padding: 10px 16px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            transition: background-color 0.2s;
+        .note-card {
+            background-color: var(--card-bg);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: var(--card-shadow);
             cursor: pointer;
-            color: var(--text-color, #333);
+            transition: all 0.3s ease;
+            border: 1px solid var(--border-color);
+            position: relative;
         }
         
-        .note-actions-menu .menu-item:hover {
-            background-color: var(--hover-color, #f5f5f5);
+        .note-card:hover {
+            transform: var(--hover-transform);
+            box-shadow: 0 8px 16px var(--shadow-color);
         }
         
-        .dark-mode .note-actions-menu {
-            background-color: var(--bg-color, #333);
-            border-color: var(--border-color, #444);
-            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+        /* 重试按钮样式 */
+        .retry-btn {
+            margin-top: 16px;
+            padding: 8px 16px;
+            background-color: #1a73e8;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s ease;
         }
         
-        .dark-mode .note-actions-menu .menu-item {
-            color: var(--text-color, #eee);
+        .retry-btn:hover {
+            background-color: #1557b0;
         }
         
-        .dark-mode .note-actions-menu .menu-item:hover {
-            background-color: var(--hover-color, #444);
+        .dark-mode .retry-btn {
+            background-color: #4b8bf4;
         }
         
-        /* 笔记操作菜单的响应式样式 */
-        @media screen and (max-width: 768px) {
-            .note-actions-menu {
-                width: calc(100% - 40px); /* 防止在小屏幕上过宽 */
-            }
-            
-            .menu-item {
-                padding: 14px 16px; /* 在移动设备上增加点击区域 */
-            }
+        .dark-mode .retry-btn:hover {
+            background-color: #3b71cc;
         }
     </style>
 </body>

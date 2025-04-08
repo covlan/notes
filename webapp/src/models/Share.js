@@ -30,6 +30,10 @@ const ShareSchema = new mongoose.Schema({
     type: Date,
     default: null
   },
+  isCanceled: {
+    type: Boolean,
+    default: false
+  },
   views: {
     type: Number,
     default: 0

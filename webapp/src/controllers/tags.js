@@ -142,10 +142,10 @@ exports.deleteTag = async (req, res, next) => {
     }
 
     // 删除该标签与笔记的所有关联
-    await NoteTag.deleteMany({ tagId: tag._id });
+    await NoteTag.deleteMany({ tagId: tag._id, userId: req.user.id });
 
-    // 删除标签
-    await tag.remove();
+    // 删除标签 - 使用deleteOne替代已废弃的remove方法
+    await Tag.deleteOne({ _id: tag._id });
 
     res.status(200).json({
       success: true,

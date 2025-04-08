@@ -4,51 +4,32 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>笔记平台</title>
+    <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="./css/styles.css">
-    <script src="./js/api.js"></script>
+    <link rel="stylesheet" href="css/note-actions-menu.css">
+    <link rel="stylesheet" href="css/sidebar-menu.css">
+    <link rel="stylesheet" href="css/content-header.css">
+    <script src="./component/api.js"></script>
+    <!-- 引入站点信息加载脚本 -->
+    <script src="component/site-info.js"></script>
+    <!-- 引入通用笔记加载组件 -->
+    <script src="component/notes-loader.js"></script>
+    <!-- 引入笔记操作菜单组件 -->
+    <script src="component/note-actions-menu.js"></script>
+    <!-- 引入侧边栏菜单组件 -->
+    <script src="component/sidebar-menu.js"></script>
+    <!-- 引入确认对话框组件 -->
+    <script src="component/confirm-dialog.js"></script>
+    <!-- 引入提示消息组件 -->
+    <script src="component/toast-message.js"></script>
+    <!-- 引入内容头部组件 -->
+    <script src="component/content-header.js"></script>
+    <!-- 引入仪表盘页面脚本 -->
+    <script src="component/dashboard.js"></script>
 </head>
 <body>
-    <!-- 移动端菜单按钮 -->
-    <div class="mobile-menu-toggle" id="mobileMenuToggle">
-        <i class="fas fa-bars"></i>
-    </div>
-
     <!-- 侧边栏 -->
-    <div class="sidebar" id="sidebar">
-        <div class="sidebar-header">
-            <div class="logo" id="toggleSidebar">
-                <i class="fas fa-book"></i>
-                <span>笔记平台</span>
-            </div>
-        </div>
-        <div class="nav-menu">
-            <div class="nav-item active" data-tooltip="我的笔记">
-                <i class="fas fa-home"></i>
-                <span>我的笔记</span>
-            </div>
-            <div class="nav-item" data-tooltip="收藏笔记">
-                <i class="fas fa-star"></i>
-                <span>收藏笔记</span>
-            </div>
-            <div class="nav-item" data-tooltip="笔记分类">
-                <i class="fas fa-folder"></i>
-                <span>笔记分类</span>
-            </div>
-            <div class="nav-item" data-tooltip="标签管理">
-                <i class="fas fa-tags"></i>
-                <span>标签管理</span>
-            </div>
-            <div class="nav-item" data-tooltip="分享笔记">
-                <i class="fas fa-share-alt"></i>
-                <span>分享笔记</span>
-            </div>
-            <div class="nav-item" data-tooltip="回收站">
-                <i class="fas fa-trash"></i>
-                <span>回收站</span>
-            </div>
-        </div>
-    </div>
+    <div id="sidebar"></div>
 
     <!-- 主题切换按钮 -->
     <div class="theme-toggle" id="themeToggle">
@@ -62,29 +43,8 @@
 
     <!-- 主内容区域 -->
     <div class="main-content view-grid" id="mainContent">
-        <div class="content-header">
-            <div style="display: flex; align-items: center; gap: 15px;">
-                <h1 class="welcome-text">我的笔记</h1>
-                <div class="view-toggle">
-                    <button class="view-toggle-btn active" data-view="grid">
-                        <i class="fas fa-th-large"></i>
-                        卡片视图
-                    </button>
-                    <button class="view-toggle-btn" data-view="list">
-                        <i class="fas fa-list"></i>
-                        列表视图
-                    </button>
-                </div>
-                <button class="refresh-btn" id="refreshNotesBtn" title="刷新笔记列表">
-                    <i class="fas fa-sync-alt"></i>
-                </button>
-            </div>
-            <div class="user-profile">
-                <div class="user-avatar">
-                    <i class="fas fa-user"></i>
-                </div>
-                <span>管理员</span>
-            </div>
+        <div class="content-header" id="contentHeader">
+            <!-- 将由ContentHeader组件动态生成 -->
         </div>
         <div class="notes-grid">
             <!-- 笔记卡片将由 JavaScript 动态生成 -->
@@ -95,69 +55,17 @@
     </div>
 
     <!-- 编辑器弹窗容器 -->
-    <div class="editor-modal-container" id="editorModal"></div>
-
-    <!-- 笔记操作菜单 -->
-    <div class="menu-overlay" id="menuOverlay"></div>
-    <div class="note-actions-menu" id="noteActionsMenu">
-        <div class="menu-item" data-action="edit">
-            <i class="fas fa-edit"></i>
-            编辑笔记
-        </div>
-        <div class="menu-item" data-action="share">
-            <i class="fas fa-share-alt"></i>
-            分享笔记
-        </div>
-        <div class="menu-item" data-action="star">
-            <i class="far fa-star"></i>
-            收藏笔记
-        </div>
-        <div class="menu-divider"></div>
-        <div class="menu-item" data-action="move">
-            <i class="fas fa-folder-open"></i>
-            移动到分类
-        </div>
-        <div class="menu-item" data-action="tag">
-            <i class="fas fa-tags"></i>
-            添加标签
-        </div>
-        <div class="menu-divider"></div>
-        <div class="menu-item" data-action="trash">
-            <i class="fas fa-trash"></i>
-            移至回收站
-        </div>
-        <div class="menu-item delete" data-action="delete">
-            <i class="fas fa-times-circle"></i>
-            永久删除
-        </div>
+    <div class="editor-modal-container" id="editorModal">
+        <!-- iframe将在JavaScript中添加 -->
     </div>
 
-    <!-- 用户头像菜单 -->
-    <div class="user-profile-menu" id="userProfileMenu">
-        <div class="menu-item" data-action="profile">
-            <i class="fas fa-user-circle"></i>
-            个人信息
-        </div>
-        <div class="menu-item" data-action="edit-profile">
-            <i class="fas fa-user-edit"></i>
-            编辑个人资料
-        </div>
-        <div class="menu-divider"></div>
-        <div class="menu-item" data-action="settings">
-            <i class="fas fa-cog"></i>
-            系统设置
-        </div>
-        <div class="menu-item" data-action="logout">
-            <i class="fas fa-sign-out-alt"></i>
-            退出登录
-        </div>
-    </div>
+    <!-- 笔记操作菜单和遮罩层会由NoteActionsMenu组件自动创建 -->
 
     <!-- 分享设置弹窗 -->
     <div class="modal" id="shareModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2 id="modalTitle">分享设置</h2>
+                <h2 id="shareModalTitle">分享设置</h2>
                 <button class="close-btn" id="closeShareModal">
                     <i class="fas fa-times"></i>
                 </button>
@@ -298,1464 +206,6 @@
             </div>
         </div>
     </div>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const sidebar = document.getElementById('sidebar');
-            const mainContent = document.getElementById('mainContent');
-            const toggleSidebar = document.getElementById('toggleSidebar');
-            const mobileMenuToggle = document.getElementById('mobileMenuToggle');
-            const themeToggle = document.getElementById('themeToggle');
-            const newNoteBtn = document.getElementById('newNoteBtn');
-            const body = document.body;
-            
-            // 检查用户是否已登录
-            const token = localStorage.getItem('token');
-            if (!token) {
-                // 未登录，重定向到登录页
-                window.location.href = 'index.html';
-                return;
-            }
-    
-            // 检查本地存储中的主题偏好
-            const currentTheme = localStorage.getItem('theme');
-            if (currentTheme === 'dark') {
-                body.classList.add('dark-mode');
-            }
-    
-            // 切换主题
-            themeToggle.addEventListener('click', () => {
-                body.classList.toggle('dark-mode');
-                const theme = body.classList.contains('dark-mode') ? 'dark' : 'light';
-                localStorage.setItem('theme', theme);
-                
-                // 通知编辑器窗口更新主题
-                const editorFrame = document.querySelector('#editorModal iframe');
-                if (editorFrame && editorFrame.contentWindow) {
-                    editorFrame.contentWindow.postMessage({ type: 'themeChanged', theme }, '*');
-                }
-            });
-    
-            // 切换侧边栏
-            function toggleSidebarState() {
-                sidebar.classList.toggle('collapsed');
-                mainContent.classList.toggle('expanded');
-                
-                // 保存侧边栏状态
-                const isCollapsed = sidebar.classList.contains('collapsed');
-                localStorage.setItem('sidebar-collapsed', isCollapsed);
-            }
-    
-            // 添加点击事件监听器
-            toggleSidebar.addEventListener('click', toggleSidebarState);
-    
-            // 初始化侧边栏状态
-            function initSidebarState() {
-                const isCollapsed = localStorage.getItem('sidebar-collapsed') === 'true';
-                if (isCollapsed) {
-                    sidebar.classList.add('collapsed');
-                    mainContent.classList.add('expanded');
-                } else {
-                    sidebar.classList.remove('collapsed');
-                    mainContent.classList.remove('expanded');
-                }
-            }
-            
-            // 页面加载时初始化侧边栏状态
-            initSidebarState();
-            
-            // 也在window load事件时再次检查，确保DOM完全加载
-            window.addEventListener('load', initSidebarState);
-    
-            // 移动端菜单切换
-            mobileMenuToggle.addEventListener('click', () => {
-                sidebar.classList.toggle('show');
-            });
-    
-            // 初始化用户头像菜单
-            const userProfile = document.querySelector('.user-profile');
-            const userProfileMenu = document.getElementById('userProfileMenu');
-            const menuOverlay = document.getElementById('menuOverlay');
-            
-            userProfile.addEventListener('mouseenter', () => {
-                const rect = userProfile.getBoundingClientRect();
-                const menuWidth = userProfileMenu.offsetWidth || 200; // 估计菜单宽度
-                const windowWidth = window.innerWidth;
-                
-                // 计算右侧是否会溢出
-                if (rect.left + menuWidth > windowWidth) {
-                    // 如果会溢出，将菜单向左对齐
-                    userProfileMenu.style.left = `${rect.right - menuWidth}px`;
-                } else {
-                    userProfileMenu.style.left = `${rect.left}px`;
-                }
-                
-                userProfileMenu.style.top = `${rect.bottom}px`;
-                userProfileMenu.classList.add('show');
-            });
-            
-            userProfile.addEventListener('mouseleave', (event) => {
-                // 检查鼠标是否移动到菜单上
-                const toElement = event.relatedTarget;
-                if (!userProfileMenu.contains(toElement)) {
-                    userProfileMenu.classList.remove('show');
-                }
-            });
-            
-            userProfileMenu.addEventListener('mouseleave', () => {
-                userProfileMenu.classList.remove('show');
-            });
-            
-            // 处理用户头像菜单操作
-            document.querySelectorAll('.user-profile-menu .menu-item').forEach(item => {
-                item.addEventListener('click', async (e) => {
-                    e.stopPropagation();
-                    const action = e.currentTarget.dataset.action;
-                    userProfileMenu.classList.remove('show');
-                    
-                    try {
-                        switch (action) {
-                            case 'profile':
-                                // 暂未实现
-                                break;
-                            case 'edit-profile':
-                                window.location.href = 'profile-edit.html';
-                                break;
-                            case 'settings':
-                                window.location.href = 'settings.html';
-                                break;
-                            case 'logout':
-                                try {
-                                    await api.logout();
-                                } catch (error) {
-                                    console.error('登出时出错:', error);
-                                } finally {
-                                    // 无论API是否成功，都清除本地存储并重定向
-                                    localStorage.removeItem('token');
-                                    localStorage.removeItem('user');
-                                    window.location.href = 'index.html';
-                                }
-                                break;
-                        }
-                    } catch (error) {
-                        console.error(`处理用户操作 ${action} 失败:`, error);
-                        alert(`操作失败: ${error.message}`);
-                    }
-                });
-            });
-    
-            // 点击主内容区域时在移动端关闭侧边栏
-            mainContent.addEventListener('click', () => {
-                if (window.innerWidth <= 768) {
-                    sidebar.classList.remove('show');
-                }
-            });
-    
-            // 窗口大小改变时处理侧边栏状态
-            window.addEventListener('resize', () => {
-                if (window.innerWidth > 768) {
-                    sidebar.classList.remove('show');
-                }
-                // 确保侧边栏状态在窗口大小变化时保持一致
-                initSidebarState();
-            });
-    
-            // 新建笔记按钮点击事件
-            newNoteBtn.addEventListener('click', () => {
-                const editorModal = document.getElementById('editorModal');
-                editorModal.style.display = 'block';
-                editorModal.innerHTML = '<iframe src="note-editor-modal.html" style="width:100%; height:100%; border:none;"></iframe>';
-            });
-    
-            // 监听来自编辑器窗口的消息
-            window.addEventListener('message', function(event) {
-                console.log('收到消息:', event.data);
-                
-                if (event.data && event.data.type === 'noteUpdated') {
-                    console.log('笔记已更新，刷新笔记列表');
-                    // 强制刷新笔记列表
-                    loadNotes(true);
-                } else if (event.data && event.data.type === 'closeEditor') {
-                    console.log('关闭编辑器模态框');
-                    // 关闭编辑器模态框
-                    const editorModal = document.getElementById('editorModal');
-                    if (editorModal) {
-                        editorModal.style.display = 'none';
-                        editorModal.innerHTML = '';
-                    }
-                }
-            });
-    
-            // 加载笔记列表
-            async function loadNotes(forceRefresh = false, noteIdToRemove = null) {
-                const notesGrid = document.querySelector('.notes-grid');
-                const notesList = document.querySelector('.notes-list');
-                
-                // 如果指定了要移除的笔记ID，先从本地缓存中删除
-                if (noteIdToRemove) {
-                    console.log('从本地缓存中移除笔记:', noteIdToRemove);
-                    const cachedNotes = JSON.parse(localStorage.getItem('notes_cache') || '[]');
-                    const updatedCache = cachedNotes.filter(note => {
-                        return note.id !== noteIdToRemove && note._id !== noteIdToRemove;
-                    });
-                    localStorage.setItem('notes_cache', JSON.stringify(updatedCache));
-                    
-                    // 同时从本地存储中删除
-                    const localNotes = JSON.parse(localStorage.getItem('notes') || '[]');
-                    const updatedLocal = localNotes.filter(note => {
-                        return note.id !== noteIdToRemove && note._id !== noteIdToRemove;
-                    });
-                    localStorage.setItem('notes', JSON.stringify(updatedLocal));
-                }
-                
-                try {
-                    // 显示加载状态
-                    notesGrid.innerHTML = `
-                        <div class="loading-notes">
-                            <i class="fas fa-spinner fa-spin"></i>
-                            <p>加载笔记中...</p>
-                        </div>
-                    `;
-                    notesList.innerHTML = notesGrid.innerHTML;
-                    
-                    // 获取localStorage中的笔记
-                    const localNotes = JSON.parse(localStorage.getItem('notes') || '[]');
-                    
-                    // 获取缓存数据
-                    const cachedNotes = localStorage.getItem('notes_cache');
-                    const cacheTimestamp = localStorage.getItem('notes_cache_timestamp');
-                    const now = Date.now();
-                    const cacheExpiry = 5 * 60 * 1000; // 5分钟缓存过期
-                    
-                    let activeNotes = [];
-                    
-                    // 如果强制刷新或缓存过期，从API获取数据
-                    if (forceRefresh || !cachedNotes || !cacheTimestamp || (now - parseInt(cacheTimestamp)) > cacheExpiry) {
-                        console.log('从API获取笔记数据');
-                        try {
-                            const response = await api.getNotes({ inTrash: false });
-                            console.log('API返回数据:', response);
-                            
-                            if (response && response.notes) {
-                                activeNotes = response.notes || [];
-                                console.log('从API获取到笔记数量:', activeNotes.length);
-                            } else if (response && response.data) {
-                                activeNotes = response.data || [];
-                                console.log('从API获取到笔记数量(使用data字段):', activeNotes.length);
-                            } else {
-                                console.log('API返回数据格式不正确:', response);
-                                activeNotes = [];
-                            }
-                            
-                            // 如果API返回的笔记数为0，但localStorage中有笔记，则使用localStorage的数据
-                            if (activeNotes.length === 0 && localNotes.length > 0) {
-                                console.log('API返回空数据，使用localStorage中的笔记');
-                                activeNotes = localNotes.filter(note => !note.inTrash);
-                            }
-                            
-                            // 更新缓存
-                            localStorage.setItem('notes_cache', JSON.stringify(activeNotes));
-                            localStorage.setItem('notes_cache_timestamp', now.toString());
-                        } catch (apiError) {
-                            console.error('API获取笔记失败:', apiError);
-                            console.error('错误详情:', apiError.message);
-                            
-                            // 尝试从localStorage获取笔记作为备份
-                            console.log('尝试从localStorage加载笔记...');
-                            activeNotes = localNotes.filter(note => !note.inTrash);
-                            
-                            if (activeNotes.length > 0) {
-                                console.log('从localStorage成功加载了', activeNotes.length, '条笔记');
-                            }
-                        }
-                    } else {
-                        console.log('使用缓存的笔记数据');
-                        activeNotes = JSON.parse(cachedNotes);
-                    }
-                    
-                    // 如果缓存和API都没有数据，但localStorage有，则使用localStorage
-                    if (activeNotes.length === 0 && localNotes.length > 0) {
-                        activeNotes = localNotes.filter(note => !note.inTrash);
-                        console.log('使用localStorage中的', activeNotes.length, '条笔记数据作为最后备选');
-                    }
-                    
-                    // 标准化笔记数据，确保id字段一致性
-                    activeNotes = activeNotes.map(note => {
-                        // 如果是API返回的数据，确保有id字段
-                        if (note._id && !note.id) {
-                            note.id = note._id;
-                        } 
-                        // 如果是localStorage的数据，确保有_id字段
-                        else if (note.id && !note._id) {
-                            note._id = note.id;
-                        }
-                        
-                        // 确保有fileName字段
-                        if (!note.fileName) {
-                            console.log('笔记缺少fileName字段:', note._id || note.id);
-                            note.fileName = `${note._id || note.id}_${Date.now()}`;
-                        }
-                        
-                        return note;
-                    });
-                    
-                    console.log('处理后的笔记数据:', activeNotes);
-                    
-                    if (activeNotes.length === 0) {
-                        notesGrid.innerHTML = `
-                            <div class="empty-notes">
-                                <i class="fas fa-book-open"></i>
-                                <p>暂无笔记，点击右下角按钮创建</p>
-                            </div>
-                        `;
-                        notesList.innerHTML = notesGrid.innerHTML;
-                        return;
-                    }
-                    
-                    // 生成卡片视图
-                    notesGrid.innerHTML = activeNotes.map(note => `
-                        <div class="note-card" data-id="${note._id || note.id}">
-                            ${note.shared ? `<div class="note-badge ${note.shareType === 'private' ? 'private' : 'public'}">
-                                <i class="fas ${note.shareType === 'private' ? 'fa-lock' : 'fa-share-alt'}"></i>
-                                ${note.shareType === 'private' ? '私密分享' : '已分享'}
-                            </div>` : ''}
-                            <h3 class="note-title">${note.title}</h3>
-                            <div class="note-content">${note.content.substring(0, 100)}${note.content.length > 100 ? '...' : ''}</div>
-                            <div class="note-footer">
-                                <span class="note-date">${new Date(note.updatedAt).toLocaleDateString()}</span>
-                                <button class="note-action-btn" data-id="${note._id || note.id}">
-                                    <i class="fas fa-ellipsis-v"></i>
-                                </button>
-                            </div>
-                        </div>
-                    `).join('');
-        
-                    // 生成列表视图
-                    notesList.innerHTML = activeNotes.map(note => `
-                        <div class="note-list-item" data-id="${note._id || note.id}">
-                            <div class="note-list-content">
-                                <div class="note-list-title">
-                                    ${note.title}
-                                    ${note.shared ? `<span class="note-badge-small ${note.shareType === 'private' ? 'private' : 'public'}">
-                                        <i class="fas ${note.shareType === 'private' ? 'fa-lock' : 'fa-share-alt'}"></i>
-                                        ${note.shareType === 'private' ? '私密' : '已分享'}
-                                    </span>` : ''}
-                                </div>
-                                <div class="note-list-preview">${note.content.substring(0, 200)}${note.content.length > 200 ? '...' : ''}</div>
-                            </div>
-                            <div class="note-list-meta">
-                                <span><i class="far fa-clock"></i> ${new Date(note.updatedAt).toLocaleDateString()}</span>
-                                <span><i class="far fa-file-alt"></i> ${note.category ? note.category.name : '未分类'}</span>
-                            </div>
-                            <button class="note-action-btn" data-id="${note._id || note.id}">
-                                <i class="fas fa-ellipsis-v"></i>
-                            </button>
-                        </div>
-                    `).join('');
-                    
-                    // 添加笔记点击事件
-                    document.querySelectorAll('.note-card, .note-list-item').forEach(item => {
-                        item.addEventListener('click', (e) => {
-                            if (!e.target.closest('.note-action-btn')) {
-                                const noteId = item.dataset.id;
-                                
-                                // 查找笔记的详细信息
-                                const note = activeNotes.find(n => (n.id === noteId || n._id === noteId));
-                                
-                                if (note) {
-                                    // 检查笔记是否已经被分享
-                                    if (note.shared) {
-                                        // 如果已分享，使用常规分享链接格式
-                                        const shareUrl = `${window.location.origin}/view-shared-note.html?id=${note.shareId || noteId}`;
-                                        window.open(shareUrl, '_blank');
-                                    } else {
-                                        // 如果未分享，传递用户令牌以便查看
-                                        const token = localStorage.getItem('token');
-                                        const viewUrl = `${window.location.origin}/view-shared-note.html?id=${noteId}&mode=private&token=${encodeURIComponent(token)}`;
-                                        window.open(viewUrl, '_blank');
-                                    }
-                                } else {
-                                    // 常规方式打开编辑器
-                                    const editorModal = document.getElementById('editorModal');
-                                    editorModal.style.display = 'block';
-                                    editorModal.innerHTML = `<iframe src="note-editor-modal.html?id=${noteId}" style="width:100%; height:100%; border:none; position:absolute; top:0; left:0; right:0; bottom:0;"></iframe>`;
-                                    document.body.style.overflow = 'hidden'; // 防止背景滚动
-                                }
-                            }
-                        });
-                    });
-                    
-                    // 添加笔记操作按钮点击事件
-                    document.querySelectorAll('.note-action-btn').forEach(btn => {
-                        btn.addEventListener('click', (e) => {
-                            e.stopPropagation();
-                            e.preventDefault(); // 阻止默认事件
-                            
-                            // 关闭任何已打开的菜单
-                            const menu = document.getElementById('noteActionsMenu');
-                            const overlay = document.getElementById('menuOverlay');
-                            if(menu.classList.contains('show')) {
-                                menu.classList.remove('show');
-                                overlay.classList.remove('show');
-                            }
-                            
-                            // 保存按钮位置信息，供延迟执行时使用
-                            const buttonRect = e.currentTarget.getBoundingClientRect();
-                            const buttonInfo = {
-                                left: buttonRect.left,
-                                top: buttonRect.top,
-                                right: buttonRect.right,
-                                bottom: buttonRect.bottom,
-                                width: buttonRect.width,
-                                height: buttonRect.height
-                            };
-                            
-                            // 保存笔记ID，避免在setTimeout中引用可能已失效的事件对象
-                            const noteId = e.currentTarget.dataset.id;
-                            
-                            // 延迟一小段时间再显示菜单，确保前一个菜单的关闭事件已处理完毕
-                            setTimeout(() => {
-                                showNoteMenu(buttonInfo, noteId);
-                            }, 10);
-                        });
-                    });
-                } catch (error) {
-                    console.error('加载笔记失败:', error);
-                    notesGrid.innerHTML = `
-                        <div class="empty-notes error">
-                            <i class="fas fa-exclamation-circle"></i>
-                            <p>加载笔记失败: ${error.message}</p>
-                        </div>
-                    `;
-                    notesList.innerHTML = notesGrid.innerHTML;
-                }
-            }
-    
-            // 视图切换
-            const viewToggleBtns = document.querySelectorAll('.view-toggle-btn');
-            viewToggleBtns.forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const view = btn.dataset.view;
-                    mainContent.className = `main-content view-${view}`;
-                    
-                    // 确保保持侧边栏状态
-                    const isCollapsed = localStorage.getItem('sidebar-collapsed') === 'true';
-                    if (isCollapsed) {
-                        mainContent.classList.add('expanded');
-                    }
-                    
-                    // 更新按钮状态
-                    viewToggleBtns.forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
-                    
-                    // 保存视图偏好
-                    localStorage.setItem('preferred-view', view);
-                });
-            });
-    
-            // 加载保存的视图偏好
-            const preferredView = localStorage.getItem('preferred-view') || 'grid';
-            mainContent.className = `main-content view-${preferredView}`;
-            viewToggleBtns.forEach(btn => {
-                if (btn.dataset.view === preferredView) {
-                    btn.classList.add('active');
-                } else {
-                    btn.classList.remove('active');
-                }
-            });
-            
-            // 确保保存了侧边栏状态
-            initSidebarState();
-    
-            // 初始加载笔记列表
-            loadNotes();
-            
-            // 刷新按钮点击事件
-            const refreshNotesBtn = document.getElementById('refreshNotesBtn');
-            refreshNotesBtn.addEventListener('click', async () => {
-                // 添加旋转动画
-                refreshNotesBtn.classList.add('loading');
-                
-                // 清除缓存中的笔记数据
-                localStorage.removeItem('notes_cache_timestamp');
-                
-                try {
-                    // 延迟200ms再刷新，确保API返回最新数据
-                    await new Promise(resolve => setTimeout(resolve, 200));
-                    await loadNotes(true); // 强制刷新参数
-                } catch (error) {
-                    console.error('刷新笔记列表失败:', error);
-                    alert('刷新失败，请稍后再试');
-                } finally {
-                    // 无论成功失败，都移除加载状态
-                    setTimeout(() => {
-                        refreshNotesBtn.classList.remove('loading');
-                    }, 500);
-                }
-            });
-    
-            // 导航菜单项点击事件
-            document.querySelectorAll('.nav-item').forEach(item => {
-                item.addEventListener('click', () => {
-                    const icon = item.querySelector('i');
-                    if (icon.classList.contains('fa-home')) {
-                        // 已经在标签页面，不需要跳转
-                        return;
-                    }
-                    
-                    // 根据图标类名确定目标页面
-                    let targetPage = '';
-                    if (icon.classList.contains('fa-tags')) {
-                        targetPage = 'tags.html';
-                    } else if (icon.classList.contains('fa-star')) {
-                        targetPage = 'starred-notes.html';
-                    } else if (icon.classList.contains('fa-folder')) {
-                        targetPage = 'note-categories.html';
-                    } else if (icon.classList.contains('fa-share-alt')) {
-                        targetPage = 'note-share.html';
-                    } else if (icon.classList.contains('fa-trash')) {
-                        targetPage = 'trash.html';
-                    }
-    
-                    // 如果找到目标页面，则进行跳转
-                    if (targetPage) {
-                        try {
-                            console.log('准备跳转到页面:', targetPage);
-                            console.log('当前页面路径:', window.location.pathname);
-                            // 使用 replace 方法进行跳转
-                            window.location.replace(targetPage);
-                        } catch (error) {
-                            console.error('页面跳转失败:', error);
-                            alert('页面跳转失败，请检查页面是否存在');
-                        }
-                    } else {
-                        console.error('未找到目标页面');
-                    }
-                });
-            });
-    
-            /**
-             * 显示笔记操作菜单
-             * @param {Object} buttonInfo - 按钮位置信息对象 {left, top, right, bottom, width, height}
-             * @param {String} noteId - 笔记ID
-             */
-            function showNoteMenu(buttonInfo, noteId) {
-                // 确保有按钮信息
-                if (!buttonInfo) {
-                    console.error('未提供按钮位置信息');
-                    return;
-                }
-                
-                const menu = document.getElementById('noteActionsMenu');
-                const overlay = document.getElementById('menuOverlay');
-                
-                // 如果没有获取到菜单元素，直接返回
-                if (!menu || !overlay) {
-                    console.error('未找到菜单元素');
-                    return;
-                }
-                
-                // 设置菜单关联的笔记ID
-                menu.dataset.noteId = noteId;
-                
-                // 暂时设置菜单可见但不显示，用于获取尺寸
-                menu.style.visibility = 'hidden';
-                menu.style.display = 'block';
-                
-                // 获取菜单尺寸
-                const menuWidth = menu.offsetWidth || 180;
-                const menuHeight = menu.offsetHeight || 250;
-                
-                // 计算菜单位置 - 默认显示在按钮右侧
-                let left = buttonInfo.right; // 显示在按钮右侧
-                let top = buttonInfo.top;
-                
-                // 确保菜单右侧不超出窗口
-                const windowWidth = window.innerWidth;
-                if (left + menuWidth > windowWidth - 10) {
-                    // 如果右侧放不下，就显示在按钮左侧
-                    left = buttonInfo.left - menuWidth;
-                    
-                    // 如果左侧也放不下，就居中显示在按钮下方
-                    if (left < 10) {
-                        left = Math.max(10, buttonInfo.left + (buttonInfo.width - menuWidth) / 2);
-                        top = buttonInfo.bottom + 5; // 显示在按钮下方
-                    }
-                }
-                
-                // 检查底部是否超出视口
-                const windowHeight = window.innerHeight;
-                if (top + menuHeight > windowHeight - 10) {
-                    top = windowHeight - menuHeight - 10; // 保持在视口内
-                }
-                
-                // 确保菜单顶部不超出视口
-                if (top < 10) {
-                    top = 10;
-                }
-                
-                // 设置最终位置并显示
-                menu.style.top = `${top}px`;
-                menu.style.left = `${left}px`;
-                menu.style.visibility = 'visible';
-                menu.classList.add('show');
-                
-                // 显示遮罩层
-                overlay.classList.add('show');
-            }
-    
-            // 关闭笔记操作菜单
-            function closeNoteMenu() {
-                const menu = document.getElementById('noteActionsMenu');
-                const overlay = document.getElementById('menuOverlay');
-                if (menu) {
-                    menu.classList.remove('show');
-                    menu.style.visibility = 'hidden';
-                }
-                if (overlay) {
-                    overlay.classList.remove('show');
-                }
-            }
-    
-            // 点击遮罩层关闭菜单
-            document.getElementById('menuOverlay').addEventListener('click', closeNoteMenu);
-    
-            // 处理笔记操作
-            document.querySelectorAll('.note-actions-menu .menu-item').forEach(item => {
-                item.addEventListener('click', async (e) => {
-                    const action = e.currentTarget.dataset.action;
-                    const noteId = document.getElementById('noteActionsMenu').dataset.noteId;
-                    
-                    try {
-                        switch (action) {
-                            case 'edit':
-                                const editorModal = document.getElementById('editorModal');
-                                editorModal.style.display = 'block';
-                                editorModal.innerHTML = `<iframe src="note-editor-modal.html?id=${noteId}" style="width:100%; height:100%; border:none; position:absolute; top:0; left:0; right:0; bottom:0;"></iframe>`;
-                                document.body.style.overflow = 'hidden'; // 防止背景滚动
-                                break;
-                            case 'share':
-                                showShareModal(noteId);
-                                break;
-                            case 'star':
-                                await api.starNote(noteId);
-                                loadNotes();
-                                break;
-                            case 'move':
-                                showCategorySelectModal(noteId);
-                                break;
-                            case 'tag':
-                                showTagSelectModal(noteId);
-                                break;
-                            case 'trash':
-                                await moveToTrash(noteId);
-                                break;
-                            case 'delete':
-                                if (confirm('确定要永久删除这个笔记吗？此操作不可恢复。')) {
-                                    try {
-                                        await api.deleteNote(noteId);
-                                        // 无论是通过API还是本地删除，都刷新笔记列表，并传递删除的笔记ID
-                                        loadNotes(true, noteId);
-                                        // 显示成功消息
-                                        const successMessage = document.createElement('div');
-                                        successMessage.className = 'toast-message success';
-                                        successMessage.innerHTML = '<i class="fas fa-check-circle"></i> 笔记已成功删除';
-                                        document.body.appendChild(successMessage);
-                                        setTimeout(() => {
-                                            successMessage.classList.add('show');
-                                            setTimeout(() => {
-                                                successMessage.classList.remove('show');
-                                                setTimeout(() => document.body.removeChild(successMessage), 300);
-                                            }, 2000);
-                                        }, 100);
-                                    } catch (error) {
-                                        console.error(`永久删除笔记失败:`, error);
-                                        
-                                        // 检查错误是否表示笔记不存在
-                                        if (error.message && error.message.includes('不存在')) {
-                                            // 如果笔记不存在，可能已被删除，仍然更新UI
-                                            loadNotes(true, noteId);
-                                            // 显示信息提示
-                                            const infoMessage = document.createElement('div');
-                                            infoMessage.className = 'toast-message success';
-                                            infoMessage.innerHTML = '<i class="fas fa-info-circle"></i> 笔记已不存在，列表已更新';
-                                            document.body.appendChild(infoMessage);
-                                            setTimeout(() => {
-                                                infoMessage.classList.add('show');
-                                                setTimeout(() => {
-                                                    infoMessage.classList.remove('show');
-                                                    setTimeout(() => document.body.removeChild(infoMessage), 300);
-                                                }, 2000);
-                                            }, 100);
-                                            break;
-                                        }
-                                        
-                                        // 显示错误消息
-                                        const errorMessage = document.createElement('div');
-                                        errorMessage.className = 'toast-message error';
-                                        errorMessage.innerHTML = `<i class="fas fa-exclamation-circle"></i> 删除失败: ${error.message}`;
-                                        document.body.appendChild(errorMessage);
-                                        setTimeout(() => {
-                                            errorMessage.classList.add('show');
-                                            setTimeout(() => {
-                                                errorMessage.classList.remove('show');
-                                                setTimeout(() => document.body.removeChild(errorMessage), 300);
-                                            }, 3000);
-                                        }, 100);
-                                    }
-                                }
-                                break;
-                        }
-                    } catch (error) {
-                        console.error(`处理笔记操作 ${action} 失败:`, error);
-                        alert(`操作失败: ${error.message}`);
-                    }
-        
-                    closeNoteMenu();
-                });
-            });
-
-            // 添加文档点击事件监听器，在点击空白区域时关闭菜单
-            document.addEventListener('click', function(event) {
-                const noteMenu = document.getElementById('noteActionsMenu');
-                
-                // 如果菜单显示且点击的不是菜单本身也不是菜单触发按钮
-                if (noteMenu && noteMenu.classList.contains('show') && 
-                    !noteMenu.contains(event.target) && 
-                    !event.target.closest('.note-action-btn')) {
-                    closeNoteMenu();
-                }
-            }, true); // 使用捕获阶段，确保在其他事件处理前执行
-
-            // 关闭编辑器弹窗的函数（供iframe内部调用）
-            window.closeEditorModal = function() {
-                document.getElementById('editorModal').style.display = 'none';
-                document.getElementById('editorModal').innerHTML = '';
-                document.body.style.overflow = ''; // 恢复背景滚动
-            };
-
-            // 显示分享设置弹窗
-            function showShareModal(noteId) {
-                const modal = document.getElementById('shareModal');
-                const shareTypeRadios = document.querySelectorAll('input[name="shareType"]');
-                const passwordGroup = document.getElementById('passwordGroup');
-                const sharePassword = document.getElementById('sharePassword');
-                const shareExpiry = document.getElementById('shareExpiry');
-                const shareLink = document.getElementById('shareLink');
-                const copyBtn = document.getElementById('copyShareLink');
-                const cancelBtn = document.getElementById('cancelShareBtn');
-                const confirmBtn = document.getElementById('confirmShareBtn');
-                const closeBtn = document.getElementById('closeShareModal');
-                
-                // 重置表单
-                sharePassword.value = '';
-                shareExpiry.value = '7';
-                shareLink.value = '';
-                document.querySelector('input[name="shareType"][value="public"]').checked = true;
-                passwordGroup.style.display = 'none';
-                
-                // 获取当前笔记信息
-                const notes = JSON.parse(localStorage.getItem('notes') || '[]');
-                const note = notes.find(n => n.id === noteId);
-                
-                if (!note) {
-                    alert('笔记不存在');
-                    return;
-                }
-                
-                // 清除之前的事件监听器
-                const newCancelBtn = cancelBtn.cloneNode(true);
-                const newConfirmBtn = confirmBtn.cloneNode(true);
-                const newCloseBtn = closeBtn.cloneNode(true);
-                const newCopyBtn = copyBtn.cloneNode(true);
-                
-                cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
-                confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
-                closeBtn.parentNode.replaceChild(newCloseBtn, closeBtn);
-                copyBtn.parentNode.replaceChild(newCopyBtn, copyBtn);
-                
-                // 分享类型切换时显示/隐藏密码输入框
-                shareTypeRadios.forEach(radio => {
-                    radio.addEventListener('change', function() {
-                        passwordGroup.style.display = this.value === 'private' ? 'block' : 'none';
-                    });
-                });
-                
-                // 关闭弹窗
-                function closeShareModal() {
-                    modal.style.display = 'none';
-                }
-                
-                // 显示成功提示
-                function showSuccessToast(message) {
-                    const toast = document.createElement('div');
-                    toast.className = 'toast-success';
-                    toast.innerHTML = `<i class="fas fa-check-circle"></i> ${message}`;
-                    document.body.appendChild(toast);
-                    
-                    setTimeout(() => {
-                        toast.classList.add('show');
-                        setTimeout(() => {
-                            toast.classList.remove('show');
-                            setTimeout(() => {
-                                document.body.removeChild(toast);
-                            }, 300);
-                        }, 3000);
-                    }, 100);
-                }
-                
-                // 复制链接到剪贴板
-                function copyToClipboard(text) {
-                    const tempInput = document.createElement('input');
-                    tempInput.value = text;
-                    document.body.appendChild(tempInput);
-                    tempInput.select();
-                    document.execCommand('copy');
-                    document.body.removeChild(tempInput);
-                    showSuccessToast('链接已复制到剪贴板');
-                }
-                
-                // 提交分享
-                newConfirmBtn.addEventListener('click', async () => {
-                    const shareType = document.querySelector('input[name="shareType"]:checked').value;
-                    const password = shareType === 'private' ? sharePassword.value : '';
-                    const expiry = shareExpiry.value;
-                    
-                    // 验证输入
-                    if (shareType === 'private' && !password) {
-                        alert('请设置访问密码');
-                        return;
-                    }
-                    
-                    // 禁用按钮，显示加载状态
-                    newConfirmBtn.disabled = true;
-                    newConfirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 处理中';
-                    
-                    try {
-                        // 调用API创建分享
-                        const response = await api.shareNote(noteId, shareType, password, expiry);
-                        
-                        if (response && response.link) {
-                            // 更新链接，并自动复制到剪贴板
-                            shareLink.value = response.link;
-                            copyToClipboard(response.link);
-                            
-                            // 更新按钮文本
-                            newConfirmBtn.innerHTML = '<i class="fas fa-check"></i> 分享成功';
-                            
-                            // 更新本地存储中的笔记状态
-                            const notes = JSON.parse(localStorage.getItem('notes') || '[]');
-                            const noteIndex = notes.findIndex(n => n.id === noteId);
-                            
-                            if (noteIndex !== -1) {
-                                notes[noteIndex] = {
-                                    ...notes[noteIndex],
-                                    shared: true,
-                                    sharedAt: new Date().toISOString(),
-                                    shareType,
-                                    expiry: expiry === '0' ? null : new Date(Date.now() + expiry * 24 * 60 * 60 * 1000).toISOString()
-                                };
-                                
-                                localStorage.setItem('notes', JSON.stringify(notes));
-                            }
-                            
-                            // 3秒后恢复按钮状态，但不关闭对话框，让用户可以复制链接
-                            setTimeout(() => {
-                                newConfirmBtn.disabled = false;
-                                newConfirmBtn.innerHTML = '确认分享';
-                            }, 3000);
-                        } else {
-                            throw new Error('分享失败，未获取到分享链接');
-                        }
-                    } catch (error) {
-                        console.error('分享笔记失败:', error);
-                        alert(`分享失败: ${error.message}`);
-                        // 恢复按钮状态
-                        newConfirmBtn.disabled = false;
-                        newConfirmBtn.innerHTML = '确认分享';
-                    }
-                });
-                
-                // 复制链接
-                newCopyBtn.addEventListener('click', () => {
-                    if (shareLink.value) {
-                        copyToClipboard(shareLink.value);
-                    }
-                });
-                
-                // 关闭弹窗
-                newCancelBtn.addEventListener('click', closeShareModal);
-                newCloseBtn.addEventListener('click', closeShareModal);
-                
-                // 显示弹窗
-                modal.style.display = 'flex';
-            }
-
-            // 显示分类选择弹窗
-            function showCategorySelectModal(noteId) {
-                const modal = document.getElementById('categorySelectModal');
-                const title = document.getElementById('categoryModalTitle');
-                const searchInput = document.getElementById('categorySearchInput');
-                const categoriesList = document.getElementById('categoriesList');
-                const newCategoryName = document.getElementById('newCategoryName');
-                const colorOptions = document.querySelectorAll('.color-option');
-                const cancelBtn = document.getElementById('cancelCategorySelect');
-                const confirmBtn = document.getElementById('confirmCategorySelect');
-                const closeBtn = document.getElementById('closeCategoryModal');
-                
-                // 清除之前的事件监听器
-                const newCancelBtn = cancelBtn.cloneNode(true);
-                const newConfirmBtn = confirmBtn.cloneNode(true);
-                const newCloseBtn = closeBtn.cloneNode(true);
-                
-                cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
-                confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
-                closeBtn.parentNode.replaceChild(newCloseBtn, closeBtn);
-                
-                // 设置当前操作的笔记ID
-                modal.dataset.noteId = noteId;
-                
-                // 重置表单
-                searchInput.value = '';
-                newCategoryName.value = '';
-                
-                // 重置颜色选择
-                colorOptions.forEach(option => {
-                    option.classList.remove('selected');
-                });
-                // 默认选中第一个颜色
-                if (colorOptions.length > 0) {
-                    colorOptions[0].classList.add('selected');
-                }
-                
-                // 加载分类列表
-                loadCategories();
-                
-                // 搜索框输入事件
-                searchInput.addEventListener('input', function() {
-                    filterCategories(this.value);
-                });
-                
-                // 颜色选项点击事件
-                colorOptions.forEach(option => {
-                    option.addEventListener('click', function() {
-                        colorOptions.forEach(o => o.classList.remove('selected'));
-                        this.classList.add('selected');
-                    });
-                });
-                
-                // 取消按钮事件
-                newCancelBtn.addEventListener('click', closeCategoryModal);
-                
-                // 关闭按钮事件
-                newCloseBtn.addEventListener('click', closeCategoryModal);
-                
-                // 确认按钮事件
-                newConfirmBtn.addEventListener('click', async function() {
-                    const selectedCategory = categoriesList.querySelector('.category-item.selected');
-                    
-                    try {
-                        if (selectedCategory && selectedCategory.dataset.id) {
-                            // 选择了现有分类
-                            await moveNoteToCategory(noteId, selectedCategory.dataset.id);
-                        } else if (newCategoryName.value.trim()) {
-                            // 创建新分类并移动笔记
-                            const newCategoryData = {
-                                name: newCategoryName.value.trim(),
-                                color: document.querySelector('.color-option.selected').dataset.color
-                            };
-                            await createCategoryAndMoveNote(noteId, newCategoryData);
-                        } else {
-                            alert('请选择分类或创建新分类');
-                            return;
-                        }
-                        
-                        closeCategoryModal();
-                        
-                        // 更新笔记列表
-                        loadNotes(true);
-                        
-                        // 显示成功消息
-                        showToast('分类更新成功', 'success');
-                    } catch (error) {
-                        console.error('移动笔记失败:', error);
-                        showToast(`移动失败: ${error.message}`, 'error');
-                    }
-                });
-                
-                // 显示弹窗
-                modal.style.display = 'flex';
-                
-                // 加载分类列表
-                function loadCategories() {
-                    categoriesList.innerHTML = '<div class="loading-categories"><i class="fas fa-spinner fa-spin"></i> 加载中...</div>';
-                    
-                    // 尝试从API获取分类
-                    api.getCategories()
-                        .then(response => {
-                            if (response && response.success && response.categories) {
-                                // 从API获取成功
-                                const categories = response.categories;
-                                renderCategories(categories);
-                                
-                                // 更新本地存储
-                                localStorage.setItem('categories', JSON.stringify(categories));
-                            } else {
-                                throw new Error('获取分类列表失败');
-                            }
-                        })
-                        .catch(error => {
-                            console.error('从API获取分类失败:', error);
-                            // 尝试从本地存储获取
-                            const categories = JSON.parse(localStorage.getItem('categories') || '[]');
-                            renderCategories(categories);
-                        });
-                }
-                
-                // 渲染分类列表
-                function renderCategories(categories) {
-                    categoriesList.innerHTML = '';
-                    
-                    // 添加"无分类"选项
-                    const noCategoryItem = document.createElement('div');
-                    noCategoryItem.className = 'category-item';
-                    noCategoryItem.innerHTML = '<i class="fas fa-times-circle"></i> 无分类';
-                    noCategoryItem.dataset.id = 'none';
-                    noCategoryItem.addEventListener('click', function() {
-                        selectCategoryItem(this);
-                    });
-                    categoriesList.appendChild(noCategoryItem);
-                    
-                    if (categories.length === 0) {
-                        const emptyItem = document.createElement('div');
-                        emptyItem.className = 'empty-categories';
-                        emptyItem.innerHTML = '<i class="fas fa-folder-open"></i><p>暂无分类</p>';
-                        categoriesList.appendChild(emptyItem);
-                    } else {
-                        categories.forEach(category => {
-                            const item = document.createElement('div');
-                            item.className = 'category-item';
-                            
-                            // 创建颜色标记
-                            const colorMark = document.createElement('span');
-                            colorMark.className = 'category-color';
-                            colorMark.style.backgroundColor = category.color || '#1a73e8';
-                            
-                            item.appendChild(colorMark);
-                            item.appendChild(document.createTextNode(category.name));
-                            
-                            if (category.count > 0) {
-                                const countBadge = document.createElement('span');
-                                countBadge.className = 'category-count';
-                                countBadge.textContent = category.count;
-                                item.appendChild(countBadge);
-                            }
-                            
-                            item.dataset.id = category._id || category.id;
-                            item.addEventListener('click', function() {
-                                selectCategoryItem(this);
-                            });
-                            categoriesList.appendChild(item);
-                            
-                            // 如果是当前笔记的分类，默认选中
-                            const notes = JSON.parse(localStorage.getItem('notes') || '[]');
-                            const note = notes.find(n => n.id === noteId);
-                            if (note && note.categoryId === (category._id || category.id)) {
-                                selectCategoryItem(item);
-                            }
-                        });
-                    }
-                }
-                
-                // 筛选分类
-                function filterCategories(keyword) {
-                    const items = categoriesList.querySelectorAll('.category-item');
-                    if (keyword.trim() === '') {
-                        // 显示所有
-                        items.forEach(item => {
-                            item.style.display = 'flex';
-                        });
-                    } else {
-                        // 筛选匹配项
-                        const regex = new RegExp(keyword, 'i');
-                        items.forEach(item => {
-                            const text = item.textContent;
-                            if (regex.test(text)) {
-                                item.style.display = 'flex';
-                            } else {
-                                item.style.display = 'none';
-                            }
-                        });
-                    }
-                }
-                
-                // 选择分类项
-                function selectCategoryItem(item) {
-                    // 移除之前的选中状态
-                    const items = categoriesList.querySelectorAll('.category-item');
-                    items.forEach(i => i.classList.remove('selected'));
-                    
-                    // 设置当前选中
-                    item.classList.add('selected');
-                }
-            }
-            
-            // 移动笔记到分类
-            async function moveNoteToCategory(noteId, categoryId) {
-                // 如果选择了"无分类"
-                if (categoryId === 'none') {
-                    categoryId = null;
-                }
-                
-                try {
-                    // 定义一个本地的updateNoteCategory函数，以便在API中没有该方法时使用
-                    const updateNoteCategory = async (noteId, categoryId) => {
-                        // 首先尝试使用API对象中的方法（如果存在）
-                        if (api.updateNoteCategory && typeof api.updateNoteCategory === 'function') {
-                            return api.updateNoteCategory(noteId, categoryId);
-                        }
-                        
-                        // 否则使用常规的updateNote方法
-                        console.log('使用常规API方法更新笔记分类:', noteId, categoryId);
-                        return api.updateNote(noteId, { categoryId });
-                    };
-                    
-                    // 调用更新方法
-                    await updateNoteCategory(noteId, categoryId);
-                    
-                    // 更新本地存储
-                    const notes = JSON.parse(localStorage.getItem('notes') || '[]');
-                    const noteIndex = notes.findIndex(n => n.id === noteId);
-                    
-                    if (noteIndex !== -1) {
-                        notes[noteIndex].categoryId = categoryId;
-                        localStorage.setItem('notes', JSON.stringify(notes));
-                    }
-                    
-                    return true;
-                } catch (error) {
-                    console.error('移动笔记失败:', error);
-                    
-                    // 尝试只更新本地存储
-                    try {
-                        const notes = JSON.parse(localStorage.getItem('notes') || '[]');
-                        const noteIndex = notes.findIndex(n => n.id === noteId);
-                        
-                        if (noteIndex !== -1) {
-                            notes[noteIndex].categoryId = categoryId;
-                            localStorage.setItem('notes', JSON.stringify(notes));
-                            return true;
-                        }
-                    } catch (localError) {
-                        console.error('更新本地存储失败:', localError);
-                    }
-                    
-                    throw error;
-                }
-            }
-            
-            // 创建新分类并移动笔记
-            async function createCategoryAndMoveNote(noteId, categoryData) {
-                try {
-                    // 创建新分类
-                    const result = await api.createCategory(categoryData);
-                    
-                    if (result && result.success && result.category) {
-                        const categoryId = result.category._id || result.category.id;
-                        
-                        // 移动笔记到新分类
-                        await moveNoteToCategory(noteId, categoryId);
-                        
-                        return true;
-                    } else {
-                        throw new Error('创建分类失败');
-                    }
-                } catch (error) {
-                    console.error('创建分类失败:', error);
-                    
-                    // 尝试只在本地创建
-                    try {
-                        const categories = JSON.parse(localStorage.getItem('categories') || '[]');
-                        const newCategory = {
-                            ...categoryData,
-                            id: 'local_' + Date.now(),
-                            _id: 'local_' + Date.now(),
-                            count: 0,
-                            createdAt: new Date().toISOString(),
-                            updatedAt: new Date().toISOString()
-                        };
-                        
-                        categories.push(newCategory);
-                        localStorage.setItem('categories', JSON.stringify(categories));
-                        
-                        // 移动笔记到新分类
-                        await moveNoteToCategory(noteId, newCategory.id);
-                        
-                        return true;
-                    } catch (localError) {
-                        console.error('本地创建分类失败:', localError);
-                    }
-                    
-                    throw error;
-                }
-            }
-            
-            // 显示提示消息
-            function showToast(message, type = 'success') {
-                const toast = document.createElement('div');
-                toast.className = `toast-message ${type}`;
-                toast.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i> ${message}`;
-                document.body.appendChild(toast);
-                
-                setTimeout(() => {
-                    toast.classList.add('show');
-                    setTimeout(() => {
-                        toast.classList.remove('show');
-                        setTimeout(() => {
-                            document.body.removeChild(toast);
-                        }, 300);
-                    }, 3000);
-                }, 100);
-            }
-
-            // 关闭分类选择弹窗
-            function closeCategoryModal() {
-                const modal = document.getElementById('categorySelectModal');
-                modal.style.display = 'none';
-            }
-
-            async function moveToTrash(noteId) {
-                try {
-                    const response = await api.trashNote(noteId);
-                    console.log('移至回收站响应:', response);
-                    
-                    if (response && response.success) {
-                        // 更新本地缓存，将该笔记标记为已在回收站
-                        const cachedNotes = JSON.parse(localStorage.getItem('notes_cache') || '[]');
-                        const noteIndex = cachedNotes.findIndex(note => note.id === noteId || note._id === noteId);
-                        
-                        if (noteIndex !== -1) {
-                            // 从缓存中移除该笔记
-                            cachedNotes.splice(noteIndex, 1);
-                            localStorage.setItem('notes_cache', JSON.stringify(cachedNotes));
-                            console.log('已从缓存中移除笔记:', noteId);
-                        }
-                        
-                        // 更新localStorage中的笔记状态
-                        const notes = JSON.parse(localStorage.getItem('notes') || '[]');
-                        const localNoteIndex = notes.findIndex(note => note.id === noteId || note._id === noteId);
-                        
-                        if (localNoteIndex !== -1) {
-                            notes[localNoteIndex].inTrash = true;
-                            notes[localNoteIndex].deletedAt = new Date().toISOString();
-                            localStorage.setItem('notes', JSON.stringify(notes));
-                            console.log('已更新本地存储中笔记的回收站状态:', noteId);
-                        }
-                        
-                        // 强制刷新笔记列表，确保UI同步更新
-                        loadNotes(true);
-                        
-                        showToast('笔记已移至回收站', 'success');
-                    } else {
-                        showToast('无法移动笔记至回收站', 'error');
-                    }
-                } catch (error) {
-                    console.error('移至回收站失败:', error);
-                    showToast(`移动至回收站失败: ${error.message}`, 'error');
-                }
-            }
-
-            // 显示标签选择弹窗
-            async function showTagSelectModal(noteId) {
-                const modal = document.getElementById('tagSelectModal');
-                const tagSearchInput = document.getElementById('tagSearchInput');
-                const tagsList = document.getElementById('tagsList');
-                const newTagName = document.getElementById('newTagName');
-                const colorOptions = document.querySelectorAll('#tagSelectModal .color-option');
-                const cancelBtn = document.getElementById('cancelTagSelect');
-                const confirmBtn = document.getElementById('confirmTagSelect');
-                const closeBtn = document.getElementById('closeTagModal');
-                
-                // 重置表单
-                tagSearchInput.value = '';
-                newTagName.value = '';
-                colorOptions.forEach(option => option.classList.remove('selected'));
-                // 默认选择第一个颜色
-                colorOptions[0].classList.add('selected');
-                
-                // 清除之前的事件监听器
-                const newCancelBtn = cancelBtn.cloneNode(true);
-                const newConfirmBtn = confirmBtn.cloneNode(true);
-                const newCloseBtn = closeBtn.cloneNode(true);
-                
-                cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
-                confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
-                closeBtn.parentNode.replaceChild(newCloseBtn, closeBtn);
-                
-                // 加载当前笔记信息
-                try {
-                    const noteResponse = await api.getNoteById(noteId);
-                    if (!noteResponse || !noteResponse.success) {
-                        throw new Error('获取笔记信息失败');
-                    }
-                    
-                    const note = noteResponse.note;
-                    const noteTags = note.tags || [];
-                    
-                    // 显示加载中
-                    tagsList.innerHTML = '<div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> 加载中...</div>';
-                    
-                    // 加载所有标签
-                    const tagsResponse = await api.getTags();
-                    if (!tagsResponse || !tagsResponse.success) {
-                        throw new Error('获取标签列表失败');
-                    }
-                    
-                    const tags = tagsResponse.tags || [];
-                    
-                    if (tags.length === 0) {
-                        tagsList.innerHTML = '<div class="no-tags-message">暂无标签，请创建新标签</div>';
-                    } else {
-                        // 渲染标签列表
-                        tagsList.innerHTML = tags.map(tag => {
-                            const tagId = tag._id || tag.id;
-                            const isChecked = noteTags.includes(tagId);
-                            return `
-                                <div class="tag-item ${isChecked ? 'selected' : ''}" data-id="${tagId}">
-                                    <div class="tag-color-dot" style="background-color: ${tag.color}"></div>
-                                    <div class="tag-name">${tag.name}</div>
-                                    <input type="checkbox" class="tag-checkbox" ${isChecked ? 'checked' : ''}>
-                                </div>
-                            `;
-                        }).join('');
-                        
-                        // 添加标签项点击事件
-                        tagsList.querySelectorAll('.tag-item').forEach(item => {
-                            item.addEventListener('click', function() {
-                                const checkbox = this.querySelector('.tag-checkbox');
-                                checkbox.checked = !checkbox.checked;
-                                this.classList.toggle('selected', checkbox.checked);
-                            });
-                        });
-                        
-                        // 复选框点击事件（防止冒泡）
-                        tagsList.querySelectorAll('.tag-checkbox').forEach(checkbox => {
-                            checkbox.addEventListener('click', function(e) {
-                                e.stopPropagation();
-                                const tagItem = this.closest('.tag-item');
-                                tagItem.classList.toggle('selected', this.checked);
-                            });
-                        });
-                    }
-                    
-                    // 搜索框筛选功能
-                    tagSearchInput.addEventListener('input', function() {
-                        const searchTerm = this.value.toLowerCase().trim();
-                        const tagItems = tagsList.querySelectorAll('.tag-item');
-                        
-                        tagItems.forEach(item => {
-                            const tagName = item.querySelector('.tag-name').textContent.toLowerCase();
-                            if (searchTerm === '' || tagName.includes(searchTerm)) {
-                                item.style.display = '';
-                            } else {
-                                item.style.display = 'none';
-                            }
-                        });
-                    });
-                    
-                    // 颜色选择器
-                    colorOptions.forEach(option => {
-                        option.addEventListener('click', function() {
-                            colorOptions.forEach(opt => opt.classList.remove('selected'));
-                            this.classList.add('selected');
-                        });
-                    });
-                    
-                    // 应用标签按钮
-                    newConfirmBtn.addEventListener('click', async () => {
-                        const selectedTagIds = Array.from(tagsList.querySelectorAll('.tag-checkbox:checked')).map(
-                            checkbox => checkbox.closest('.tag-item').dataset.id
-                        );
-                        
-                        // 如果有输入新标签名称，则创建新标签
-                        if (newTagName.value.trim()) {
-                            try {
-                                const newTagColor = document.querySelector('#tagSelectModal .color-option.selected').dataset.color;
-                                const createTagResponse = await api.createTag({
-                                    name: newTagName.value.trim(),
-                                    color: newTagColor
-                                });
-                                
-                                if (createTagResponse && createTagResponse.success && createTagResponse.tag) {
-                                    const newTagId = createTagResponse.tag._id || createTagResponse.tag.id;
-                                    selectedTagIds.push(newTagId);
-                                }
-                            } catch (error) {
-                                console.error('创建新标签失败:', error);
-                                alert(`创建新标签失败: ${error.message}`);
-                            }
-                        }
-                        
-                        // 更新笔记标签
-                        try {
-                            // 禁用按钮，显示加载状态
-                            newConfirmBtn.disabled = true;
-                            newConfirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 处理中';
-                            
-                            // 调用API更新笔记的标签
-                            const updateResponse = await api.updateNoteTags(noteId, selectedTagIds);
-                            
-                            if (updateResponse && updateResponse.success) {
-                                // 成功后关闭弹窗
-                                modal.style.display = 'none';
-                                
-                                // 显示成功消息
-                                const successMessage = document.createElement('div');
-                                successMessage.className = 'toast-message success';
-                                successMessage.innerHTML = '<i class="fas fa-check-circle"></i> 标签已成功应用到笔记';
-                                document.body.appendChild(successMessage);
-                                
-                                setTimeout(() => {
-                                    successMessage.classList.add('show');
-                                    setTimeout(() => {
-                                        successMessage.classList.remove('show');
-                                        setTimeout(() => document.body.removeChild(successMessage), 300);
-                                    }, 2000);
-                                }, 100);
-                                
-                                // 刷新笔记列表
-                                loadNotes(true);
-                            } else {
-                                throw new Error('应用标签失败');
-                            }
-                        } catch (error) {
-                            console.error('更新笔记标签失败:', error);
-                            alert(`应用标签失败: ${error.message}`);
-                            
-                            // 恢复按钮状态
-                            newConfirmBtn.disabled = false;
-                            newConfirmBtn.innerHTML = '应用标签';
-                        }
-                    });
-                } catch (error) {
-                    console.error('加载标签选择弹窗失败:', error);
-                    tagsList.innerHTML = `<div class="error-message">加载失败: ${error.message}</div>`;
-                }
-                
-                // 关闭弹窗
-                function closeTagModal() {
-                    modal.style.display = 'none';
-                }
-                
-                // 关闭按钮和取消按钮
-                newCloseBtn.addEventListener('click', closeTagModal);
-                newCancelBtn.addEventListener('click', closeTagModal);
-                
-                // 显示弹窗
-                modal.style.display = 'flex';
-            }
-        });
-    </script>
     
     <style>
         .empty-notes {
@@ -1891,93 +341,6 @@
             border-left: 4px solid #f28b82;
         }
         
-        /* 用户头像菜单样式 */
-        .user-profile {
-            position: relative;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .user-avatar {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            background-color: #e8f0fe;
-            color: #1a73e8;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .dark-mode .user-avatar {
-            background-color: #1a73e8;
-            color: white;
-        }
-
-        .user-profile-menu {
-            position: absolute;
-            top: 45px;
-            right: 10px;
-            width: 200px;
-            background-color: #fff;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-            z-index: 1000;
-            display: none;
-        }
-
-        .user-profile-menu.show {
-            display: block;
-        }
-
-        .dark-mode .user-profile-menu {
-            background-color: #2d2d2d;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
-        }
-
-        .menu-item {
-            padding: 12px 16px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            color: #333;
-            transition: background-color 0.3s;
-            cursor: pointer;
-        }
-
-        .dark-mode .menu-item {
-            color: #fff;
-        }
-
-        .menu-item:hover {
-            background-color: #f5f5f5;
-        }
-
-        .dark-mode .menu-item:hover {
-            background-color: #3d3d3d;
-        }
-
-        .menu-divider {
-            height: 1px;
-            background-color: #e0e0e0;
-            margin: 4px 0;
-        }
-
-        .dark-mode .menu-divider {
-            background-color: #444;
-        }
-
-        .menu-item.delete {
-            color: #ea4335;
-        }
-
-        .dark-mode .menu-item.delete {
-            color: #ff6b6b;
-        }
-
         .loading-notes {
             grid-column: 1 / -1;
             text-align: center;
@@ -2558,69 +921,191 @@
             border-color: #444;
         }
 
-        /* 覆盖全局笔记操作菜单样式 */
-        .note-actions-menu {
-            position: fixed !important;
-            transform: none !important;
-            transition: none !important;
-            opacity: 1 !important;
-            pointer-events: auto !important;
+        /* 添加编辑器模态窗口的样式 */
+        .editor-modal-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 9999;
             display: none;
-            padding: 8px 0;
-            background-color: var(--bg-color, #fff);
-            border-radius: 8px;
-            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
-            border: 1px solid var(--border-color, #e0e0e0);
-            min-width: 180px;
-            max-width: 250px;
-            z-index: 1050;
-            overflow: hidden;
-        }
-        
-        .note-actions-menu.show {
-            display: block !important;
-            opacity: 1 !important;
-            transform: none !important;
-        }
-        
-        .note-actions-menu .menu-item {
-            padding: 10px 16px;
-            display: flex;
+            justify-content: center;
             align-items: center;
-            gap: 10px;
-            transition: background-color 0.2s;
-            cursor: pointer;
-            color: var(--text-color, #333);
         }
         
-        .note-actions-menu .menu-item:hover {
-            background-color: var(--hover-color, #f5f5f5);
-        }
-        
-        .dark-mode .note-actions-menu {
-            background-color: var(--bg-color, #333);
-            border-color: var(--border-color, #444);
-            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
-        }
-        
-        .dark-mode .note-actions-menu .menu-item {
-            color: var(--text-color, #eee);
-        }
-        
-        .dark-mode .note-actions-menu .menu-item:hover {
-            background-color: var(--hover-color, #444);
-        }
-        
-        /* 笔记操作菜单的响应式样式 */
-        @media screen and (max-width: 768px) {
-            .note-actions-menu {
-                width: calc(100% - 40px); /* 防止在小屏幕上过宽 */
-            }
-            
-            .menu-item {
-                padding: 14px 16px; /* 在移动设备上增加点击区域 */
-            }
+        .editor-modal-container iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background-color: white;
         }
     </style>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化站点信息
+            loadSiteInfo();
+            
+            // 初始化侧边栏菜单
+            const sidebarMenu = new SidebarMenu({
+                containerId: 'sidebar',
+                logoText: '笔记平台',
+                logoIcon: 'fas fa-book',
+                menuItems: [
+                    { id: 'home', text: '我的笔记', icon: 'fas fa-home', active: true, page: 'dashboard.html' },
+                    { id: 'starred', text: '收藏笔记', icon: 'fas fa-star', page: 'starred-notes.html' },
+                    { id: 'categories', text: '笔记分类', icon: 'fas fa-folder', page: 'note-categories.html' },
+                    { id: 'tags', text: '标签管理', icon: 'fas fa-tags', page: 'tags.html' },
+                    { id: 'shared', text: '分享笔记', icon: 'fas fa-share-alt', page: 'note-share.html' },
+                    { id: 'trash', text: '回收站', icon: 'fas fa-trash', page: 'trash.html' }
+                ],
+                autoNavigate: true
+            });
+            
+            // 初始化内容头部
+            const contentHeader = new ContentHeader({
+                containerId: 'contentHeader',
+                title: '我的笔记',
+                showViewToggle: true,
+                showRefreshButton: true,
+                defaultView: localStorage.getItem('viewMode') || 'grid',
+                hideOnMobile: false,
+                onViewToggle: (view) => {
+                    if (view === 'list' && window.notesLoader) {
+                        if (window.notesLoader.lastQuery) {
+                            const options = {...window.notesLoader.lastQuery, viewMode: 'list'};
+                            window.notesLoader.loadNotes(options);
+                        } else {
+                            window.notesLoader.loadNotes({viewMode: 'list'});
+                        }
+                    }
+                },
+                onRefresh: async () => {
+                    if (window.loadDashboardNotes) {
+                        const currentViewMode = localStorage.getItem('viewMode') || 'grid';
+                        await window.loadDashboardNotes(true, currentViewMode);
+                    }
+                },
+                onMenuItemClick: (action) => {
+                    console.log('菜单项点击:', action);
+                    if (action === 'logout') {
+                        // 处理退出登录
+                        if (window.confirmLogout) {
+                            window.confirmLogout();
+                        }
+                    } else if (action === 'settings') {
+                        window.location.href = 'settings.html';
+                    } else if (action === 'edit-profile') {
+                        window.location.href = 'profile-edit.html';
+                    }
+                }
+            });
+            
+            // 保存到全局对象，使其他组件可以访问
+            window.contentHeader = contentHeader;
+            
+            // 初始化笔记操作菜单组件
+            const noteActionsMenu = new NoteActionsMenu({
+                onMenuItemClick: (action, noteId) => {
+                    console.log('笔记菜单操作:', action, noteId);
+                    
+                    // 处理不同的菜单操作
+                    switch (action) {
+                        case 'edit':
+                            openNoteEditor(noteId);
+                            break;
+                        case 'trash':
+                            if (window.trashNote) {
+                                window.trashNote(noteId);
+                            }
+                            break;
+                        // 其他菜单项处理...
+                    }
+                }
+            });
+            
+            // 定义全局函数，用于显示笔记菜单
+            window.showNoteMenu = (position, noteId) => {
+                if (noteActionsMenu) {
+                    noteActionsMenu.show(position, noteId);
+                }
+            };
+            
+            // 初始化主题切换
+            const themeToggle = document.getElementById('themeToggle');
+            if (themeToggle) {
+                themeToggle.addEventListener('click', function() {
+                    document.body.classList.toggle('dark-mode');
+                    localStorage.setItem('dark-mode', document.body.classList.contains('dark-mode'));
+                });
+                
+                // 加载保存的主题设置
+                if (localStorage.getItem('dark-mode') === 'true') {
+                    document.body.classList.add('dark-mode');
+                }
+            }
+            
+            // 初始化新增笔记按钮
+            const newNoteBtn = document.getElementById('newNoteBtn');
+            if (newNoteBtn) {
+                newNoteBtn.addEventListener('click', function() {
+                    // 打开新建笔记的编辑器
+                    openNoteEditor();
+                });
+            }
+            
+            // 打开笔记编辑器函数
+            window.openNoteEditor = function(noteId) {
+                const editorModal = document.getElementById('editorModal');
+                if (!editorModal) return;
+                
+                // 设置编辑器URL，如果有noteId则为编辑模式，否则为新建模式
+                const url = noteId 
+                    ? `note-editor-modal.html?id=${noteId}` 
+                    : `note-editor-modal.html`;
+                
+                console.log('打开笔记编辑器:', url);
+                
+                // 使用iframe加载编辑器
+                editorModal.innerHTML = `<iframe src="${url}" style="width:100%; height:100%; border:none;"></iframe>`;
+                editorModal.style.display = 'flex';
+            };
+            
+            // 关闭笔记编辑器函数
+            window.closeNoteEditor = function() {
+                const editorModal = document.getElementById('editorModal');
+                if (editorModal) {
+                    editorModal.innerHTML = '';
+                    editorModal.style.display = 'none';
+                }
+            };
+            
+            // 通过iframe接收消息事件
+            window.addEventListener('message', function(event) {
+                // 确保消息来源安全
+                if (event.origin !== window.location.origin) return;
+                
+                // 处理来自iframe的消息
+                if (event.data.action === 'closeEditor') {
+                    window.closeNoteEditor();
+                } else if (event.data.action === 'saveSuccess') {
+                    // 刷新笔记列表
+                    if (window.loadDashboardNotes) {
+                        const currentViewMode = localStorage.getItem('viewMode') || 'grid';
+                        window.loadDashboardNotes(true, currentViewMode);
+                    }
+                }
+            });
+            
+            // 初始化确认退出登录函数
+            window.confirmLogout = function() {
+                if (confirm('确定要退出登录吗？')) {
+                    localStorage.removeItem('token');
+                    window.location.href = 'login.html';
+                }
+            };
+        });
+    </script>
 </body>
 </html> 

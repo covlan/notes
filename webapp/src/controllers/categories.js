@@ -183,12 +183,12 @@ exports.deleteCategory = async (req, res, next) => {
 
     // 将该分类下的所有笔记的分类ID设为null
     await Note.updateMany(
-      { categoryId: category._id },
+      { categoryId: category._id, userId: req.user.id },
       { categoryId: null }
     );
 
-    // 删除分类
-    await category.remove();
+    // 删除分类 - 使用deleteOne替代已废弃的remove方法
+    await Category.deleteOne({ _id: category._id });
 
     res.status(200).json({
       success: true,

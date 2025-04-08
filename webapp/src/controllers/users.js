@@ -54,7 +54,19 @@ exports.upload = multer({
 // @access  Private
 exports.updateProfile = async (req, res, next) => {
   try {
-    const { username, email, displayName, phone, bio } = req.body;
+    const { 
+      username, 
+      email, 
+      displayName, 
+      phone, 
+      bio, 
+      birthday, 
+      gender, 
+      location, 
+      occupation, 
+      website, 
+      socialLinks 
+    } = req.body;
 
     // 检查用户名、邮箱是否重复
     if (username) {
@@ -85,16 +97,34 @@ exports.updateProfile = async (req, res, next) => {
       }
     }
 
+    // 准备更新数据
+    const updateData = {
+      username,
+      email,
+      displayName,
+      phone,
+      bio,
+      birthday,
+      gender,
+      location,
+      occupation,
+      website
+    };
+    
+    // 如果有社交链接，添加到更新数据中
+    if (socialLinks) {
+      updateData.socialLinks = socialLinks;
+    }
+    
+    // 移除undefined字段
+    Object.keys(updateData).forEach(key => 
+      updateData[key] === undefined && delete updateData[key]
+    );
+
     // 更新用户信息
     const user = await User.findByIdAndUpdate(
       req.user.id,
-      {
-        username,
-        email,
-        displayName,
-        phone,
-        bio
-      },
+      updateData,
       { new: true }
     );
 

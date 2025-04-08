@@ -29,10 +29,48 @@ exports.createShare = async (req, res, next) => {
     });
 
     if (existingShare) {
-      return res.status(400).json({
-        success: false,
-        message: '该笔记已被分享'
-      });
+      // 如果存在分享记录但已被取消，则允许重新分享
+      if (existingShare.isCanceled) {
+        // 更新已有的分享记录，而不是创建新的
+        existingShare.isCanceled = false;
+        existingShare.shareType = shareType;
+        existingShare.sharedAt = new Date();
+        
+        // 如果是私密分享，更新密码
+        if (shareType === 'private' && password) {
+          existingShare.password = password;
+        }
+        
+        // 更新过期时间
+        if (expiry && parseInt(expiry) > 0) {
+          const expiryDate = new Date();
+          expiryDate.setDate(expiryDate.getDate() + parseInt(expiry));
+          existingShare.expiry = expiryDate;
+        } else {
+          // 如果没有设置过期时间，则移除过期时间
+          existingShare.expiry = undefined;
+        }
+        
+        // 重置查看数据
+        existingShare.views = 0;
+        
+        await existingShare.save();
+        
+        // 移除密码后返回
+        const shareResponse = existingShare.toObject();
+        delete shareResponse.password;
+        
+        return res.status(200).json({
+          success: true,
+          share: shareResponse,
+          message: '笔记分享已成功更新'
+        });
+      } else {
+        return res.status(400).json({
+          success: false,
+          message: '该笔记已被分享'
+        });
+      }
     }
 
     // 创建分享
@@ -81,7 +119,8 @@ exports.createShare = async (req, res, next) => {
 exports.getShares = async (req, res, next) => {
   try {
     const shares = await Share.find({
-      userId: req.user.id
+      userId: req.user.id,
+      isCanceled: { $ne: true } // 排除已取消的分享
     })
       .populate('noteId', 'title')
       .sort({ sharedAt: -1 });
@@ -121,7 +160,17 @@ exports.getShare = async (req, res, next) => {
     if (!share) {
       return res.status(404).json({
         success: false,
-        message: '分享不存在'
+        message: '分享不存在或已被取消',
+        isShareCanceled: true
+      });
+    }
+
+    // 检查分享是否已被取消
+    if (share.isCanceled) {
+      return res.status(404).json({
+        success: false,
+        message: '此笔记分享已被取消',
+        isShareCanceled: true
       });
     }
 
@@ -189,7 +238,17 @@ exports.accessShare = async (req, res, next) => {
     if (!share) {
       return res.status(404).json({
         success: false,
-        message: '分享不存在'
+        message: '分享不存在或已被取消',
+        isShareCanceled: true
+      });
+    }
+
+    // 检查分享是否已被取消
+    if (share.isCanceled) {
+      return res.status(404).json({
+        success: false,
+        message: '此笔记分享已被取消',
+        isShareCanceled: true
       });
     }
 
@@ -267,12 +326,49 @@ exports.deleteShare = async (req, res, next) => {
       });
     }
 
-    // 删除分享
-    await share.remove();
+    // 更新为已取消状态，而不是删除记录
+    share.isCanceled = true;
+    await share.save();
 
     res.status(200).json({
       success: true,
       message: '分享已取消'
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    检查笔记分享状态
+// @route   GET /api/shares/check/:noteId
+// @access  Private
+exports.checkShare = async (req, res, next) => {
+  try {
+    const noteId = req.params.noteId;
+    
+    // 查找该笔记的分享状态
+    const share = await Share.findOne({
+      noteId,
+      userId: req.user.id
+    });
+    
+    // 如果没有找到分享
+    if (!share) {
+      return res.status(404).json({
+        success: false,
+        message: '找不到此笔记的分享',
+        isShared: false,
+        isCanceled: true
+      });
+    }
+    
+    // 返回分享状态
+    res.status(200).json({
+      success: true,
+      isShared: true,
+      isCanceled: share.isCanceled || false,
+      shareType: share.shareType,
+      shareId: share._id
     });
   } catch (err) {
     next(err);

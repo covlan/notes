@@ -10,7 +10,9 @@ const {
   deleteNote,
   emptyTrash,
   saveMarkdown,
-  updateNoteTags
+  updateNoteTags,
+  getStarredNotes,
+  getTrashedNotes
 } = require('../controllers/notes');
 const { protect } = require('../middleware/auth');
 
@@ -23,6 +25,14 @@ router.use(protect);
 router.route('/')
   .get(getNotes)
   .post(createNote);
+
+// 收藏笔记路由
+router.route('/starred')
+  .get(getStarredNotes);
+
+// 回收站笔记路由
+router.route('/trash')
+  .get(getTrashedNotes);
 
 router.route('/empty-trash')
   .delete(emptyTrash);

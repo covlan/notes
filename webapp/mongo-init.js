@@ -32,33 +32,7 @@ db.shares.createIndex({ userId: 1 });
 db.createCollection('user_settings');
 db.user_settings.createIndex({ userId: 1 }, { unique: true });
 
-// 初始化管理员账户
-const adminExists = db.users.findOne({ username: 'admin' });
-
-if (!adminExists) {
-    // 创建一个明文密码用户，稍后在应用程序中使用API更改密码
-    // 创建管理员用户 - 暂时使用一个简单明文标记，后续会通过API覆盖
-    const adminUser = db.users.insertOne({
-        username: 'admin',
-        email: 'admin@example.com',
-        password: 'PLAIN_TEXT_PASSWORD_NEEDS_UPDATE',
-        displayName: '管理员',
-        role: 'admin',
-        createdAt: new Date(),
-        updatedAt: new Date()
-    });
-    
-    // 为管理员创建默认设置
-    if (adminUser.acknowledged) {
-        db.user_settings.insertOne({
-            userId: adminUser.insertedId,
-            theme: 'light',
-            language: 'zh-CN',
-            createdAt: new Date(),
-            updatedAt: new Date()
-        });
-        print('已创建管理员账户: 用户名=admin, 但密码需要通过API重置');
-    }
-}
+// 创建系统设置集合
+db.createCollection('system_settings');
 
 print('MongoDB初始化完成：已创建所有集合和索引'); 

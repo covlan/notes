@@ -4,8 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>系统设置 - 笔记平台</title>
+    <meta name="description" content="一个简单易用的个人笔记管理平台">
+    <meta name="keywords" content="笔记,Markdown,知识管理">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="./css/styles.css">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/sidebar-menu.css">
+    <link rel="stylesheet" href="css/content-header.css">
+    <link rel="stylesheet" href="css/settings.css">
+    <!-- 引入API组件 -->
+    <script src="./component/api.js"></script>
+    <!-- 引入站点信息加载脚本 -->
+    <script src="component/site-info.js"></script>
+    <!-- 引入侧边栏菜单组件 -->
+    <script src="component/sidebar-menu.js"></script>
+    <!-- 引入确认对话框组件 -->
+    <script src="component/confirm-dialog.js"></script>
+    <!-- 引入提示消息组件 -->
+    <script src="component/toast-message.js"></script>
+    <!-- 引入内容头部组件 -->
+    <script src="component/content-header.js"></script>
     <style>
         /* 设置页面特定样式 */
         .settings-container {
@@ -165,46 +182,8 @@
     </style>
 </head>
 <body>
-    <!-- 移动端菜单按钮 -->
-    <div class="mobile-menu-toggle" id="mobileMenuToggle">
-        <i class="fas fa-bars"></i>
-    </div>
-
     <!-- 侧边栏 -->
-    <div class="sidebar" id="sidebar">
-        <div class="sidebar-header">
-            <div class="logo" id="toggleSidebar">
-                <i class="fas fa-book"></i>
-                <span>笔记平台</span>
-            </div>
-        </div>
-        <div class="nav-menu">
-            <div class="nav-item" data-tooltip="我的笔记">
-                <i class="fas fa-home"></i>
-                <span>我的笔记</span>
-            </div>
-            <div class="nav-item" data-tooltip="收藏笔记">
-                <i class="fas fa-star"></i>
-                <span>收藏笔记</span>
-            </div>
-            <div class="nav-item" data-tooltip="笔记分类">
-                <i class="fas fa-folder"></i>
-                <span>笔记分类</span>
-            </div>
-            <div class="nav-item" data-tooltip="标签管理">
-                <i class="fas fa-tags"></i>
-                <span>标签管理</span>
-            </div>
-            <div class="nav-item" data-tooltip="分享笔记">
-                <i class="fas fa-share-alt"></i>
-                <span>分享笔记</span>
-            </div>
-            <div class="nav-item" data-tooltip="回收站">
-                <i class="fas fa-trash"></i>
-                <span>回收站</span>
-            </div>
-        </div>
-    </div>
+    <div id="sidebar"></div>
 
     <!-- 主题切换按钮 -->
     <div class="theme-toggle" id="themeToggle">
@@ -213,14 +192,8 @@
 
     <!-- 主内容区域 -->
     <div class="main-content" id="mainContent">
-        <div class="content-header">
-            <h1 class="welcome-text">系统设置</h1>
-            <div class="user-profile">
-                <div class="user-avatar">
-                    <i class="fas fa-user"></i>
-                </div>
-                <span>管理员</span>
-            </div>
+        <div class="content-header" id="contentHeader">
+            <!-- 将由ContentHeader组件动态生成 -->
         </div>
         
         <div class="settings-container">
@@ -481,259 +454,222 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const sidebar = document.getElementById('sidebar');
-            const mainContent = document.getElementById('mainContent');
-            const toggleSidebar = document.getElementById('toggleSidebar');
-            const mobileMenuToggle = document.getElementById('mobileMenuToggle');
-            const themeToggle = document.getElementById('themeToggle');
-            const body = document.body;
-            
-            // 检查本地存储中的主题偏好
-            const currentTheme = localStorage.getItem('theme');
-            if (currentTheme === 'dark') {
-                body.classList.add('dark-mode');
+            // 显示活动设置部分
+            function showSettingsSection(sectionId) {
+                const sections = document.querySelectorAll('.settings-section');
+                const menuItems = document.querySelectorAll('.settings-menu-item');
+                
+                // 隐藏所有部分
+                sections.forEach(section => section.classList.remove('active'));
+                
+                // 取消所有菜单项的活动状态
+                menuItems.forEach(item => item.classList.remove('active'));
+                
+                // 显示选定的部分
+                const section = document.getElementById(sectionId);
+                if (section) section.classList.add('active');
+                
+                // 激活相应的菜单项
+                const menuItem = document.querySelector(`.settings-menu-item[data-section="${sectionId}"]`);
+                if (menuItem) menuItem.classList.add('active');
             }
             
-            // 切换主题
-            themeToggle.addEventListener('click', () => {
-                body.classList.toggle('dark-mode');
-                const theme = body.classList.contains('dark-mode') ? 'dark' : 'light';
-                localStorage.setItem('theme', theme);
-            });
-            
-            // 切换侧边栏
-            function toggleSidebarState() {
-                sidebar.classList.toggle('collapsed');
-                mainContent.classList.toggle('expanded');
-                
-                // 保存侧边栏状态
-                const isCollapsed = sidebar.classList.contains('collapsed');
-                localStorage.setItem('sidebar-collapsed', isCollapsed);
-            }
-            
-            // 添加点击事件监听器
-            toggleSidebar.addEventListener('click', toggleSidebarState);
-            
-            // 初始化侧边栏状态
-            function initSidebarState() {
-                const isCollapsed = localStorage.getItem('sidebar-collapsed') === 'true';
-                if (isCollapsed) {
-                    sidebar.classList.add('collapsed');
-                    mainContent.classList.add('expanded');
-                } else {
-                    sidebar.classList.remove('collapsed');
-                    mainContent.classList.remove('expanded');
-                }
-            }
-            
-            // 页面加载时初始化侧边栏状态
-            initSidebarState();
-            
-            // 移动端菜单切换
-            mobileMenuToggle.addEventListener('click', () => {
-                sidebar.classList.toggle('show');
-            });
-            
-            // 用户头像菜单
-            const userProfile = document.querySelector('.user-profile');
-            const userProfileMenu = document.getElementById('userProfileMenu');
-            
-            userProfile.addEventListener('mouseenter', () => {
-                const rect = userProfile.getBoundingClientRect();
-                const menuWidth = userProfileMenu.offsetWidth || 200; // 估计菜单宽度
-                const windowWidth = window.innerWidth;
-                
-                // 计算右侧是否会溢出
-                if (rect.left + menuWidth > windowWidth) {
-                    // 如果会溢出，将菜单向左对齐
-                    userProfileMenu.style.left = `${rect.right - menuWidth}px`;
-                } else {
-                    userProfileMenu.style.left = `${rect.left}px`;
-                }
-                
-                userProfileMenu.style.top = `${rect.bottom}px`;
-                userProfileMenu.classList.add('show');
-            });
-            
-            userProfile.addEventListener('mouseleave', (event) => {
-                // 检查鼠标是否移动到菜单上
-                const toElement = event.relatedTarget;
-                if (!userProfileMenu.contains(toElement)) {
-                    userProfileMenu.classList.remove('show');
-                }
-            });
-            
-            userProfileMenu.addEventListener('mouseleave', () => {
-                userProfileMenu.classList.remove('show');
-            });
-            
-            // 用户菜单项点击事件
-            userProfileMenu.querySelectorAll('.menu-item').forEach(item => {
-                item.addEventListener('click', () => {
-                    const action = item.dataset.action;
-                    userProfileMenu.classList.remove('show');
-                    
-                    // 处理不同的菜单操作
-                    switch(action) {
-                        case 'profile':
-                            alert('查看个人信息');
-                            break;
-                        case 'edit-profile':
-                            window.location.href = 'profile-edit.html';
-                            break;
-                        case 'settings':
-                            window.location.replace('settings.html');
-                            break;
-                        case 'logout':
-                            alert('退出登录');
-                            break;
-                    }
+            // 设置菜单项点击事件
+            const menuItems = document.querySelectorAll('.settings-menu-item');
+            menuItems.forEach(item => {
+                item.addEventListener('click', function() {
+                    const section = this.getAttribute('data-section');
+                    showSettingsSection(section);
                 });
             });
             
-            // 点击主内容区域时在移动端关闭侧边栏
-            mainContent.addEventListener('click', () => {
-                if (window.innerWidth <= 768) {
-                    sidebar.classList.remove('show');
-                }
-            });
+            // 默认显示首个设置部分
+            showSettingsSection('site-info');
             
-            // 窗口大小改变时处理侧边栏状态
-            window.addEventListener('resize', () => {
-                if (window.innerWidth > 768) {
-                    sidebar.classList.remove('show');
-                }
-                // 确保侧边栏状态在窗口大小变化时保持一致
-                initSidebarState();
-            });
-            
-            // 导航菜单项点击事件
-            document.querySelectorAll('.nav-item').forEach(item => {
-                item.addEventListener('click', () => {
-                    const icon = item.querySelector('i');
-                    
-                    // 根据图标类名确定目标页面
-                    let targetPage = '';
-                    if (icon.classList.contains('fa-home')) {
-                        targetPage = 'dashboard.html';
-                    } else if (icon.classList.contains('fa-tags')) {
-                        targetPage = 'tags.html';
-                    } else if (icon.classList.contains('fa-star')) {
-                        targetPage = 'starred-notes.html';
-                    } else if (icon.classList.contains('fa-folder')) {
-                        targetPage = 'note-categories.html';
-                    } else if (icon.classList.contains('fa-share-alt')) {
-                        targetPage = 'note-share.html';
-                    } else if (icon.classList.contains('fa-trash')) {
-                        targetPage = 'trash.html';
-                    }
-                    
-                    // 如果找到目标页面，则进行跳转
-                    if (targetPage) {
-                        try {
-                            window.location.replace(targetPage);
-                        } catch (error) {
-                            console.error('页面跳转失败:', error);
-                            alert('页面跳转失败，请检查页面是否存在');
-                        }
-                    }
-                });
-            });
-            
-            // 设置选项卡切换
-            const settingsMenuItems = document.querySelectorAll('.settings-menu-item');
-            const settingsSections = document.querySelectorAll('.settings-section');
-            
-            settingsMenuItems.forEach(item => {
-                item.addEventListener('click', () => {
-                    const targetSection = item.dataset.section;
-                    
-                    // 更新菜单项状态
-                    settingsMenuItems.forEach(mi => mi.classList.remove('active'));
-                    item.classList.add('active');
-                    
-                    // 更新内容区状态
-                    settingsSections.forEach(section => {
-                        section.classList.remove('active');
-                        if (section.id === targetSection) {
-                            section.classList.add('active');
+            // 加载站点设置函数
+            async function loadSiteSettings() {
+                try {
+                    // 在实际应用中，这里会从API获取设置
+                    // 模拟从API获取设置
+                    const response = await fetch('/api/settings/site', {
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
                         }
                     });
-                });
-            });
-            
-            // 数据库类型切换
-            const dbTypeSelect = document.getElementById('db-type');
-            const remoteDbSettings = document.getElementById('remote-db-settings');
-            const sqliteSettings = document.getElementById('sqlite-settings');
-            
-            dbTypeSelect.addEventListener('change', () => {
-                const selectedValue = dbTypeSelect.value;
-                
-                if (selectedValue === 'sqlite') {
-                    remoteDbSettings.style.display = 'none';
-                    sqliteSettings.style.display = 'block';
-                } else {
-                    remoteDbSettings.style.display = 'block';
-                    sqliteSettings.style.display = 'none';
                     
-                    // 根据数据库类型设置默认端口
-                    const dbPortInput = document.getElementById('db-port');
-                    switch (selectedValue) {
-                        case 'mysql':
-                            dbPortInput.value = '3306';
-                            break;
-                        case 'postgres':
-                            dbPortInput.value = '5432';
-                            break;
-                        case 'mongodb':
-                            dbPortInput.value = '27017';
-                            break;
+                    if (!response.ok) {
+                        throw new Error('获取站点设置失败');
                     }
-                }
-            });
-            
-            // 测试数据库连接
-            document.getElementById('test-connection').addEventListener('click', () => {
-                const connectionResult = document.getElementById('connection-result');
-                connectionResult.style.display = 'block';
-                
-                // 模拟连接测试
-                setTimeout(() => {
-                    if (Math.random() > 0.3) {
-                        connectionResult.className = 'test-connection-result success';
-                        connectionResult.innerHTML = '<i class="fas fa-check-circle"></i> 连接成功！数据库可正常访问。';
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        // 获取实际数据对象，可能在不同属性下
+                        const settings = data.settings || data.info || data.siteInfo || {};
+                        
+                        // 填充表单
+                        document.getElementById('site-title').value = settings.siteTitle || settings.title || '';
+                        document.getElementById('site-description').value = settings.siteDescription || settings.description || '';
+                        document.getElementById('site-keywords').value = settings.siteKeywords || settings.keywords || '';
+                        document.getElementById('footer-text').value = settings.footerText || '';
+                        
+                        // 如果有Logo，显示预览
+                        const logoUrl = settings.siteLogo || settings.logo || '';
+                        if (logoUrl) {
+                            const logoPreview = document.createElement('div');
+                            logoPreview.className = 'logo-preview';
+                            logoPreview.innerHTML = `
+                                <img src="${logoUrl}" alt="站点Logo" style="max-width: 200px; margin-top: 10px;">
+                            `;
+                            
+                            const logoInput = document.getElementById('site-logo');
+                            if (logoInput && logoInput.parentNode) {
+                            logoInput.parentNode.insertBefore(logoPreview, logoInput.nextSibling);
+                            }
+                        }
                     } else {
-                        connectionResult.className = 'test-connection-result error';
-                        connectionResult.innerHTML = '<i class="fas fa-times-circle"></i> 连接失败！请检查连接参数是否正确。';
+                        console.error('获取站点设置响应错误:', data.message);
+                        // 使用默认设置
+                        useDefaultSiteSettings();
                     }
-                }, 1000);
-            });
+                } catch (error) {
+                    console.error('获取站点设置出错:', error);
+                    // 使用默认设置
+                    useDefaultSiteSettings();
+                }
+            }
             
-            // 保存设置按钮
-            document.querySelectorAll('[id^="save-"]').forEach(button => {
-                button.addEventListener('click', () => {
-                    const section = button.id.replace('save-', '');
-                    alert(`已保存${section}设置！`);
-                });
-            });
+            // 使用默认站点设置
+            function useDefaultSiteSettings() {
+                document.getElementById('site-title').value = '笔记平台';
+                document.getElementById('site-description').value = '一个简单易用的个人笔记管理平台';
+                document.getElementById('site-keywords').value = '笔记,Markdown,知识管理';
+                document.getElementById('footer-text').value = '© 2023 笔记平台 - 版权所有';
+            }
             
-            // 手动备份按钮
-            document.getElementById('manual-backup').addEventListener('click', () => {
-                alert('已创建备份！备份文件: notes_backup_' + new Date().toISOString().slice(0,10) + '.zip');
-            });
-            
-            // 恢复备份按钮
-            document.getElementById('restore-backup').addEventListener('click', () => {
-                const fileInput = document.getElementById('restore-file');
-                if (fileInput.files.length > 0) {
-                    if (confirm('恢复备份将覆盖当前数据，确定继续吗？')) {
-                        alert('备份恢复成功！');
+            // 加载安全设置函数
+            async function loadSecuritySettings() {
+                try {
+                    // 模拟从API获取设置
+                    const response = await fetch('/api/settings/security', {
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        }
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error('获取安全设置失败');
                     }
-                } else {
-                    alert('请先选择备份文件！');
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        // 获取实际数据对象，可能在不同属性下
+                        const settings = data.settings || data.info || data.securityInfo || {};
+                        
+                        // 填充表单 - 添加适当的默认值
+                        document.getElementById('allow-registration').value = 
+                            (settings.allowRegistration !== undefined) ? settings.allowRegistration : 'true';
+                        document.getElementById('session-lifetime').value = 
+                            settings.sessionLifetime || '120';
+                        document.getElementById('password-min-length').value = 
+                            settings.passwordMinLength || '8';
+                        document.getElementById('login-attempt-limit').value = 
+                            settings.loginAttemptLimit || '5';
+                        document.getElementById('lockout-duration').value = 
+                            settings.lockoutDuration || '30';
+                    } else {
+                        console.error('获取安全设置响应错误:', data.message);
+                        // 使用默认设置
+                        useDefaultSecuritySettings();
+                    }
+                } catch (error) {
+                    console.error('获取安全设置出错:', error);
+                    // 使用默认设置
+                    useDefaultSecuritySettings();
+                }
+            }
+            
+            // 使用默认安全设置
+            function useDefaultSecuritySettings() {
+                document.getElementById('allow-registration').value = 'true';
+                document.getElementById('session-lifetime').value = '120';
+                document.getElementById('password-min-length').value = '8';
+                document.getElementById('login-attempt-limit').value = '5';
+                document.getElementById('lockout-duration').value = '30';
+            }
+            
+            // 初始化站点设置
+            loadSiteInfo();
+            
+            // 初始化侧边栏菜单
+            const sidebarMenu = new SidebarMenu({
+                containerId: 'sidebar',
+                logoText: '笔记平台',
+                logoIcon: 'fas fa-book',
+                menuItems: [
+                    { id: 'home', text: '我的笔记', icon: 'fas fa-home', page: 'dashboard.html' },
+                    { id: 'starred', text: '收藏笔记', icon: 'fas fa-star', page: 'starred-notes.html' },
+                    { id: 'categories', text: '笔记分类', icon: 'fas fa-folder', page: 'note-categories.html' },
+                    { id: 'tags', text: '标签管理', icon: 'fas fa-tags', page: 'tags.html' },
+                    { id: 'shared', text: '分享笔记', icon: 'fas fa-share-alt', page: 'note-share.html' },
+                    { id: 'trash', text: '回收站', icon: 'fas fa-trash', page: 'trash.html' }
+                ],
+                autoNavigate: true
+            });
+            
+            // 初始化内容头部
+            const contentHeader = new ContentHeader({
+                containerId: 'contentHeader',
+                title: '系统设置',
+                icon: 'fas fa-cog',
+                showViewToggle: false,
+                showRefreshButton: false,
+                onMenuItemClick: (action) => {
+                    console.log('菜单项点击:', action);
+                    if (action === 'logout') {
+                        // 处理退出登录
+                        if (window.confirmLogout) {
+                            window.confirmLogout();
+                        } else {
+                            localStorage.removeItem('token');
+                            window.location.href = 'login.html';
+                        }
+                    } else if (action === 'settings') {
+                        window.location.href = 'settings.html';
+                    } else if (action === 'edit-profile') {
+                        window.location.href = 'profile-edit.html';
+                    }
                 }
             });
+            
+            // 初始化主题切换
+            const themeToggle = document.getElementById('themeToggle');
+            if (themeToggle) {
+                themeToggle.addEventListener('click', function() {
+                    document.body.classList.toggle('dark-mode');
+                    localStorage.setItem('dark-mode', document.body.classList.contains('dark-mode'));
+                });
+                
+                // 加载保存的主题设置
+                if (localStorage.getItem('dark-mode') === 'true') {
+                    document.body.classList.add('dark-mode');
+                }
+            }
+            
+            // 初始化确认退出登录函数
+            window.confirmLogout = function() {
+                if (confirm('确定要退出登录吗？')) {
+                    localStorage.removeItem('token');
+                    window.location.href = 'login.html';
+                }
+            };
+            
+            // 页面加载时获取站点设置
+            loadSiteSettings();
+            
+            // 页面加载时获取安全设置
+            loadSecuritySettings();
         });
     </script>
 </body>

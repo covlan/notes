@@ -5,7 +5,7 @@ app = Flask(__name__)
 
 # 页面路由映射
 PAGE_ROUTES = {
-    '/': 'index.html',
+    '/': 'login.html',
     '/login': 'login.html',
     '/register': 'register.html',
     '/notes': 'notes.html',
@@ -30,7 +30,7 @@ def redirect_html_urls():
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('login.html')
 
 @app.route('/login')
 def login():

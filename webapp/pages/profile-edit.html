@@ -6,6 +6,20 @@
     <title>编辑个人资料 - 笔记平台</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="./css/styles.css">
+    <link rel="stylesheet" href="./css/sidebar-menu.css">
+    <link rel="stylesheet" href="./css/content-header.css">
+    <!-- 引入API组件 -->
+    <script src="./component/api.js"></script>
+    <!-- 引入站点信息加载脚本 -->
+    <script src="component/site-info.js"></script>
+    <!-- 引入侧边栏菜单组件 -->
+    <script src="component/sidebar-menu.js"></script>
+    <!-- 引入确认对话框组件 -->
+    <script src="component/confirm-dialog.js"></script>
+    <!-- 引入提示消息组件 -->
+    <script src="component/toast-message.js"></script>
+    <!-- 引入内容头部组件 -->
+    <script src="component/content-header.js"></script>
     <style>
         /* 个人资料编辑页面特定样式 */
         .profile-container {
@@ -158,46 +172,8 @@
     </style>
 </head>
 <body>
-    <!-- 移动端菜单按钮 -->
-    <div class="mobile-menu-toggle" id="mobileMenuToggle">
-        <i class="fas fa-bars"></i>
-    </div>
-
     <!-- 侧边栏 -->
-    <div class="sidebar" id="sidebar">
-        <div class="sidebar-header">
-            <div class="logo" id="toggleSidebar">
-                <i class="fas fa-book"></i>
-                <span>笔记平台</span>
-            </div>
-        </div>
-        <div class="nav-menu">
-            <div class="nav-item" data-tooltip="我的笔记">
-                <i class="fas fa-home"></i>
-                <span>我的笔记</span>
-            </div>
-            <div class="nav-item" data-tooltip="收藏笔记">
-                <i class="fas fa-star"></i>
-                <span>收藏笔记</span>
-            </div>
-            <div class="nav-item" data-tooltip="笔记分类">
-                <i class="fas fa-folder"></i>
-                <span>笔记分类</span>
-            </div>
-            <div class="nav-item" data-tooltip="标签管理">
-                <i class="fas fa-tags"></i>
-                <span>标签管理</span>
-            </div>
-            <div class="nav-item" data-tooltip="分享笔记">
-                <i class="fas fa-share-alt"></i>
-                <span>分享笔记</span>
-            </div>
-            <div class="nav-item" data-tooltip="回收站">
-                <i class="fas fa-trash"></i>
-                <span>回收站</span>
-            </div>
-        </div>
-    </div>
+    <div id="sidebar"></div>
 
     <!-- 主题切换按钮 -->
     <div class="theme-toggle" id="themeToggle">
@@ -206,14 +182,8 @@
 
     <!-- 主内容区域 -->
     <div class="main-content" id="mainContent">
-        <div class="content-header">
-            <h1 class="welcome-text">编辑个人资料</h1>
-            <div class="user-profile">
-                <div class="user-avatar">
-                    <i class="fas fa-user"></i>
-                </div>
-                <span>管理员</span>
-            </div>
+        <div class="content-header" id="contentHeader">
+            <!-- 将由ContentHeader组件动态生成 -->
         </div>
         
         <div class="profile-container">
@@ -253,9 +223,63 @@
                         <input type="tel" id="phone" class="form-control" placeholder="请输入手机号码">
                     </div>
                     
+                    <div class="form-group">
+                        <label for="birthday">生日</label>
+                        <input type="date" id="birthday" class="form-control">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="gender">性别</label>
+                        <select id="gender" class="form-control">
+                            <option value="">请选择</option>
+                            <option value="male">男</option>
+                            <option value="female">女</option>
+                            <option value="other">其他</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="location">所在地区</label>
+                        <input type="text" id="location" class="form-control" placeholder="请输入您的所在地区">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="occupation">职业</label>
+                        <input type="text" id="occupation" class="form-control" placeholder="请输入您的职业信息">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="website">个人网站</label>
+                        <input type="url" id="website" class="form-control" placeholder="请输入您的个人网站地址">
+                    </div>
+                    
                     <div class="form-group full-width">
                         <label for="bio">个人简介</label>
                         <textarea id="bio" class="form-control" placeholder="请输入您的个人简介"></textarea>
+                    </div>
+                </div>
+                
+                <h3 style="margin: 30px 0 20px; padding-bottom: 10px; border-bottom: 1px solid var(--border-color);">社交媒体账号</h3>
+                
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="weibo"><i class="fab fa-weibo"></i> 微博</label>
+                        <input type="text" id="weibo" class="form-control" placeholder="请输入微博账号">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="wechat"><i class="fab fa-weixin"></i> 微信</label>
+                        <input type="text" id="wechat" class="form-control" placeholder="请输入微信号">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="github"><i class="fab fa-github"></i> GitHub</label>
+                        <input type="text" id="github" class="form-control" placeholder="请输入GitHub账号">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="zhihu"><i class="fab fa-zhihu"></i> 知乎</label>
+                        <input type="text" id="zhihu" class="form-control" placeholder="请输入知乎账号">
                     </div>
                 </div>
                 
@@ -286,117 +310,16 @@
         </div>
     </div>
 
-    <!-- 用户头像菜单 -->
-    <div class="user-profile-menu" id="userProfileMenu">
-        <div class="menu-item" data-action="profile">
-            <i class="fas fa-user-circle"></i>
-            个人信息
-        </div>
-        <div class="menu-item" data-action="edit-profile">
-            <i class="fas fa-user-edit"></i>
-            编辑个人资料
-        </div>
-        <div class="menu-divider"></div>
-        <div class="menu-item" data-action="settings">
-            <i class="fas fa-cog"></i>
-            系统设置
-        </div>
-        <div class="menu-item" data-action="logout">
-            <i class="fas fa-sign-out-alt"></i>
-            退出登录
-        </div>
-    </div>
-
+    <!-- 页面脚本 -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const sidebar = document.getElementById('sidebar');
-            const mainContent = document.getElementById('mainContent');
-            const toggleSidebar = document.getElementById('toggleSidebar');
-            const mobileMenuToggle = document.getElementById('mobileMenuToggle');
-            const themeToggle = document.getElementById('themeToggle');
-            const body = document.body;
+            // 只保留页面中实际存在的元素引用
             const avatarContainer = document.querySelector('.avatar-container');
             const avatarUpload = document.getElementById('avatarUpload');
             const profileForm = document.getElementById('profileForm');
             const cancelBtn = document.getElementById('cancelBtn');
+            const body = document.body;
     
-            // 检查本地存储中的主题偏好
-            const currentTheme = localStorage.getItem('theme');
-            if (currentTheme === 'dark') {
-                body.classList.add('dark-mode');
-            }
-    
-            // 切换主题
-            themeToggle.addEventListener('click', () => {
-                body.classList.toggle('dark-mode');
-                const theme = body.classList.contains('dark-mode') ? 'dark' : 'light';
-                localStorage.setItem('theme', theme);
-            });
-    
-            // 切换侧边栏
-            function toggleSidebarState() {
-                sidebar.classList.toggle('collapsed');
-                mainContent.classList.toggle('expanded');
-                
-                // 保存侧边栏状态
-                const isCollapsed = sidebar.classList.contains('collapsed');
-                localStorage.setItem('sidebar-collapsed', isCollapsed);
-            }
-    
-            // 添加点击事件监听器
-            toggleSidebar.addEventListener('click', toggleSidebarState);
-    
-            // 初始化侧边栏状态
-            function initSidebarState() {
-                const isCollapsed = localStorage.getItem('sidebar-collapsed') === 'true';
-                if (isCollapsed) {
-                    sidebar.classList.add('collapsed');
-                    mainContent.classList.add('expanded');
-                } else {
-                    sidebar.classList.remove('collapsed');
-                    mainContent.classList.remove('expanded');
-                }
-            }
-            
-            // 页面加载时初始化侧边栏状态
-            initSidebarState();
-            
-            // 移动端菜单切换
-            mobileMenuToggle.addEventListener('click', () => {
-                sidebar.classList.toggle('show');
-            });
-    
-            // 用户头像菜单
-            const userProfile = document.querySelector('.user-profile');
-            const userProfileMenu = document.getElementById('userProfileMenu');
-            
-            userProfile.addEventListener('mouseenter', () => {
-                const rect = userProfile.getBoundingClientRect();
-                const menuWidth = userProfileMenu.offsetWidth || 200; // 估计菜单宽度
-                const windowWidth = window.innerWidth;
-                
-                // 计算右侧是否会溢出
-                if (rect.left + menuWidth > windowWidth) {
-                    userProfileMenu.style.left = `${rect.right - menuWidth}px`;
-                } else {
-                    userProfileMenu.style.left = `${rect.left}px`;
-                }
-                
-                userProfileMenu.style.top = `${rect.bottom}px`;
-                userProfileMenu.classList.add('show');
-            });
-            
-            userProfile.addEventListener('mouseleave', (event) => {
-                const toElement = event.relatedTarget;
-                if (!userProfileMenu.contains(toElement)) {
-                    userProfileMenu.classList.remove('show');
-                }
-            });
-            
-            userProfileMenu.addEventListener('mouseleave', () => {
-                userProfileMenu.classList.remove('show');
-            });
-            
             // 处理用户头像上传
             avatarContainer.addEventListener('click', () => {
                 avatarUpload.click();
@@ -434,7 +357,18 @@
                     email: document.getElementById('email').value,
                     displayName: document.getElementById('displayName').value,
                     phone: document.getElementById('phone').value,
-                    bio: document.getElementById('bio').value
+                    birthday: document.getElementById('birthday').value,
+                    gender: document.getElementById('gender').value,
+                    location: document.getElementById('location').value,
+                    occupation: document.getElementById('occupation').value,
+                    website: document.getElementById('website').value,
+                    bio: document.getElementById('bio').value,
+                    socialLinks: {
+                        weibo: document.getElementById('weibo').value,
+                        wechat: document.getElementById('wechat').value,
+                        github: document.getElementById('github').value,
+                        zhihu: document.getElementById('zhihu').value
+                    }
                 };
                 
                 // 密码修改处理
@@ -442,7 +376,7 @@
                 const newPassword = document.getElementById('newPassword').value;
                 const confirmPassword = document.getElementById('confirmPassword').value;
                 
-                if (currentPassword || newPassword || confirmPassword) {
+                if (currentPassword && newPassword && confirmPassword) {
                     // 验证密码
                     if (!currentPassword) {
                         alert('请输入当前密码');
@@ -459,18 +393,58 @@
                         return;
                     }
                     
+                    // 只有当所有密码字段都填写时，才添加到表单数据中
                     formData.currentPassword = currentPassword;
                     formData.newPassword = newPassword;
+                } else if (currentPassword || newPassword || confirmPassword) {
+                    // 如果用户只填写了部分密码字段，提示需要完整填写所有密码字段
+                    alert('如需修改密码，请完整填写所有密码字段');
+                    return;
                 }
+                // 如果用户没有填写任何密码字段，则不添加密码相关数据到formData，表示不修改密码
                 
-                // 这里应该发送请求到后端API
                 console.log('提交的表单数据:', formData);
                 
-                // 模拟API请求成功
-                setTimeout(() => {
-                    alert('个人资料已更新');
+                // 发送表单数据到API
+                fetch('/api/users/profile', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify(formData)
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('个人资料更新失败');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // 更新本地存储中的用户信息
+                    if (data && data.user) {
+                        localStorage.setItem('user', JSON.stringify(data.user));
+                    }
+                    
+                    // 显示成功消息
+                    if (typeof ToastMessage !== 'undefined') {
+                        ToastMessage.success('个人资料已更新');
+                    } else {
+                        alert('个人资料已更新');
+                    }
+                    
+                    // 跳转到首页
                     window.location.href = 'dashboard.html';
-                }, 1000);
+                })
+                .catch(error => {
+                    console.error('更新失败:', error);
+                    
+                    if (typeof ToastMessage !== 'undefined') {
+                        ToastMessage.error('更新失败: ' + error.message);
+                    } else {
+                        alert('更新失败: ' + error.message);
+                    }
+                });
             });
             
             // 取消按钮返回上一页
@@ -478,47 +452,71 @@
                 window.history.back();
             });
             
-            // 导航菜单项点击处理
-            const navItems = document.querySelectorAll('.nav-item');
-            navItems.forEach(item => {
-                item.addEventListener('click', () => {
-                    const text = item.querySelector('span').textContent;
-                    if (text === '我的笔记') {
-                        window.location.href = 'dashboard.html';
-                    } else if (text === '收藏笔记') {
-                        window.location.href = 'starred-notes.html';
-                    } else if (text === '笔记分类') {
-                        window.location.href = 'note-categories.html';
-                    } else if (text === '标签管理') {
-                        window.location.href = 'tags.html';
-                    } else if (text === '分享笔记') {
-                        window.location.href = 'note-share.html';
-                    } else if (text === '回收站') {
-                        window.location.href = 'trash.html';
-                    }
-                });
+            // 初始化站点设置
+            loadSiteInfo();
+            
+            // 初始化侧边栏菜单
+            const sidebarMenu = new SidebarMenu({
+                containerId: 'sidebar',
+                logoText: '笔记平台',
+                logoIcon: 'fas fa-book',
+                menuItems: [
+                    { id: 'home', text: '我的笔记', icon: 'fas fa-home', page: 'dashboard.html' },
+                    { id: 'starred', text: '收藏笔记', icon: 'fas fa-star', page: 'starred-notes.html' },
+                    { id: 'categories', text: '笔记分类', icon: 'fas fa-folder', page: 'note-categories.html' },
+                    { id: 'tags', text: '标签管理', icon: 'fas fa-tags', page: 'tags.html' },
+                    { id: 'shared', text: '分享笔记', icon: 'fas fa-share-alt', page: 'note-share.html' },
+                    { id: 'trash', text: '回收站', icon: 'fas fa-trash', page: 'trash.html' }
+                ],
+                autoNavigate: true
             });
             
-            // 用户菜单项点击处理
-            const menuItems = userProfileMenu.querySelectorAll('.menu-item');
-            menuItems.forEach(item => {
-                item.addEventListener('click', () => {
-                    const action = item.getAttribute('data-action');
-                    if (action === 'profile') {
-                        // 个人信息查看功能
-                        alert('查看个人信息 - 功能开发中');
-                    } else if (action === 'edit-profile') {
-                        window.location.href = 'profile-edit.html';
+            // 初始化内容头部
+            const contentHeader = new ContentHeader({
+                containerId: 'contentHeader',
+                title: '编辑个人资料',
+                icon: 'fas fa-user-edit',
+                showViewToggle: false,
+                showRefreshButton: false,
+                onMenuItemClick: (action) => {
+                    console.log('菜单项点击:', action);
+                    if (action === 'logout') {
+                        // 处理退出登录
+                        if (window.confirmLogout) {
+                            window.confirmLogout();
+                        } else {
+                            localStorage.removeItem('token');
+                            window.location.href = 'login.html';
+                        }
                     } else if (action === 'settings') {
                         window.location.href = 'settings.html';
-                    } else if (action === 'logout') {
-                        // 退出登录处理
-                        if (confirm('确定要退出登录吗？')) {
-                            window.location.href = 'index.html';
-                        }
+                    } else if (action === 'edit-profile') {
+                        window.location.href = 'profile-edit.html';
                     }
-                });
+                }
             });
+            
+            // 初始化主题切换
+            const themeToggle = document.getElementById('themeToggle');
+            if (themeToggle) {
+                themeToggle.addEventListener('click', function() {
+                    document.body.classList.toggle('dark-mode');
+                    localStorage.setItem('dark-mode', document.body.classList.contains('dark-mode'));
+                });
+                
+                // 加载保存的主题设置
+                if (localStorage.getItem('dark-mode') === 'true') {
+                    document.body.classList.add('dark-mode');
+                }
+            }
+            
+            // 初始化确认退出登录函数
+            window.confirmLogout = function() {
+                if (confirm('确定要退出登录吗？')) {
+                    localStorage.removeItem('token');
+                    window.location.href = 'login.html';
+                }
+            };
         });
     </script>
 </body>
