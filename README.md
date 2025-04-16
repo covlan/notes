@@ -1,4 +1,4 @@
-# 笔记应用 (Note App)
+# 笔记应用 (Notest App)
 
 一个全功能的笔记管理系统，支持创建、编辑和管理笔记，包括分类、标签、收藏夹和回收站等功能，以及用户管理和笔记分享功能。
 
@@ -10,6 +10,7 @@
 - 收藏笔记功能
 - 回收站功能
 - 笔记分享功能
+- 笔记导出和下载功能
 - 文件上传和管理
 - 用户设置和个人资料管理
 - 暗色模式支持
@@ -54,8 +55,8 @@
 #### 步骤1：克隆仓库
 
 ```bash
-git clone <仓库地址>
-cd note-app
+git clone https://github.com/covlan/notes.git
+cd notest
 ```
 
 #### 步骤2：安装依赖
@@ -73,7 +74,7 @@ yarn install
 ```bash
 PORT=5660
 NODE_ENV=development
-MONGODB_URI=mongodb://localhost:27017/note-app
+MONGODB_URI=mongodb://localhost:27017/notedb
 JWT_SECRET=your_jwt_secret
 JWT_EXPIRE=7d
 JWT_COOKIE_EXPIRE=7
@@ -128,7 +129,7 @@ npm install --production
 ```bash
 PORT=5660
 NODE_ENV=production
-MONGODB_URI=mongodb://localhost:27017/note-app
+MONGODB_URI=mongodb://localhost:27017/notedb
 JWT_SECRET=<强密钥>
 JWT_EXPIRE=30d
 JWT_COOKIE_EXPIRE=30
@@ -143,7 +144,7 @@ FRONTEND_URL=https://你的域名
 npm run process-html
 
 # 使用PM2启动应用
-pm2 start app.js --name "note-app"
+pm2 start app.js --name "notest"
 
 # 设置开机自启
 pm2 startup
@@ -161,8 +162,8 @@ pm2 save
 
 ```bash
 # 克隆代码
-git clone <仓库地址>
-cd note-app
+git clone https://github.com/covlan/notes.git
+cd notest
 ```
 
 #### 步骤2：配置环境变量
@@ -172,7 +173,7 @@ cd note-app
 ```bash
 PORT=5660
 NODE_ENV=production
-MONGODB_URI=mongodb://mongo:27017/note-app
+MONGODB_URI=mongodb://mongo:27017/notedb
 JWT_SECRET=<强密钥>
 JWT_EXPIRE=30d
 JWT_COOKIE_EXPIRE=30
@@ -312,3 +313,24 @@ docker compose logs -f app
 
 ## 许可证
    - MIT
+
+## 用户指南
+
+### 笔记管理
+
+#### 创建和编辑笔记
+点击页面右下角的"+"按钮创建新笔记。在笔记编辑器中，您可以编写和格式化笔记内容。支持Markdown语法。
+
+#### 整理笔记
+- **分类**：通过点击笔记菜单中的"移动到分类"选项，将笔记归类到不同分类中
+- **标签**：通过点击笔记菜单中的"添加标签"选项，为笔记添加标签进行更细致的整理
+
+#### 导出和下载
+笔记平台提供多种方式管理和导出您的笔记：
+- **单个笔记下载**：点击笔记菜单中的"下载笔记"选项，可以将单个笔记下载为Markdown文件
+- **批量导出**：在设置页面的"导入导出"部分，可以将所有笔记导出为Markdown文件压缩包
+
+#### 其他操作
+- **收藏**：点击笔记菜单中的"收藏笔记"选项，将重要笔记添加到收藏夹
+- **分享**：点击笔记菜单中的"分享笔记"选项，生成分享链接与他人共享
+- **删除**：将笔记移至回收站，系统会保留30天，之后自动删除
