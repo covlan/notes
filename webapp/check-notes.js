@@ -1,1 +1,0 @@
-console.log(localStorage.getItem('notes')); const notes = JSON.parse(localStorage.getItem('notes') || '[]'); const trashNotes = notes.filter(note => note.inTrash === true); console.log('回收站笔记数量:', trashNotes.length);
