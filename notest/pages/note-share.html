@@ -1,0 +1,1491 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>分享笔记 - 笔记平台</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/note-actions-menu.css">
+    <link rel="stylesheet" href="css/sidebar-menu.css">
+    <link rel="stylesheet" href="css/content-header.css">
+    <script src="./component/api.js"></script>
+    <script src="./component/commpush.js"></script>
+    <!-- 引入站点信息加载脚本 -->
+    <script src="component/site-info.js"></script>
+    <!-- 引入通用笔记加载组件 -->
+    <script src="component/notes-loader.js"></script>
+    <!-- 引入笔记操作菜单组件 -->
+    <script src="component/note-actions-menu.js"></script>
+    <!-- 引入侧边栏菜单组件 -->
+    <script src="component/sidebar-menu.js"></script>
+    <!-- 引入确认对话框组件 -->
+    <script src="component/confirm-dialog.js"></script>
+    <!-- 引入提示消息组件 -->
+    <script src="component/toast-message.js"></script>
+    <!-- 引入内容头部组件 -->
+    <script src="component/content-header.js"></script>
+</head>
+<body>
+    <!-- 侧边栏容器 -->
+    <div id="sidebar"></div>
+
+    <!-- 主题切换按钮 -->
+    <div class="theme-toggle" id="themeToggle">
+        <div class="theme-toggle-circle"></div>
+    </div>
+
+    <!-- 主内容区域 -->
+    <div class="main-content" id="mainContent">
+        <div class="content-header" id="contentHeader">
+            <!-- 将由ContentHeader组件动态生成 -->
+        </div>
+        <div class="shared-notes-container">
+            <!-- 分享笔记列表将由 JavaScript 动态生成 -->
+        </div>
+    </div>
+
+    <!-- 笔记操作菜单 -->
+    <div class="menu-overlay" id="menuOverlay"></div>
+    <div class="note-actions-menu" id="noteActionsMenu"></div>
+
+    <!-- 用户头像菜单 -->
+    <div class="user-profile-menu" id="userProfileMenu"></div>
+
+    <!-- 编辑器弹窗容器 -->
+    <div class="editor-modal-container" id="editorModal" style="display: none;"></div>
+
+    <!-- 分享设置弹窗 -->
+    <div class="modal" id="shareModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">分享设置</h2>
+                <button class="close-btn" id="closeModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="noteSelect">选择要分享的笔记</label>
+                    <select id="noteSelect">
+                        <!-- 笔记选项将由 JavaScript 动态生成 -->
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="shareType">分享方式</label>
+                    <div class="share-type-options">
+                        <label class="radio-label">
+                            <input type="radio" name="shareType" value="public" checked>
+                            <span>公开分享</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="shareType" value="private">
+                            <span>私密分享</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="shareLink">分享链接</label>
+                    <div class="share-link-container">
+                        <input type="text" id="shareLink" readonly>
+                        <button class="copy-btn" id="copyLink">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="shareExpiry">有效期</label>
+                    <select id="shareExpiry">
+                        <option value="7">7天</option>
+                        <option value="30">30天</option>
+                        <option value="90">90天</option>
+                        <option value="0">永久有效</option>
+                    </select>
+                </div>
+                <div class="form-group" id="passwordGroup" style="display: none;">
+                    <label for="sharePassword">密码</label>
+                    <input type="password" id="sharePassword">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="cancel-btn" id="cancelBtn">取消</button>
+                <button class="save-btn" id="saveBtn">确认分享</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 确保CommPush实例已初始化
+            if (!window.commpush) {
+                window.commpush = new CommPush();
+            }
+            
+            const mainContent = document.getElementById('mainContent');
+            const themeToggle = document.getElementById('themeToggle');
+            const body = document.body;
+            
+            // 这些元素可能动态生成，暂不获取引用
+            const shareModal = document.getElementById('shareModal');
+            const shareLink = document.getElementById('shareLink');
+            const copyLink = document.getElementById('copyLink');
+            
+            // 检查本地存储中的主题偏好
+            const currentTheme = localStorage.getItem('theme');
+            if (currentTheme === 'dark') {
+                body.classList.add('dark-mode');
+            }
+
+            // 切换主题
+            themeToggle.addEventListener('click', () => {
+                body.classList.toggle('dark-mode');
+                const theme = body.classList.contains('dark-mode') ? 'dark' : 'light';
+                localStorage.setItem('theme', theme);
+                
+                // 通知编辑器窗口更新主题，如果有打开的话
+                const editorFrame = document.querySelector('#editorModal iframe');
+                if (editorFrame && editorFrame.contentWindow) {
+                    editorFrame.contentWindow.postMessage({ type: 'themeChanged', theme }, '*');
+                }
+            });
+            
+            // 初始化侧边栏菜单
+            const sidebarMenu = new SidebarMenu({
+                containerId: 'sidebar',
+                logoText: '笔记平台',
+                logoIcon: 'fas fa-book',
+                menuItems: [
+                    { id: 'home', text: '我的笔记', icon: 'fas fa-home', page: 'dashboard.html' },
+                    { id: 'starred', text: '收藏笔记', icon: 'fas fa-star', page: 'starred-notes.html' },
+                    { id: 'categories', text: '笔记分类', icon: 'fas fa-folder', page: 'note-categories.html' },
+                    { id: 'tags', text: '标签管理', icon: 'fas fa-tags', page: 'tags.html' },
+                    { id: 'shared', text: '分享笔记', icon: 'fas fa-share-alt', active: true, page: 'note-share.html' },
+                    { id: 'trash', text: '回收站', icon: 'fas fa-trash', page: 'trash.html' }
+                ],
+                autoNavigate: true
+            });
+            
+            // 初始化内容头部组件
+            const contentHeader = new ContentHeader({
+                containerId: 'contentHeader',
+                title: '分享笔记',
+                showViewToggle: true,
+                showRefreshButton: true,
+                defaultView: 'grid',
+                hideOnMobile: false,
+                mobileConfig: {
+                    showTitle: true,
+                    showRefreshButton: true,
+                    showViewToggle: false,  // 移动端不显示视图切换按钮
+                    showActionButtons: true // 保留分享按钮
+                },
+                actionButtons: [
+                    {
+                        icon: 'fas fa-share-alt',
+                        text: '分享新笔记',
+                        tooltip: '分享一个新笔记',
+                        callback: () => {
+                            // 打开分享弹窗
+                            openShareModal();
+                        }
+                    }
+                ],
+                onViewToggle: (viewMode) => {
+                    // 保存用户选择的视图模式
+                    localStorage.setItem('shareViewMode', viewMode);
+                    
+                    // 应用视图模式到容器
+                    const container = document.querySelector('.shared-notes-container');
+                    if (container) {
+                        container.className = `shared-notes-container view-${viewMode}`;
+                    }
+                    
+                    // 应用视图模式到主内容区域
+                    if (mainContent) {
+                        mainContent.classList.remove('view-list', 'view-grid');
+                        mainContent.classList.add(`view-${viewMode}`);
+                    }
+                },
+                onRefresh: () => {
+                    // 刷新分享列表
+                    loadSharedNotes(true);
+                },
+                onMenuItemClick: (action) => {
+                    if (action === 'logout') {
+                        // 处理退出登录
+                        if (window.confirmLogout) {
+                            window.confirmLogout();
+                        }
+                    } else if (action === 'settings') {
+                        window.location.href = 'settings.html';
+                    } else if (action === 'edit-profile') {
+                        window.location.href = 'profile-edit.html';
+                    }
+                }
+            });
+            
+            // 保存到全局对象，使其他组件可以访问
+            window.contentHeader = contentHeader;
+            
+            // 设置初始视图模式
+            const savedViewMode = localStorage.getItem('shareViewMode') || 'grid';
+            if (mainContent) {
+                mainContent.classList.remove('view-list', 'view-grid');
+                mainContent.classList.add(`view-${savedViewMode}`);
+            }
+            
+            // 加载分享笔记列表
+            loadSharedNotes();
+
+            // 加载分享笔记列表
+            function loadSharedNotes(forceRefresh = false) {
+                const sharedNotesContainer = document.querySelector('.shared-notes-container');
+                
+                // 应用当前视图模式到容器
+                const currentViewMode = localStorage.getItem('shareViewMode') || 'grid';
+                if (sharedNotesContainer) {
+                    sharedNotesContainer.className = `shared-notes-container view-${currentViewMode}`;
+                }
+                
+                // 显示加载状态
+                sharedNotesContainer.innerHTML = `
+                    <div class="loading-notes">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>加载分享列表中...</p>
+                    </div>
+                `;
+                
+                // 检查commpush对象是否可用
+                if (!window.commpush) {
+                    ToastMessage.error('CommPush组件未初始化，使用本地存储获取分享列表');
+                    loadSharesFromLocalStorage();
+                    return;
+                }
+                
+                // 使用CommPush组件获取分享列表，并添加重试处理
+                const fetchSharesWithRetry = (retryCount = 0, maxRetries = 2) => {
+                  
+                    window.commpush.getSharedNotes()
+                        .then(response => {
+                           
+                            if (!response) {
+                                throw new Error('获取分享列表失败：服务器无响应');
+                            }
+                            
+                            if (!response.success) {
+                                throw new Error(response.message || '获取分享列表失败');
+                            }
+                            
+                            // 检查shares字段是否存在且为数组
+                            if (!response.shares || !Array.isArray(response.shares)) {
+                                response.shares = [];
+                            }
+                            
+                            if (response.shares.length === 0) {
+                                sharedNotesContainer.innerHTML = `
+                                    <div class="empty-state empty-shared-notes">
+                                        <i class="fas fa-share-alt"></i>
+                                        <p>暂无分享的笔记</p>
+                                        <small>您可以通过点击"分享新笔记"按钮来分享已有笔记</small>
+                                    </div>
+                                `;
+                                return;
+                            }
+                            
+                            // 成功获取分享列表，渲染UI
+                            renderSharesList(response.shares);
+                        })
+                        .catch(error => {
+
+                            
+                            if (retryCount < maxRetries) {
+                                // 显示重试提示
+                                sharedNotesContainer.innerHTML = `
+                                    <div class="loading-notes">
+                                        <i class="fas fa-sync fa-spin"></i>
+                                        <p>获取分享列表失败，正在重试 (${retryCount + 1}/${maxRetries + 1})...</p>
+                                    </div>
+                                `;
+                                
+                                // 递增重试次数，指数退避延迟
+                                const delay = Math.pow(2, retryCount) * 1000;
+                                setTimeout(() => fetchSharesWithRetry(retryCount + 1, maxRetries), delay);
+                            } else {
+                                // 已达到最大重试次数，显示错误并回退到本地存储
+                                ToastMessage.warn('尝试使用本地存储');
+                                loadSharesFromLocalStorage(error.message);
+                            }
+                        });
+                };
+                
+                // 开始尝试获取分享列表
+                fetchSharesWithRetry();
+            }
+            
+            // 从本地存储加载分享笔记
+            function loadSharesFromLocalStorage(errorMessage = null) {
+                const sharedNotesContainer = document.querySelector('.shared-notes-container');
+                
+                // 尝试从本地存储获取分享笔记
+                const notes = JSON.parse(localStorage.getItem('notes') || '[]');
+                const sharedNotes = notes.filter(note => note.shared && !note.isCanceled);
+                
+                if (sharedNotes.length > 0) {
+                    // 如果有错误信息，显示错误横幅
+                    if (errorMessage) {
+                        sharedNotesContainer.innerHTML = `
+                            <div class="error-banner">
+                                <i class="fas fa-exclamation-circle"></i>
+                                <p>获取分享列表失败: ${errorMessage}</p>
+                                <button id="retryButton" class="retry-btn">
+                                    <i class="fas fa-sync"></i> 重试
+                                </button>
+                            </div>
+                        `;
+                    } else {
+                        sharedNotesContainer.innerHTML = '';
+                    }
+                    
+                    // 渲染本地存储的分享笔记
+                    sharedNotesContainer.innerHTML += sharedNotes.map(note => `
+                        <div class="shared-note-card" data-id="${note.id}">
+                            <div class="note-info">
+                                <div class="note-title-section">
+                                    <h3 class="note-title">${note.title}</h3>
+                                    <div class="note-meta">
+                                        <span class="share-date">
+                                            <i class="far fa-calendar"></i>
+                                            分享于 ${new Date(note.sharedAt).toLocaleDateString()}
+                                        </span>
+                                        <span class="share-type ${note.shareType}">
+                                            <i class="fas ${note.shareType === 'public' ? 'fa-globe' : 'fa-lock'}"></i>
+                                            ${note.shareType === 'public' ? '公开' : '私密'}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="share-stats">
+                                    <span><i class="far fa-eye"></i> ${note.views || 0} 次查看</span>
+                                    <span><i class="far fa-star"></i> ${note.stars || 0} 次收藏</span>
+                                </div>
+                            </div>
+                            <div class="note-actions">
+                                <button class="view-btn" data-id="${note.id}">
+                                    <i class="fas fa-eye"></i>
+                                    查看
+                                </button>
+                                <button class="stop-share-btn" data-id="${note.id}">
+                                    <i class="fas fa-ban"></i>
+                                    停止分享
+                                </button>
+                            </div>
+                        </div>
+                    `).join('');
+                    
+                    // 更新按钮点击事件
+                    document.querySelectorAll('.shared-note-card').forEach(card => {
+                        const viewBtn = card.querySelector('.view-btn');
+                        const stopShareBtn = card.querySelector('.stop-share-btn');
+                        
+                        viewBtn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            viewShareLocal(card.dataset.id);
+                        });
+                        
+                        stopShareBtn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            stopSharingLocal(card.dataset.id);
+                        });
+                    });
+                    
+                    // 添加重试按钮事件
+                    document.getElementById('retryButton')?.addEventListener('click', () => {
+                        loadSharedNotes();
+                    });
+                } else {
+                    sharedNotesContainer.innerHTML = `
+                        <div class="empty-state empty-shared-notes ${errorMessage ? 'error' : ''}">
+                            ${errorMessage ? `
+                                <i class="fas fa-exclamation-circle"></i>
+                                <p>获取分享列表失败: ${errorMessage}</p>
+                                <button id="retryButton" class="retry-btn">
+                                    <i class="fas fa-sync"></i> 重试
+                                </button>
+                            ` : `
+                                <i class="fas fa-share-alt"></i>
+                                <p>暂无分享的笔记</p>
+                                <small>您可以通过点击右上角的"分享笔记"按钮来分享您的笔记</small>
+                            `}
+                        </div>
+                    `;
+                    
+                    // 添加重试按钮事件
+                    if (errorMessage) {
+                        document.getElementById('retryButton')?.addEventListener('click', () => {
+                            loadSharedNotes();
+                        });
+                    }
+                }
+            }
+            
+            // 渲染分享列表
+            function renderSharesList(shares) {
+                const sharedNotesContainer = document.querySelector('.shared-notes-container');
+                
+                // 过滤掉已取消的分享
+                const validShares = shares.filter(share => !share.isCanceled);
+                
+                if (validShares.length === 0) {
+                    sharedNotesContainer.innerHTML = `
+                        <div class="empty-state empty-shared-notes">
+                            <i class="fas fa-share-alt"></i>
+                            <p>暂无分享的笔记</p>
+                            <small>您可以通过点击右上角的"分享笔记"按钮来分享您的笔记</small>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                sharedNotesContainer.innerHTML = validShares.map(share => `
+                    <div class="shared-note-card" data-id="${share.noteId || share._id}" data-share-id="${share._id}">
+                        <div class="note-info">
+                            <div class="note-title-section">
+                                <h3 class="note-title">${share.noteTitle || '笔记已删除'}</h3>
+                                <div class="note-meta">
+                                    <span class="share-date">
+                                        <i class="far fa-calendar"></i>
+                                        分享于 ${new Date(share.sharedAt).toLocaleDateString()}
+                                    </span>
+                                    <span class="share-type ${share.shareType}">
+                                        <i class="fas ${share.shareType === 'public' ? 'fa-globe' : 'fa-lock'}"></i>
+                                        ${share.shareType === 'public' ? '公开' : '私密'}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="share-stats">
+                                <span><i class="far fa-eye"></i> ${share.views || 0} 次查看</span>
+                                <span><i class="far fa-star"></i> ${share.stars || 0} 次收藏</span>
+                            </div>
+                        </div>
+                        <div class="note-actions">
+                            <button class="view-btn" data-id="${share._id}">
+                                <i class="fas fa-eye"></i>
+                                查看
+                            </button>
+                            <button class="stop-share-btn" data-id="${share._id}">
+                                <i class="fas fa-ban"></i>
+                                停止分享
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+                
+                // 更新按钮点击事件
+                document.querySelectorAll('.shared-note-card').forEach(card => {
+                    const viewBtn = card.querySelector('.view-btn');
+                    const stopShareBtn = card.querySelector('.stop-share-btn');
+                    
+                    viewBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        viewShare(card.dataset.shareId || viewBtn.dataset.id);
+                    });
+
+                    stopShareBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        stopSharing(card.dataset.shareId || stopShareBtn.dataset.id);
+                    });
+                });
+            }
+
+            // 查看分享笔记
+            function viewShare(shareId) {
+                if (!shareId) {
+                    alert('分享ID不存在');
+                    return;
+                }
+                
+                // 构建分享链接
+                const baseUrl = window.location.origin;
+                const url = `${baseUrl}/view-shared-note.html?id=${shareId}`;
+                
+                // 在新标签页中打开
+                window.open(url, '_blank');
+            }
+
+            // 停止分享
+            function stopSharing(shareId) {
+                if (!shareId) {
+                    ToastMessage.error('分享ID不存在');
+                    return;
+                }
+                
+                ConfirmDialog.danger('停止分享', '确定要停止分享这个笔记吗？', function(confirmed) {
+                    if (confirmed) {
+                        window.commpush.removeShare(shareId)
+                            .then(response => {
+                                if (response && response.success) {
+                                    loadSharedNotes(); // 重新加载分享列表
+                                    ToastMessage.success('分享已取消');
+                                } else {
+                                    throw new Error(response.message || '取消分享失败');
+                                }
+                            })
+                            .catch(error => {
+                                ToastMessage.error(`取消分享失败: ${error.message}`);
+                            });
+                    }
+                });
+            }
+            
+            // 打开分享设置弹窗
+            function openShareModal() {
+                const shareModal = document.getElementById('shareModal');
+                const noteSelect = document.getElementById('noteSelect');
+                const passwordGroup = document.getElementById('passwordGroup');
+                
+                if (!shareModal || !noteSelect) {
+                    ToastMessage.error('分享模块初始化失败，请刷新页面');
+                    return;
+                }
+                
+                const notes = JSON.parse(localStorage.getItem('notes') || '[]');
+                const unsharedNotes = notes.filter(note => !note.shared && !note.isCanceled && !note.inTrash);
+                
+                if (unsharedNotes.length === 0) {
+                    ToastMessage.warning('没有可分享的笔记，所有笔记已分享或被取消');
+                    return;
+                }
+                
+                noteSelect.innerHTML = unsharedNotes.map(note => `
+                    <option value="${note.id}">${note.title}</option>
+                `).join('');
+
+                // 设置初始状态下的密码框显示
+                const shareType = document.querySelector('input[name="shareType"]:checked')?.value || 'public';
+                if (passwordGroup) {
+                    passwordGroup.style.display = shareType === 'private' ? 'block' : 'none';
+                }
+
+                shareModal.style.display = 'flex';
+                updateShareLink();
+            }
+
+            // 关闭分享设置弹窗
+            function closeShareModal() {
+                const shareModal = document.getElementById('shareModal');
+                const shareLink = document.getElementById('shareLink');
+                const saveBtn = document.getElementById('saveBtn');
+                
+                if (shareModal) {
+                    shareModal.style.display = 'none';
+                }
+                
+                if (shareLink) {
+                    shareLink.value = '';
+                }
+                
+                // 重置按钮状态
+                if (saveBtn) {
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = '确认分享';
+                }
+            }
+
+            // 更新分享链接
+            function updateShareLink() {
+                try {
+                    const noteSelect = document.getElementById('noteSelect');
+                    const shareLink = document.getElementById('shareLink');
+                    const passwordGroup = document.getElementById('passwordGroup');
+                    
+                    if (!noteSelect || !shareLink) {
+                        return;
+                    }
+                    
+                    const noteId = noteSelect.value;
+                    if (!noteId) {
+                        shareLink.value = '';
+                        return;
+                    }
+                    
+                    const shareType = document.querySelector('input[name="shareType"]:checked')?.value || 'public';
+                    
+                    // 根据分享类型显示或隐藏密码输入框
+                    if (passwordGroup) {
+                        passwordGroup.style.display = shareType === 'private' ? 'block' : 'none';
+                    }
+                    
+                    const baseUrl = window.location.origin;
+                    shareLink.value = `${baseUrl}/view-shared-note.html?id=${noteId}&type=${shareType}`;
+                } catch (error) {
+                    const shareLink = document.getElementById('shareLink');
+                    if (shareLink) {
+                        shareLink.value = '生成链接失败';
+                    }
+                }
+            }
+
+            // 复制分享链接
+            document.addEventListener('DOMContentLoaded', function() {
+                const copyLink = document.getElementById('copyLink');
+                
+                if (copyLink) {
+                    copyLink.addEventListener('click', function() {
+                        try {
+                            const shareLink = document.getElementById('shareLink');
+                            
+                            if (!shareLink || !shareLink.value) {
+                                ToastMessage.error('没有可复制的链接');
+                                return;
+                            }
+                            
+                            // 使用通用的复制函数
+                            copyShareLinkToClipboard(shareLink.value);
+                        } catch (error) {
+                            ToastMessage.error('复制链接失败');
+                        }
+                    });
+                }
+            });
+
+            // 事件监听器设置
+            function setupEventListeners() {
+                try {
+                    // 获取按钮元素，可能由ContentHeader组件动态创建
+                    const shareBtn = document.getElementById('shareBtn');
+                    const closeModal = document.getElementById('closeModal');
+                    const cancelBtn = document.getElementById('cancelBtn');
+                    const saveBtn = document.getElementById('saveBtn');
+                    const noteSelect = document.getElementById('noteSelect');
+                    const shareModal = document.getElementById('shareModal');
+                    
+                    // 只有在元素存在的情况下才添加事件监听器
+                    if (shareBtn) {
+                        shareBtn.addEventListener('click', openShareModal);
+                    }
+                    
+                    if (closeModal) {
+                        closeModal.addEventListener('click', closeShareModal);
+                    }
+                    
+                    if (cancelBtn) {
+                        cancelBtn.addEventListener('click', closeShareModal);
+                    }
+                    
+                    if (shareModal) {
+                        // 关于模态框的点击事件处理
+                        shareModal.addEventListener('click', (event) => {
+                            if (event.target === shareModal) {
+                                closeShareModal();
+                            }
+                        });
+                    }
+                    
+                    if (noteSelect) {
+                        // 重新绑定下拉框事件
+                        noteSelect.addEventListener('change', updateShareLink);
+                    }
+                    
+                    // 重新绑定单选按钮事件
+                    document.querySelectorAll('input[name="shareType"]').forEach(radio => {
+                        radio.addEventListener('change', updateShareLink);
+                    });
+                    
+                    if (saveBtn) {
+                        // 绑定保存按钮监听器
+                        saveBtn.addEventListener('click', saveShareSettings);
+                    }
+                } catch (error) {
+                    // 使用 ToastMessage 组件显示错误消息
+                    if (typeof ToastMessage !== 'undefined') {
+                        ToastMessage.error('初始化事件监听器失败，请刷新页面');
+                    } else {
+                        ToastMessage.error('初始化事件监听器失败，请刷新页面');
+                    }
+                }
+            }
+
+            // 复制分享链接到剪贴板的公共函数
+            function copyShareLinkToClipboard(url) {
+                try {
+                    // 创建一个临时输入框
+                    const tempInput = document.createElement('input');
+                    tempInput.value = url;
+                    document.body.appendChild(tempInput);
+                    tempInput.select();
+                    
+                    // 执行复制命令
+                    const success = document.execCommand('copy');
+                    
+                    // 移除临时输入框
+                    document.body.removeChild(tempInput);
+                    
+                    if (success) {
+                        ToastMessage.success('分享链接已复制到剪贴板');
+                    } else {
+                        throw new Error('无法自动复制链接');
+                    }
+                } catch (error) {
+                    ToastMessage.info('请手动复制分享链接');
+                }
+            }
+
+            // 保存分享设置 - 独立出来的函数
+            function saveShareSettings() {
+                try {
+                    const noteSelect = document.getElementById('noteSelect');
+                    const saveBtn = document.getElementById('saveBtn');
+                    const shareLink = document.getElementById('shareLink');
+                    
+                    if (!noteSelect) {
+                        ToastMessage.error('分享表单初始化失败，请刷新页面');
+                        return;
+                    }
+                    
+                    const noteId = noteSelect.value;
+                    if (!noteId) {
+                        ToastMessage.error('请选择要分享的笔记');
+                        return;
+                    }
+                    
+                    const shareType = document.querySelector('input[name="shareType"]:checked')?.value || 'public';
+                    const expiry = document.getElementById('shareExpiry')?.value || '0';
+                    const password = document.getElementById('sharePassword')?.value || '';
+                    
+                    // 显示加载状态
+                    if (saveBtn) {
+                        saveBtn.disabled = true;
+                        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 处理中...';
+                    }
+                    
+                    // 先保存当前的分享链接，以便分享成功后复制
+                    const shareLinkValue = shareLink ? shareLink.value : '';
+                    
+                    // 如果API可用，使用API进行分享
+                    if (window.commpush) {
+                        window.commpush.shareNote(noteId, shareType, password, expiry)
+                            .then(response => {
+                                if (response && response.success) {
+                                    // 如果有返回的分享链接，使用返回的链接
+                                    const linkToCopy = response.shareLink || shareLinkValue;
+                                    
+                                    // 复制分享链接到剪贴板
+                                    if (linkToCopy) {
+                                        copyShareLinkToClipboard(linkToCopy);
+                                    }
+                                    
+                                    closeShareModal();
+                                    loadSharedNotes();
+                                    ToastMessage.success('笔记分享成功');
+                                } else {
+                                    throw new Error(response.message || '分享失败');
+                                }
+                            })
+                            .catch(error => {
+                                ToastMessage.error(`分享失败: ${error.message}`);
+                                
+                                // 重置按钮状态
+                                if (saveBtn) {
+                                    saveBtn.disabled = false;
+                                    saveBtn.innerHTML = '确认分享';
+                                }
+                            });
+                    } else {
+                        // 备用方案：使用本地存储分享
+                        shareNoteLocally(noteId, shareType, expiry, shareLinkValue);
+                    }
+                } catch (error) {
+                    ToastMessage.error('保存分享设置失败');
+                    
+                    // 重置按钮状态
+                    const saveBtn = document.getElementById('saveBtn');
+                    if (saveBtn) {
+                        saveBtn.disabled = false;
+                        saveBtn.innerHTML = '确认分享';
+                    }
+                }
+            }
+
+            // 本地分享逻辑
+            function shareNoteLocally(noteId, shareType, expiry, shareLinkValue) {
+                try {
+                    const saveBtn = document.getElementById('saveBtn');
+                    const notes = JSON.parse(localStorage.getItem('notes') || '[]');
+                    const noteIndex = notes.findIndex(n => n.id === noteId);
+                    
+                    if (noteIndex === -1) {
+                        ToastMessage.error('找不到指定的笔记');
+                        if (saveBtn) {
+                            saveBtn.disabled = false;
+                            saveBtn.innerHTML = '确认分享';
+                        }
+                        return;
+                    }
+                    
+                    // 创建分享ID
+                    const shareId = `share_${Date.now()}`;
+                    
+                    // 更新笔记分享状态
+                    notes[noteIndex] = {
+                        ...notes[noteIndex],
+                        shared: true,
+                        sharedAt: new Date().toISOString(),
+                        shareType,
+                        shareId: shareId,
+                        expiry: expiry === '0' ? null : new Date(Date.now() + parseInt(expiry) * 24 * 60 * 60 * 1000).toISOString(),
+                        views: 0,
+                        stars: 0
+                    };
+                    
+                    localStorage.setItem('notes', JSON.stringify(notes));
+                    
+                    // 更新分享列表
+                    localStorage.setItem('shares_updated', Date.now().toString());
+                    
+                    // 复制分享链接到剪贴板
+                    if (shareLinkValue) {
+                        copyShareLinkToClipboard(shareLinkValue);
+                    }
+                    
+                    closeShareModal();
+                    loadSharedNotes();
+                    ToastMessage.success('笔记分享成功（本地模式）');
+                    
+                    // 重置按钮状态
+                    if (saveBtn) {
+                        saveBtn.disabled = false;
+                        saveBtn.innerHTML = '确认分享';
+                    }
+                } catch (error) {
+                    ToastMessage.error('分享笔记失败');
+                    
+                    // 重置按钮状态
+                    const saveBtn = document.getElementById('saveBtn');
+                    if (saveBtn) {
+                        saveBtn.disabled = false;
+                        saveBtn.innerHTML = '确认分享';
+                    }
+                }
+            }
+
+            // 初始化时设置事件监听器
+            setupEventListeners();
+            
+            // 从本地存储查看分享
+            function viewShareLocal(noteId) {
+                const notes = JSON.parse(localStorage.getItem('notes') || '[]');
+                const note = notes.find(n => n.id === noteId);
+                
+                if (!note) {
+                    ToastMessage.error('找不到此笔记');
+                    return;
+                }
+                
+                // 构建分享URL
+                const shareType = note.shareType || 'public';
+                const baseUrl = window.location.origin;
+                const shareUrl = `${baseUrl}/view-shared-note.html?id=${noteId}&type=${shareType}`;
+                
+                // 在新窗口打开分享链接
+                window.open(shareUrl, '_blank');
+            }
+            
+            // 从本地存储停止分享
+            function stopSharingLocal(noteId) {
+                ConfirmDialog.danger('停止分享', '确定要停止分享此笔记吗？', function(confirmed) {
+                    if (confirmed) {
+                        const notes = JSON.parse(localStorage.getItem('notes') || '[]');
+                        const noteIndex = notes.findIndex(n => n.id === noteId);
+                        
+                        if (noteIndex === -1) {
+                            ToastMessage.error('找不到此笔记');
+                            return;
+                        }
+                        
+                        // 更新本地存储
+                        notes[noteIndex].isCanceled = true; // 添加已取消标记，与服务器端保持一致
+                        notes[noteIndex].shared = false;
+                        notes[noteIndex].shareType = null;
+                        notes[noteIndex].sharedAt = null;
+                        
+                        localStorage.setItem('notes', JSON.stringify(notes));
+                        
+                        // 如果API可用，尝试同步到服务器
+                        
+                        // 刷新分享列表
+                        loadSharedNotes();
+                        // 使用Toast显示成功消息
+                        ToastMessage.success('已停止分享此笔记');
+                    }
+                });
+            }
+        });
+    </script>
+
+    <style>
+        /* 分享笔记列表样式 */
+        .shared-notes-container {
+            padding: 20px;
+        }
+        
+        /* 网格视图样式 */
+        .shared-notes-container.view-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+        }
+        
+        /* 列表视图样式 */
+        .shared-notes-container.view-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        /* 卡片在网格视图下的样式 */
+        .view-grid .shared-note-card {
+            flex-direction: column;
+            align-items: stretch;
+            height: 100%;
+        }
+        
+        .view-grid .note-info {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+        }
+        
+        .view-grid .note-actions {
+            margin-top: 15px;
+            justify-content: flex-end;
+        }
+        
+        /* 卡片在列表视图下的样式 */
+        .view-list .shared-note-card {
+            flex-direction: row;
+            align-items: center;
+        }
+        
+        .view-list .note-info {
+            flex-direction: row;
+            align-items: center;
+        }
+        
+        .view-list .note-title {
+            max-width: 200px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .shared-note-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 16px;
+            transition: all 0.2s ease;
+            display: flex;
+            justify-content: space-between;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .shared-note-card:hover {
+            background-color: #f9f9f9;
+            transform: translateX(2px);
+        }
+
+        .note-info {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .note-title-section {
+            flex: 1;
+        }
+
+        .note-title {
+            margin: 0;
+            font-size: 16px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .note-meta {
+            display: flex;
+            gap: 16px;
+            font-size: 13px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .share-type {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .share-type.public {
+            color: #34a853;
+        }
+
+        .share-type.private {
+            color: #ea4335;
+        }
+
+        .share-stats {
+            display: flex;
+            gap: 15px;
+            font-size: 13px;
+            color: #666;
+            align-items: center;
+        }
+
+        .note-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .view-btn,
+        .stop-share-btn {
+            padding: 6px 12px;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.2s ease;
+        }
+
+        .view-btn {
+            background-color: #e8f0fe;
+            color: #1a73e8;
+        }
+
+        .stop-share-btn {
+            background-color: #fce8e6;
+            color: #ea4335;
+        }
+
+        .view-btn:hover {
+            background-color: #d2e3fc;
+        }
+
+        .stop-share-btn:hover {
+            background-color: #fad2cf;
+        }
+
+        .share-btn {
+            background-color: #1a73e8;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: 20px;
+            transition: background-color 0.3s ease;
+        }
+
+        .share-btn:hover {
+            background-color: #1557b0;
+        }
+
+        /* 模态窗口样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: #fff;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            position: relative;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .modal-footer {
+            padding: 16px 20px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .close-btn:hover {
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .form-group select,
+        .form-group input[type="text"],
+        .form-group input[type="password"] {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .cancel-btn,
+        .save-btn {
+            padding: 8px 16px;
+            border-radius: 4px;
+            border: none;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .cancel-btn {
+            background-color: #f1f3f4;
+            color: #5f6368;
+        }
+
+        .save-btn {
+            background-color: #1a73e8;
+            color: white;
+        }
+
+        .cancel-btn:hover {
+            background-color: #e8eaed;
+        }
+
+        .save-btn:hover {
+            background-color: #1557b0;
+        }
+
+        /* 暗色模式样式 */
+        .dark-mode .shared-note-card {
+            background-color: #2d2d2d;
+        }
+        
+        .dark-mode .shared-note-card:hover {
+            background-color: #333333;
+        }
+
+        .dark-mode .note-title {
+            color: #fff;
+        }
+
+        .dark-mode .note-meta,
+        .dark-mode .share-stats {
+            color: #bbb;
+        }
+
+        .dark-mode .view-btn {
+            background-color: #1a73e8;
+            color: white;
+        }
+
+        .dark-mode .stop-share-btn {
+            background-color: #ea4335;
+            color: white;
+        }
+
+        .dark-mode .view-btn:hover {
+            background-color: #1557b0;
+        }
+
+        .dark-mode .stop-share-btn:hover {
+            background-color: #d93025;
+        }
+
+        .dark-mode .modal-content {
+            background-color: #2d2d2d;
+            color: #fff;
+        }
+
+        .dark-mode .modal-header,
+        .dark-mode .modal-footer {
+            border-color: #444;
+        }
+
+        .dark-mode .close-btn {
+            color: #bbb;
+        }
+
+        .dark-mode .close-btn:hover {
+            color: #fff;
+        }
+
+        .dark-mode .form-group select,
+        .dark-mode .form-group input[type="text"],
+        .dark-mode .form-group input[type="password"] {
+            background-color: #3d3d3d;
+            border-color: #4d4d4d;
+            color: #fff;
+        }
+
+        .dark-mode .cancel-btn {
+            background-color: #3d3d3d;
+            color: #ddd;
+        }
+
+        .dark-mode .save-btn {
+            background-color: #1a73e8;
+        }
+
+        .dark-mode .cancel-btn:hover {
+            background-color: #4d4d4d;
+        }
+
+        .dark-mode .save-btn:hover {
+            background-color: #1557b0;
+        }
+
+        .share-link-container {
+            display: flex;
+            gap: 8px;
+        }
+
+        .share-link-container input {
+            flex: 1;
+        }
+
+        .copy-btn {
+            padding: 8px 12px;
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            color: #666;
+            transition: all 0.3s ease;
+        }
+
+        .copy-btn:hover {
+            background-color: #e8eaed;
+        }
+
+        .dark-mode .copy-btn {
+            background-color: #3d3d3d;
+            border-color: #4d4d4d;
+            color: #fff;
+        }
+
+        .dark-mode .copy-btn:hover {
+            background-color: #4d4d4d;
+        }
+
+        .share-type-options {
+            display: flex;
+            gap: 20px;
+        }
+
+        .radio-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        /* 空数据状态和错误状态样式 */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            text-align: center;
+        }
+        
+        .empty-state i {
+            font-size: 48px;
+            margin-bottom: 16px;
+            color: #999;
+        }
+        
+        .empty-state p {
+            font-size: 18px;
+            margin: 0;
+        }
+        
+        .empty-state.error i {
+            color: #ea4335;
+        }
+        
+        .dark-mode .empty-state {
+            background-color: #2d2d2d;
+            color: #bbb;
+        }
+        
+        .dark-mode .empty-state i {
+            color: #666;
+        }
+        
+        .dark-mode .empty-state.error i {
+            color: #ff6b6b;
+        }
+        
+        /* 加载动画样式 */
+        .loading-notes {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            text-align: center;
+        }
+        
+        .loading-notes i {
+            font-size: 24px;
+            margin-bottom: 10px;
+            color: #1a73e8;
+        }
+        
+        .loading-notes p {
+            color: #666;
+            margin: 0;
+        }
+        
+        .dark-mode .loading-notes i {
+            color: #8ab4f8;
+        }
+        
+        .dark-mode .loading-notes p {
+            color: #bbb;
+        }
+
+        /* 错误横幅样式 */
+        .error-banner {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            background-color: #fce8e6;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .error-banner i {
+            color: #ea4335;
+            margin-right: 10px;
+            font-size: 16px;
+        }
+
+        .error-banner p {
+            margin: 0;
+            color: #d93025;
+            flex-grow: 1;
+        }
+
+        .retry-btn {
+            padding: 6px 12px;
+            background-color: #fff;
+            border: 1px solid #d93025;
+            color: #d93025;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 13px;
+        }
+
+        .retry-btn:hover {
+            background-color: #fafafa;
+        }
+
+        .dark-mode .error-banner {
+            background-color: #3d1412;
+        }
+
+        .dark-mode .error-banner i,
+        .dark-mode .error-banner p {
+            color: #f28b82;
+        }
+
+        .dark-mode .retry-btn {
+            background-color: #3d3d3d;
+            border-color: #f28b82;
+            color: #f28b82;
+        }
+
+        .dark-mode .retry-btn:hover {
+            background-color: #4d4d4d;
+        }
+        
+        /* 移动端适配样式 */
+        @media (max-width: 768px) {
+            /* 确保移动端始终为卡片视图，无论用户选择什么 */
+            .shared-notes-container {
+                display: grid;
+                grid-template-columns: 1fr;
+                gap: 10px;
+                padding: 10px;
+            }
+            
+            .shared-note-card {
+                padding: 12px;
+            }
+            
+            .note-title {
+                font-size: 15px;
+            }
+            
+            .note-meta {
+                flex-direction: column;
+                gap: 4px;
+                align-items: flex-start;
+            }
+            
+            .share-stats {
+                margin-top: 5px;
+            }
+            
+            .note-actions button {
+                padding: 5px 10px;
+                font-size: 12px;
+            }
+            
+            /* 模态窗口适配 */
+            .modal-content {
+                width: 95%;
+                max-width: none;
+            }
+        }
+    </style>
+</body>
+</html> 

@@ -1,0 +1,95 @@
+services:
+  # 应用服务
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: notest
+    restart: unless-stopped
+    ports:
+      - "5660:5660"
+    environment:
+      - NODE_ENV=production
+      - PORT=5660
+      - MONGODB_URI=mongodb://${DB_HOSTS}:27017/notedb
+      - JWT_SECRET=${JWT_SECRET:-YB4bshsj3fLD9IbOmvNlzW1NGFMvEoXpfznOuKn7YUjMa3txA4PQCSLiIqRw}
+      - JWT_EXPIRE=7d
+      - JWT_COOKIE_EXPIRE=7
+      - FRONTEND_URL=http://notes.covlan.com:5660
+      - CORS_ORIGIN=http://notes.covlan.com:5660
+      - DB_MONITOR_ENABLED=false
+      - DB_MONITOR_INTERVAL=60000
+      - APP_HOSTS=${APP_HOSTS}
+      - DB_HOSTS=${DB_HOSTS}
+    depends_on:
+      mongo:
+        condition: service_healthy
+    volumes:
+      - ${PWD}/src/uploads:/app/src/uploads
+      - ${PWD}/files_data:/app/files
+      - ${PWD}/logs:/app/logs
+    networks:
+      app_network:
+        ipv4_address: ${APP_HOSTS}
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5660/health"]
+      interval: 20s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 500M
+
+  # MongoDB数据库服务
+  mongo:
+    image: mongo:6
+    container_name: notedb
+    restart: always
+    expose:
+      - "27017"
+    volumes:
+      - ${PWD}/mongo_data:/data/db
+      - ${PWD}/mongo_config:/data/configdb
+      - ${PWD}/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+      - ${PWD}/scripts:/scripts
+      - ${PWD}/logs:/var/log/mongodb
+    networks:
+      app_network:
+        ipv4_address: ${DB_HOSTS}
+    environment:
+      - MONGO_INITDB_DATABASE=notedb
+    command: ["--bind_ip", "${DB_HOSTS},127.0.0.1", "--wiredTigerCacheSizeGB", "1", "--logpath", "/var/log/mongodb/mongod.log", "--logappend"]
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.3'
+          memory: 300M
+
+# 持久化卷
+volumes:
+  mongo_data:
+    driver: local
+    name: note_mongo_data
+  mongo_config:
+    driver: local
+    name: note_mongo_config
+  files_data:
+    driver: local
+    name: note_files_data
+
+# 网络配置
+networks:
+  app_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.30.0.0/24

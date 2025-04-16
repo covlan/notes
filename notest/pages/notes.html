@@ -1,0 +1,42 @@
+function createNoteElement(note) {
+    const noteElement = document.createElement('div');
+    noteElement.className = 'note-item';
+    noteElement.innerHTML = `
+        <div class="note-content">
+            <h3 class="note-title">${note.title}</h3>
+            <p class="note-preview">${note.content.substring(0, 100)}${note.content.length > 100 ? '...' : ''}</p>
+            <div class="note-meta">
+                <span class="note-date">${new Date(note.updatedAt).toLocaleString()}</span>
+                <span class="note-filename">${note.fileName}</span>
+            </div>
+        </div>
+        <div class="note-actions">
+            <button class="btn-edit" title="编辑">
+                <i class="fas fa-edit"></i>
+            </button>
+            <button class="btn-delete" title="删除">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
+    `;
+
+    // 点击笔记标题或内容时打开笔记
+    noteElement.querySelector('.note-content').addEventListener('click', () => {
+        const noteId = note.fileName.replace('.md', '');
+        window.location.href = `/note/${noteId}`;
+    });
+
+    // 编辑按钮点击事件
+    noteElement.querySelector('.btn-edit').addEventListener('click', (e) => {
+        e.stopPropagation();
+        openNoteEditor(note);
+    });
+
+    // 删除按钮点击事件
+    noteElement.querySelector('.btn-delete').addEventListener('click', (e) => {
+        e.stopPropagation();
+        deleteNote(note);
+    });
+
+    return noteElement;
+} 

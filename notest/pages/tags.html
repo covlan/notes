@@ -1,0 +1,1494 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>标签管理 - 笔记平台</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/sidebar-menu.css">
+    <link rel="stylesheet" href="css/tags.css">
+    <link rel="stylesheet" href="css/content-header.css">
+    <script src="./component/api.js"></script>
+    <script src="./component/commpush.js"></script>
+    <!-- 引入站点信息加载脚本 -->
+    <script src="component/site-info.js"></script>
+    <!-- 引入通用笔记加载组件 -->
+    <script src="component/notes-loader.js"></script>
+    <!-- 引入侧边栏菜单组件 -->
+    <script src="component/sidebar-menu.js"></script>
+    <!-- 引入确认对话框组件 -->
+    <script src="component/confirm-dialog.js"></script>
+    <!-- 引入提示消息组件 -->
+    <script src="component/toast-message.js"></script>
+    <!-- 引入内容头部组件 -->
+    <script src="component/content-header.js"></script>
+</head>
+
+<body>
+    <!-- 侧边栏容器 -->
+    <div id="sidebar"></div>
+
+    <!-- 主题切换按钮 -->
+    <div class="theme-toggle" id="themeToggle">
+        <div class="theme-toggle-circle"></div>
+    </div>
+
+    <!-- 主内容区域 -->
+    <div class="main-content" id="mainContent">
+        <div class="content-header" id="contentHeader">
+            <!-- 将由ContentHeader组件动态生成 -->
+        </div>
+        <div class="tags-container">
+            <!-- 标签列表将由 JavaScript 动态生成 -->
+        </div>
+    </div>
+    <!-- 标签编辑弹窗 -->
+    <div class="modal" id="tagModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">新建标签</h2>
+                <button class="close-btn" id="closeModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="tagName">标签名称</label>
+                    <input type="text" id="tagName" placeholder="请输入标签名称">
+                </div>
+                <div class="form-group">
+                    <label for="tagDesc">标签描述</label>
+                    <textarea id="tagDesc" placeholder="请输入标签描述（选填）"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>标签颜色</label>
+                    <div class="color-options">
+                        <div class="color-option selected" data-color="#1a73e8" style="background-color: #1a73e8;">
+                        </div>
+                        <div class="color-option" data-color="#4285f4" style="background-color: #4285f4;"></div>
+                        <div class="color-option" data-color="#34a853" style="background-color: #34a853;"></div>
+                        <div class="color-option" data-color="#fbbc05" style="background-color: #fbbc05;"></div>
+                        <div class="color-option" data-color="#ea4335" style="background-color: #ea4335;"></div>
+                        <div class="color-option" data-color="#9c27b0" style="background-color: #9c27b0;"></div>
+                        <div class="color-option" data-color="#3f51b5" style="background-color: #3f51b5;"></div>
+                        <div class="color-option" data-color="#009688" style="background-color: #009688;"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="cancel-btn" id="cancelBtn">取消</button>
+                <button class="save-btn" id="saveBtn">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 标签笔记列表弹窗 -->
+    <div class="modal" id="tagNotesModal">
+        <div class="modal-content tag-notes-modal-content">
+            <div class="modal-header">
+                <h2 id="tagNotesTitle">标签笔记</h2>
+                <button class="close-btn" id="closeTagNotesModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="tag-notes-list">
+                    <!-- 标签下的笔记将由 JavaScript 动态生成 -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="cancel-btn" id="backToTagsBtn">返回标签列表</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // 确保API实例已初始化
+            if (!window.api) {
+                window.api = new API();
+            }
+            const mainContent = document.getElementById('mainContent');
+            const themeToggle = document.getElementById('themeToggle');
+            const newTagBtn = document.getElementById('newTagBtn');
+            const tagModal = document.getElementById('tagModal');
+            const closeModal = document.getElementById('closeModal');
+            const cancelBtn = document.getElementById('cancelBtn');
+            const saveBtn = document.getElementById('saveBtn');
+            const tagNameInput = document.getElementById('tagName');
+            const tagDescriptionInput = document.getElementById('tagDesc');
+            const modalTitle = document.getElementById('modalTitle');
+            const body = document.body;
+            // 检查本地存储中的主题偏好
+            const currentTheme = localStorage.getItem('theme');
+            if (currentTheme === 'dark') {
+                body.classList.add('dark-mode');
+            }
+
+            // 切换主题
+            themeToggle.addEventListener('click', () => {
+                body.classList.toggle('dark-mode');
+                const theme = body.classList.contains('dark-mode') ? 'dark' : 'light';
+                localStorage.setItem('theme', theme);
+                // 通知编辑器窗口更新主题，如果有打开的话
+                const editorFrame = document.querySelector('#editorModal iframe');
+                if (editorFrame && editorFrame.contentWindow) {
+                    editorFrame.contentWindow.postMessage({ type: 'themeChanged', theme }, '*');
+                }
+            });
+            // 初始化侧边栏菜单
+            const sidebarMenu = new SidebarMenu({
+                containerId: 'sidebar',
+                logoText: '笔记平台',
+                logoIcon: 'fas fa-book',
+                menuItems: [
+                    { id: 'home', text: '我的笔记', icon: 'fas fa-home', page: 'dashboard.html' },
+                    { id: 'starred', text: '收藏笔记', icon: 'fas fa-star', page: 'starred-notes.html' },
+                    { id: 'categroies', text: '笔记分类', icon: 'fas fa-folder', page: 'note-categories.html' },
+                    { id: 'tags', text: '标签管理', icon: 'fas fa-tags', active: true, page: 'tags.html' },
+                    { id: 'shared', text: '分享笔记', icon: 'fas fa-share-alt', page: 'note-share.html' },
+                    { id: 'trash', text: '回收站', icon: 'fas fa-trash', page: 'trash.html' }
+                ],
+                autoNavigate: true
+            });
+            // 初始化内容头部组件
+            const contentHeader = new ContentHeader({
+                containerId: 'contentHeader',
+                title: '笔记标签',
+                showViewToggle: false,
+                showRefreshButton: true,
+                hideOnMobile: false,
+                actionButtons: [
+                    {
+                        icon: 'fas fa-plus',
+                        text: '新建标签',
+                        tooltip: '创建新标签',
+                        callback: function () {
+                            // 打开标签创建弹窗
+                            createTag();
+                        }
+                    }
+                ],
+                onRefresh: loadTags
+            });
+            // 加载标签列表
+            function loadTags() {
+                const tagsContainer = document.querySelector('.tags-container');
+                // 显示加载状态
+                tagsContainer.innerHTML = `
+<div class="loading-tags">
+<i class="fas fa-spinner fa-spin"></i>
+<p>加载标签中...</p>
+</div>
+`;
+                // 先尝试从API获取标签
+                if (window.commpush) {
+                    window.commpush.getTags()
+                        .then(response => {
+                            if (response && response.success && response.tags) {
+                                // API请求成功
+                                const tags = response.tags;
+                                // 保存到本地
+                                localStorage.setItem('tags', JSON.stringify(tags));
+                                // 渲染标签
+                                renderTags(tags);
+                            } else {
+                                throw new Error('获取标签失败');
+                            }
+                        })
+                        .catch(error => {
+                            // 回退到本地存储
+                            const tags = JSON.parse(localStorage.getItem('tags') || '[]');
+                            renderTags(tags);
+                        });
+                } else {
+                    // 如果commpush组件不存在，使用本地存储
+                    const tags = JSON.parse(localStorage.getItem('tags') || '[]');
+                    renderTags(tags);
+                }
+            }
+            // 渲染标签列表
+            function renderTags(tags) {
+                const tagsContainer = document.querySelector('.tags-container');
+                if (tags.length === 0) {
+                    tagsContainer.innerHTML = `
+<div class="empty-tags">
+<i class="fas fa-folder-open"></i>
+<p>暂无标签</p>
+</div>
+`;
+                    return;
+                }
+                tagsContainer.innerHTML = tags.map(tag => `
+<div class="tag-card" data-id="${tag._id || tag.id}">
+<div class="tag-header">
+<div class="tag-color" style="background-color: ${tag.color || '#1a73e8'}"></div>
+<h3 class="tag-name">${tag.name}</h3>
+<span class="tag-count">${tag.count || 0} 个笔记</span>
+</div>
+<p class="tag-description">${tag.description || '暂无描述'}</p>
+<div class="tag-actions">
+<button class="edit-tag-btn" data-id="${tag._id || tag.id}">
+<i class="fas fa-edit"></i>
+</button>
+<button class="delete-tag-btn" data-id="${tag._id || tag.id}">
+<i class="fas fa-trash"></i>
+</button>
+</div>
+</div>
+`).join('');
+
+                // 更新标签点击事件
+                document.querySelectorAll('.tag-card').forEach(card => {
+                    const editBtn = card.querySelector('.edit-tag-btn');
+                    const deleteBtn = card.querySelector('.delete-tag-btn');
+                    // 点击标签卡片显示该标签下的笔记
+                    card.addEventListener('click', (e) => {
+                        if (!e.target.closest('.edit-tag-btn') && !e.target.closest('.delete-tag-btn')) {
+                            showTagNotes(card.dataset.id);
+                        }
+                    });
+                    editBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        editTag(card.dataset.id);
+                    });
+
+                    deleteBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        confirmDeleteTag(card.dataset.id, card.querySelector('.tag-name').textContent);
+                    });
+                });
+            }
+
+            // 打开标签编辑弹窗
+            function openTagModal(tagId = null) {
+                const tag = tagId ? JSON.parse(localStorage.getItem('tags') || '[]').find(c => c.id === tagId) : null;
+                modalTitle.textContent = tag ? '编辑标签' : '新建标签';
+                tagNameInput.value = tag ? tag.name : '';
+                tagDescriptionInput.value = tag ? tag.description || '' : '';
+                // 设置选中的颜色
+                const selectedColor = tag ? tag.color || '#1a73e8' : '#1a73e8';
+                document.querySelectorAll('.color-option').forEach(option => {
+                    if (option.dataset.color === selectedColor) {
+                        option.classList.add('selected');
+                    } else {
+                        option.classList.remove('selected');
+                    }
+                });
+                tagModal.style.display = 'block';
+                tagModal.dataset.tagId = tagId || '';
+            }
+
+            // 关闭标签编辑弹窗
+            function closeTagModal() {
+                tagModal.style.display = 'none';
+                tagNameInput.value = '';
+                tagDescriptionInput.value = '';
+                tagModal.dataset.tagId = '';
+            }
+
+            // 编辑标签
+            function editTag(tagId) {
+                openTagModal(tagId);
+            }
+
+            // 删除标签
+            function deleteTag(tagId) {
+                // 显示Loading状态
+                const loadingToast = showToast('正在删除标签...', 'info');
+                // 先尝试使用API删除
+                if (window.commpush) {
+                    window.commpush.deleteTag(tagId)
+                        .then(response => {
+                            if (response && response.success) {
+                                // API删除成功
+                                removeToast(loadingToast);
+                                showToast('标签已删除', 'success');
+                                // 更新本地存储
+                                const tags = JSON.parse(localStorage.getItem('tags') || '[]');
+                                const updatedTags = tags.filter(tag =>
+                                    tag.id !== tagId && tag._id !== tagId
+                                );
+                                localStorage.setItem('tags', JSON.stringify(updatedTags));
+                                // 更新笔记中的标签引用
+                                updateNotesAfterTagDelete(tagId);
+                                // 刷新显示
+                                loadTags();
+                            } else {
+                                throw new Error('删除标签失败');
+                            }
+                        })
+                        .catch(error => {
+                            removeToast(loadingToast);
+                            // 回退到本地删除
+                            ConfirmDialog.confirm('本地删除', 'API删除失败，是否在本地删除该标签？', function (confirmed) {
+                                if (confirmed) {
+                                    deleteTagLocally(tagId);
+                                } else {
+                                    showToast('删除操作已取消', 'info');
+                                }
+                            });
+                        });
+                } else {
+                    // API不可用，直接本地删除
+                    removeToast(loadingToast);
+                    deleteTagLocally(tagId);
+                }
+            }
+            // 本地删除标签
+            function deleteTagLocally(tagId) {
+                const tags = JSON.parse(localStorage.getItem('tags') || '[]');
+                // 从标签列表中删除
+                const updatedTags = tags.filter(tag =>
+                    tag.id !== tagId && tag._id !== tagId
+                );
+                localStorage.setItem('tags', JSON.stringify(updatedTags));
+                // 更新笔记中的标签引用
+                updateNotesAfterTagDelete(tagId);
+                // 显示成功消息
+                showToast('标签已在本地删除', 'success');
+                // 刷新显示
+                loadTags();
+            }
+            // 更新笔记中的标签引用
+            function updateNotesAfterTagDelete(tagId) {
+                const notes = JSON.parse(localStorage.getItem('notes') || '[]');
+                let updated = false;
+                notes.forEach(note => {
+                    if (note.tagId === tagId) {
+                        note.tagId = null;
+                        updated = true;
+                    }
+                });
+                if (updated) {
+                    localStorage.setItem('notes', JSON.stringify(notes));
+                }
+            }
+
+            // 保存标签
+            function saveTag() {
+                const name = tagNameInput.value.trim();
+                const description = tagDescriptionInput.value.trim();
+                // 添加对颜色选择器的安全检查
+                let color = '#1a73e8'; // 默认颜色
+                const selectedColorOption = document.querySelector('.color-option.selected');
+                if (selectedColorOption) {
+                    color = selectedColorOption.dataset.color;
+                }
+                if (!name) {
+                    ToastMessage.error('请填写标签名称');
+                    return;
+                }
+                // 显示Loading状态
+                const loadingToast = showToast('正在保存标签...', 'info');
+                const tagId = tagModal.dataset.tagId;
+                const tagData = {
+                    name,
+                    description,
+                    color
+                };
+                // 尝试使用API保存
+                if (window.commpush) {
+                    const apiPromise = tagId
+                        ? window.commpush.updateTag(tagId, tagData)
+                        : window.commpush.createTag(tagData);
+                    apiPromise
+                        .then(response => {
+                            if (response && response.success) {
+                                // API保存成功
+                                removeToast(loadingToast);
+                                showToast(tagId ? '标签已更新' : '标签已创建', 'success');
+                                // 更新本地存储中的标签
+                                saveTagToLocalStorage(
+                                    tagId,
+                                    response.tag || tagData
+                                );
+                                // 关闭弹窗并刷新列表
+                                closeTagModal();
+                                loadTags();
+                            } else {
+                                throw new Error('保存标签失败');
+                            }
+                        })
+                        .catch(error => {
+                            removeToast(loadingToast);
+                            // 回退到本地保存
+                            ConfirmDialog.confirm('本地保存', 'API保存失败，是否保存到本地？', function (confirmed) {
+                                if (confirmed) {
+                                    saveTagLocally(tagId, tagData);
+                                } else {
+                                    showToast('保存操作已取消', 'info');
+                                }
+                            });
+                        });
+                } else {
+                    // API不可用，直接本地保存
+                    removeToast(loadingToast);
+                    saveTagLocally(tagId, tagData);
+                }
+            }
+            // 保存标签到本地存储
+            function saveTagToLocalStorage(tagId, tagData) {
+                const tags = JSON.parse(localStorage.getItem('tags') || '[]');
+                if (tagId) {
+                    // 更新现有标签
+                    const tagIndex = tags.findIndex(c =>
+                        c.id === tagId || c._id === tagId
+                    );
+                    if (tagIndex !== -1) {
+                        // 保留原有的属性，如count
+                        tags[tagIndex] = {
+                            ...tags[tagIndex],
+                            ...tagData,
+                            updatedAt: new Date().toISOString()
+                        };
+                        // 确保id和_id一致性
+                        if (tagData._id && !tags[tagIndex].id) {
+                            tags[tagIndex].id = tagData._id;
+                        } else if (tagData.id && !tags[tagIndex]._id) {
+                            tags[tagIndex]._id = tagData.id;
+                        }
+                    }
+                } else {
+                    // 创建新标签
+                    const newTag = {
+                        ...tagData,
+                        id: tagData._id || tagData.id || Date.now().toString(),
+                        count: 0,
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString()
+                    };
+                    // 确保同时有id和_id
+                    if (newTag._id && !newTag.id) {
+                        newTag.id = newTag._id;
+                    } else if (newTag.id && !newTag._id) {
+                        newTag._id = newTag.id;
+                    }
+                    tags.push(newTag);
+                }
+                localStorage.setItem('tags', JSON.stringify(tags));
+            }
+            // 本地保存标签
+            function saveTagLocally(tagId, tagData) {
+                saveTagToLocalStorage(tagId, tagData);
+                updateTagCounts();
+                closeTagModal();
+                loadTags();
+                showToast(tagId ? '标签已在本地更新' : '标签已在本地创建', 'success');
+            }
+            // 显示提示消息
+            function showToast(message, type = 'success') {
+                // 使用通用Toast组件替代原有实现
+                ToastMessage[type](message);
+            }
+            // 兼容旧的removeToast函数
+            function removeToast(toast) {
+                // 不需要实际操作，ToastMessage组件会自动处理
+            }
+
+            // 初始化和缓存通用笔记加载组件实例
+            let notesLoader = null;
+            // 显示标签笔记弹窗
+            function showTagNotes(tagId) {
+                const tagNotesModal = document.getElementById('tagNotesModal');
+                const tagNotesTitle = document.getElementById('tagNotesTitle');
+                const tagNotesList = document.querySelector('.tag-notes-list');
+                const tags = JSON.parse(localStorage.getItem('tags') || '[]');
+                const tag = tags.find(c => c.id === tagId || c._id === tagId);
+                if (!tag) {
+                    showToast('找不到该标签信息', 'error');
+                    return;
+                }
+                tagNotesTitle.textContent = `${tag.name} - 笔记列表`;
+                // 显示加载状态
+                tagNotesList.innerHTML = `
+<div class="loading-notes">
+<i class="fas fa-spinner fa-spin"></i>
+<p>加载标签笔记中...</p>
+</div>
+`;
+                // 初始化NotesLoader实例
+                if (!notesLoader) {
+                    notesLoader = new NotesLoader({
+                        containerSelector: '.tag-notes-list',
+                        apiClient: window.commpush,
+                        onLoadSuccess: (notes) => {
+                            
+                            // 检查加载的笔记是否为空
+                            if (notes.length === 0) {
+                                const tagNotesList = document.querySelector('.tag-notes-list');
+                                tagNotesList.innerHTML = `
+<div class="empty-tag-notes">
+<i class="fas fa-folder-open"></i>
+<p>此标签中没有笔记</p>
+</div>
+`;
+                                return;
+                            }
+
+                            // 为每个笔记卡片添加移除标签按钮
+                            document.querySelectorAll('.note-card').forEach(noteCard => {
+                                // 添加移除标签按钮
+                                const noteActions = document.createElement('div');
+                                noteActions.className = 'note-tag-actions';
+                                const removeBtn = document.createElement('button');
+                                removeBtn.className = 'remove-tag-btn';
+                                removeBtn.innerHTML = '移除';
+                                removeBtn.title = '从此标签中移除笔记';
+                                removeBtn.dataset.id = noteCard.dataset.id;
+                                noteActions.appendChild(removeBtn);
+                                noteCard.appendChild(noteActions);
+                                // 添加移除标签按钮点击事件
+                                removeBtn.addEventListener('click', (e) => {
+                                    e.stopPropagation(); // 阻止事件冒泡，防止触发笔记卡片点击
+                                    const noteId = removeBtn.dataset.id;
+                                    confirmRemoveNoteFromTag(noteId, tagId, tag.name);
+                                });
+                                // 为笔记添加点击事件（预览笔记）
+                                noteCard.addEventListener('click', (e) => {
+                                    // 如果点击的是移除按钮，不触发笔记预览
+                                    if (e.target.closest('.remove-tag-btn')) {
+                                        return;
+                                    }
+                                    const noteId = noteCard.dataset.id;
+                                    // 关闭当前modal
+                                    tagNotesModal.style.display = 'none';
+                                    // 查找笔记对象，以获取分享状态
+                                    const note = notes.find(n => n.id === noteId || n._id === noteId);
+                                    if (note) {
+                                        // 检查笔记是否已经被分享
+                                        if (note.shared) {
+                                            // 如果已分享，使用常规分享链接格式
+                                            const shareUrl = `${window.location.origin}/view-shared-note.html?id=${note.shareId || noteId}`;
+                                            window.open(shareUrl, '_blank');
+                                        } else {
+                                            // 如果未分享，传递用户令牌以便查看
+                                            const token = localStorage.getItem('token');
+                                            const viewUrl = `${window.location.origin}/view-shared-note.html?id=${noteId}&mode=private&token=${encodeURIComponent(token)}`;
+                                            window.open(viewUrl, '_blank');
+                                        }
+                                    } else {
+                                        // 找不到笔记对象，使用基本链接
+                                        const token = localStorage.getItem('token');
+                                        const viewUrl = `${window.location.origin}/view-shared-note.html?id=${noteId}&mode=private&token=${encodeURIComponent(token)}`;
+                                        window.open(viewUrl, '_blank');
+                                    }
+                                });
+                            });
+                        },
+                        onLoadError: (error) => {
+                            tagNotesList.innerHTML = `
+<div class="empty-tag-notes error">
+<i class="fas fa-exclamation-circle"></i>
+<p>加载笔记失败: ${error.message || '未知错误'}</p>
+<button class="retry-btn" onclick="showTagNotes('${tagId}')">重试</button>
+</div>
+`;
+                        }
+                    });
+                }
+                // 使用通用组件加载特定标签的笔记
+                notesLoader.loadNotes({
+                    tagId: tagId,
+                    inTrash: false, // 确保不加载回收站中的笔记
+                    forceRefresh: true, // 始终刷新标签笔记
+                    excludeTrash: true // 额外确保排除回收站笔记
+                });
+                // 显示弹窗
+                tagNotesModal.style.display = 'block';
+            }
+            // 打开笔记编辑器
+            function openNoteEditor(noteId) {
+                const editorModal = document.createElement('div');
+                editorModal.className = 'editor-modal-container';
+                editorModal.id = 'editorModal';
+                editorModal.style.display = 'block';
+                editorModal.innerHTML = `<iframe src="note-editor-modal.html?id=${noteId}" style="width:100%; height:100%; border:none;"></iframe>`;
+                document.body.appendChild(editorModal);
+            }
+
+            // 关闭标签笔记列表弹窗
+            function closeTagNotesModal() {
+                document.getElementById('tagNotesModal').style.display = 'none';
+            }
+
+            // 更新标签中的笔记数量
+            function updateTagCounts() {
+                const tags = JSON.parse(localStorage.getItem('tags') || '[]');
+                const notes = JSON.parse(localStorage.getItem('notes') || '[]');
+                // 重置所有标签的计数
+                tags.forEach(tag => {
+                    tag.count = 0;
+                });
+                // 统计每个标签中的笔记数量（不包括回收站中的笔记）
+                notes.forEach(note => {
+                    if (note.tagId && !note.inTrash) {
+                        const tagIndex = tags.findIndex(c => c.id === note.tagId);
+                        if (tagIndex !== -1) {
+                            tags[tagIndex].count = (tags[tagIndex].count || 0) + 1;
+                        }
+                    }
+                });
+                localStorage.setItem('tags', JSON.stringify(tags));
+            }
+
+            // 确认删除标签
+            function confirmDeleteTag(tagId, tagName) {
+                ConfirmDialog.danger('删除标签', `确定要删除"${tagName}"标签吗？这不会删除其中的笔记，但会将它们变为未标签状态。`, function (confirmed) {
+                    if (confirmed) {
+                        deleteTag(tagId);
+                    }
+                });
+            }
+
+            // 事件监听器
+            closeModal.addEventListener('click', closeTagModal);
+            cancelBtn.addEventListener('click', closeTagModal);
+            saveBtn.addEventListener('click', saveTag);
+            // 标签笔记列表事件监听器
+            document.getElementById('closeTagNotesModal').addEventListener('click', closeTagNotesModal);
+            document.getElementById('backToTagsBtn').addEventListener('click', closeTagNotesModal);
+
+            // 创建标签函数 - 供ContentHeader组件调用
+            function createTag() {
+                openTagModal();
+            }
+            window.createTag = createTag; // 全局暴露，以便ContentHeader可以调用
+
+            // 颜色选择器点击事件
+            document.addEventListener('DOMContentLoaded', function () {
+                // 为颜色选项添加点击事件
+                document.querySelectorAll('.color-option').forEach(option => {
+                    option.addEventListener('click', function () {
+                        // 移除之前的选中状态
+                        document.querySelectorAll('.color-option').forEach(opt => {
+                            opt.classList.remove('selected');
+                        });
+                        // 给当前选项添加选中状态
+                        this.classList.add('selected');
+                    });
+                });
+            });
+
+            // 移动端新增标签按钮
+            const mobileAddTagBtn = document.getElementById('mobileAddTagBtn');
+            if (mobileAddTagBtn) {
+                mobileAddTagBtn.addEventListener('click', createTag);
+            }
+
+            // 初始化
+            updateTagCounts();
+            loadTags();
+
+            // 确认从标签移除笔记
+            function confirmRemoveNoteFromTag(noteId, tagId, tagName) {
+                ConfirmDialog.warning('移除笔记', `确定要将此笔记从"${tagName}"标签中移除吗？`, function (confirmed) {
+                    if (confirmed) {
+                        // 避免在移除操作时刷新列表
+                        if (notesLoader) {
+                            // 暂时禁用加载器的刷新功能
+                            notesLoader._skipNextRefresh = true;
+                        }
+                        // 执行移除操作
+                        removeNoteFromTag(noteId, tagId);
+                    }
+                });
+            }
+            // 从标签中移除笔记
+            async function removeNoteFromTag(noteId, tagId) {
+                try {
+                    // 显示处理状态
+                    ToastMessage.info('正在处理...');
+                    // 直接从UI中移除笔记卡片
+                    const noteCard = document.querySelector(`.note-card[data-id="${noteId}"]`);
+                    if (noteCard) {
+                        // 淡出动画效果
+                        noteCard.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                        noteCard.style.opacity = '0';
+                        noteCard.style.transform = 'scale(0.9)';
+                        // 设置定时器，在动画完成后移除元素
+                        setTimeout(() => {
+                            noteCard.remove();
+                            // 检查是否移除后列表为空
+                            const remainingCards = document.querySelectorAll('.tag-notes-list .note-card');
+                            if (remainingCards.length === 0) {
+                                const tagNotesList = document.querySelector('.tag-notes-list');
+                                tagNotesList.innerHTML = `
+<div class="empty-tag-notes">
+<i class="fas fa-folder-open"></i>
+<p>此标签中没有笔记</p>
+</div>
+`;
+                            }
+                        }, 300); // 300ms与transition时间一致
+                    }
+                    // 在UI更新后再进行API调用
+                    if (window.commpush) {
+                        // 尝试使用API更新笔记标签
+                        try {
+                            // 获取笔记当前的标签ID，用于后续处理
+                            let noteData = null;
+                            try {
+                                const noteResult = await window.commpush.getNote(noteId);
+                                if (noteResult && noteResult.success && noteResult.note) {
+                                    noteData = noteResult.note;
+                                }
+                            } catch (error) {
+                                ToastMessage.warn('获取笔记信息失败，继续更新:', error);
+                            }
+                            // 调用API移除标签
+                            const response = await window.commpush.updateNoteTag(noteId, null);
+                            if (response && response.success) {
+                                // API更新成功
+                                ToastMessage.success('笔记已从标签中移除');
+                                // 更新本地存储 - 明确传递之前的标签ID
+                                updateNoteTag(noteId, null);
+                                // 如果在dashboard或其他页面中，触发明确的事件
+                                if (noteData) {
+                                    const event = new CustomEvent('tagUpdated', {
+                                        detail: {
+                                            noteId: noteId,
+                                            oldTagId: noteData.tagId || tagId,
+                                            newTagId: null
+                                        }
+                                    });
+                                    document.dispatchEvent(event);
+                                }
+                                // 只更新标签计数
+                                updateTagCounts();
+                                loadTags();
+                            } else {
+                                throw new Error('API请求成功但返回失败状态');
+                            }
+                        } catch (error) {
+                            ToastMessage.error('移除笔记标签失败: ' + (error.message || '未知错误'));
+                            // 回退到本地更新，但不显示成功消息
+                            updateNoteTag(noteId, null);
+                            // 只更新标签计数
+                            updateTagCounts();
+                            loadTags();
+                        }
+                    } else {
+                        // API不可用，直接更新本地存储
+                        updateNoteTag(noteId, null);
+                        ToastMessage.success('笔记已从标签中移除');
+                        // 只更新标签计数
+                        updateTagCounts();
+                        loadTags();
+                    }
+                } catch (error) {
+                    ToastMessage.error('操作失败: ' + (error.message || '未知错误'));
+                }
+            }
+            // 更新笔记标签
+            function updateNoteTag(noteId, tagId) {
+                const notes = JSON.parse(localStorage.getItem('notes') || '[]');
+                const noteIndex = notes.findIndex(n => n.id === noteId || n._id === noteId);
+                if (noteIndex !== -1) {
+                    notes[noteIndex].tagId = tagId;
+                    notes[noteIndex].updatedAt = new Date().toISOString();
+                    localStorage.setItem('notes', JSON.stringify(notes));
+                }
+            }
+
+            // 添加标签更新事件监听器
+            document.addEventListener('tagUpdated', (event) => {
+                const { noteId, oldTagId, newTagId } = event.detail;
+                // 如果当前正在显示标签笔记
+                const tagNotesModal = document.getElementById('tagNotesModal');
+                if (tagNotesModal && tagNotesModal.style.display === 'block') {
+                    // 获取当前显示的标签ID
+                    const currentTagId = notesLoader ? notesLoader.lastQuery.tagId : null;
+                    if (currentTagId) {
+                        // 如果笔记从当前显示的标签移除
+                        if (oldTagId === currentTagId && newTagId !== currentTagId) {
+                            // 从UI中移除该笔记
+                            const noteCard = document.querySelector(`.note-card[data-id="${noteId}"]`);
+                            if (noteCard) {
+                                noteCard.remove();
+                                // 检查是否移除后列表为空
+                                const remainingCards = document.querySelectorAll('.note-card');
+                                if (remainingCards.length === 0) {
+                                    const tagNotesList = document.querySelector('.tag-notes-list');
+                                    tagNotesList.innerHTML = `
+<div class="empty-tag-notes">
+<i class="fas fa-folder-open"></i>
+<p>此标签中没有笔记</p>
+</div>
+`;
+                                }
+                                // 更新标签计数
+                                updateTagCounts();
+                                loadTags();
+                            }
+                        }
+                        // 如果笔记移动到当前显示的标签
+                        else if (oldTagId !== currentTagId && newTagId === currentTagId) {
+                            // 重新加载笔记列表以显示新添加的笔记
+                            notesLoader.loadNotes({
+                                tagId: currentTagId,
+                                inTrash: false,
+                                forceRefresh: true
+                            });
+                        }
+                    }
+                }
+                // 无论如何都更新标签计数和列表显示
+                updateTagCounts();
+                loadTags();
+            });
+
+            // 添加常规笔记刷新事件监听器
+            document.addEventListener('refreshNotes', (event) => {
+                // 如果标签页面需要响应常规的笔记刷新事件，可以在这里处理
+                const { action } = event.detail;
+                // 对于删除、恢复等操作，重新加载标签列表
+                if (['delete', 'restore', 'trash'].includes(action)) {
+                    updateTagCounts();
+                    loadTags();
+                }
+            });
+        });
+    </script>
+
+    <style>
+        /* 空标签状态样式 */
+        .empty-tags {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .empty-tags i {
+            font-size: 48px;
+            margin-bottom: 16px;
+            color: #999;
+        }
+
+        .empty-tags p {
+            font-size: 18px;
+            margin: 0;
+        }
+
+        .empty-help-text {
+            font-size: 14px !important;
+            color: #888;
+            margin-top: 8px !important;
+        }
+
+        .dark-mode .empty-tags {
+            color: #bbb;
+        }
+
+        .dark-mode .empty-tags i {
+            color: #666;
+        }
+
+        .dark-mode .empty-help-text {
+            color: #777;
+        }
+
+        /* 标签卡片样式 */
+        .tags-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .tag-card {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            padding: 15px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .tag-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .dark-mode .tag-card {
+            background-color: #2a2a2a;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .dark-mode .tag-card:hover {
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .tag-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .tag-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        .tag-name {
+            flex-grow: 1;
+            margin: 0;
+            font-size: 18px;
+            font-weight: 500;
+        }
+
+        .tag-count {
+            background-color: #f0f0f0;
+            color: #666;
+            border-radius: 12px;
+            padding: 2px 8px;
+            font-size: 12px;
+        }
+
+        .dark-mode .tag-count {
+            background-color: #3a3a3a;
+            color: #ccc;
+        }
+
+        .tag-description {
+            color: #666;
+            font-size: 14px;
+            margin: 0 0 15px 0;
+            line-height: 1.4;
+            min-height: 40px;
+        }
+
+        .dark-mode .tag-description {
+            color: #bbb;
+        }
+
+        .tag-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .edit-tag-btn,
+        .delete-tag-btn {
+            background: none;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+
+        .edit-tag-btn:hover,
+        .delete-tag-btn:hover {
+            background-color: #f0f0f0;
+        }
+
+        .dark-mode .edit-tag-btn:hover,
+        .dark-mode .delete-tag-btn:hover {
+            background-color: #3a3a3a;
+        }
+
+        .edit-tag-btn {
+            color: #1a73e8;
+        }
+
+        .delete-tag-btn {
+            color: #ea4335;
+        }
+
+        .dark-mode .edit-tag-btn {
+            color: #4b8bf4;
+        }
+
+        .dark-mode .delete-tag-btn {
+            color: #f44336;
+        }
+
+        .new-tag-btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: 20px;
+            transition: background-color 0.3s ease, transform 0.3s ease;
+        }
+
+        .new-tag-btn:hover {
+            transform: scale(1.05);
+        }
+
+        /* 全局模态窗口样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+        }
+
+        .modal-content {
+            background: #fff;
+            width: 90%;
+            max-width: 500px;
+            margin: 50px auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .modal-header {
+            padding: 16px 24px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 20px;
+            color: #333;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 20px;
+            color: #666;
+            cursor: pointer;
+            padding: 4px;
+        }
+
+        .modal-body {
+            padding: 24px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        .form-group textarea {
+            height: 100px;
+            resize: vertical;
+        }
+
+        .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        .cancel-btn,
+        .save-btn {
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .cancel-btn {
+            background: none;
+            border: 1px solid #ddd;
+            color: #666;
+        }
+
+        .save-btn {
+            background-color: #1a73e8;
+            border: none;
+            color: white;
+        }
+
+        .cancel-btn:hover {
+            background-color: #f5f5f5;
+        }
+
+        .save-btn:hover {
+            background-color: #1557b0;
+        }
+
+        /* 暗色模式样式 */
+        .dark-mode .tag-card {
+            background-color: #2d2d2d;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .dark-mode .tag-name {
+            color: #fff;
+        }
+
+        .dark-mode .tag-count,
+        .dark-mode .tag-description {
+            color: #bbb;
+        }
+
+        .dark-mode .edit-tag-btn,
+        .dark-mode .delete-tag-btn {
+            color: #bbb;
+        }
+
+        .dark-mode .modal-content {
+            background-color: #2d2d2d;
+        }
+
+        .dark-mode .modal-header {
+            border-bottom-color: #3d3d3d;
+        }
+
+        .dark-mode .modal-header h2 {
+            color: #fff;
+        }
+
+        .dark-mode .close-btn {
+            color: #bbb;
+        }
+
+        .dark-mode .form-group label {
+            color: #fff;
+        }
+
+        .dark-mode .form-group input,
+        .dark-mode .form-group textarea {
+            background-color: #3d3d3d;
+            border-color: #4d4d4d;
+            color: #fff;
+        }
+
+        .dark-mode .modal-footer {
+            border-top-color: #3d3d3d;
+        }
+
+        .dark-mode .cancel-btn {
+            background-color: #3d3d3d;
+            border-color: #4d4d4d;
+            color: #fff;
+        }
+
+        .dark-mode .cancel-btn:hover {
+            background-color: #4d4d4d;
+        }
+
+        /* 加载状态样式 */
+        .loading-tags {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .loading-tags i {
+            font-size: 32px;
+            margin-bottom: 16px;
+            color: #1a73e8;
+            animation: spin 1s linear infinite;
+        }
+
+        .loading-tags p {
+            font-size: 18px;
+            margin: 0;
+        }
+
+        .dark-mode .loading-tags {
+            color: #bbb;
+        }
+
+        .dark-mode .loading-tags i {
+            color: #4b8bf4;
+        }
+
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* 移动端浮动按钮 */
+        .mobile-add-btn {
+            display: none;
+            /* 默认隐藏 */
+        }
+
+        /* 在移动端显示浮动按钮 */
+        @media (max-width: 480px) {
+            .mobile-add-btn {
+                display: flex;
+                /* 在移动端显示 */
+            }
+        }
+
+        /* 颜色选择器样式 */
+        .color-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .color-option {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .color-option:hover {
+            transform: scale(1.1);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .color-option.selected {
+            transform: scale(1.15);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            border: 2px solid #fff;
+            outline: 2px solid currentColor;
+        }
+
+        .dark-mode .color-option.selected {
+            border-color: #333;
+            outline-color: #fff;
+        }
+
+        /* 标签笔记弹窗样式 */
+        .modal-content.tag-notes-modal-content {
+            background: #fff;
+            width: 90%;
+            max-width: 800px;
+            margin: 120px auto 50px;
+            /* 增加顶部边距，避免遮挡contentheader */
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            max-height: calc(100vh - 160px);
+            /* 设置最大高度，确保不会超出视口 */
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .dark-mode .modal-content.tag-notes-modal-content {
+            background-color: #2d2d2d;
+        }
+
+        /* 确保模态窗口内容可滚动 */
+        .tag-notes-modal-content .modal-body {
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .tag-notes-list {
+            padding: 10px;
+            max-height: calc(100vh - 280px);
+            overflow-y: auto;
+        }
+
+        /* 标签专用笔记卡片样式 - 避免影响全局样式 */
+        .tag-notes-list .note-card {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            padding: 16px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+            background-color: #fff;
+            border: 1px solid #eee;
+            position: relative;
+            min-height: 120px; /* 设置最小高度 */
+            padding-bottom: 48px; /* 为按钮预留足够空间 */
+        }
+
+        .tag-notes-list .note-card .note-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+            width: 100%;
+            padding-right: 80px; /* 为右侧预览提示留出空间 */
+            line-height: 1.4;
+        }
+
+        .tag-notes-list .note-card .note-content {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 12px;
+            line-height: 1.5;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-height: 65px; /* 限制最大高度 */
+            width: 100%;
+        }
+
+        .tag-notes-list .note-card .note-meta {
+            font-size: 12px;
+            color: #888;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: auto;
+        }
+
+        .tag-notes-list .note-card .note-meta span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .tag-notes-list .note-card .note-footer {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        /* 笔记标签操作按钮样式 */
+        .note-tag-actions {
+            position: absolute;
+            bottom: 10px;
+            right: 15px;
+            display: flex;
+            gap: 8px;
+            z-index: 5; /* 确保按钮在上层 */
+        }
+
+        /* 美化后的移除标签按钮 */
+        .remove-tag-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4px 12px;
+            border-radius: 4px;
+            background-color: #ea4335;
+            color: white;
+            border: none;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .remove-tag-btn:hover {
+            background-color: #d33426;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        .tag-notes-list .note-card::after {
+            content: '';
+            display: none;
+        }
+
+        .tag-notes-list .note-card:hover::after {
+            opacity: 0;
+        }
+        
+        .dark-mode .remove-tag-btn {
+            background-color: #ea4335;
+            color: white;
+            border: none;
+        }
+
+        .dark-mode .remove-tag-btn:hover {
+            background-color: #d33426;
+            color: #fff;
+        }
+
+        /* 加载中和空状态的样式改进 */
+        .tag-notes-list .loading-notes,
+        .tag-notes-list .empty-tag-notes {
+            padding: 30px;
+            text-align: center;
+            color: #888;
+        }
+
+        .tag-notes-list .loading-notes i,
+        .tag-notes-list .empty-tag-notes i {
+            font-size: 40px;
+            margin-bottom: 15px;
+            color: #bbb;
+        }
+
+        .dark-mode .tag-notes-list .loading-notes,
+        .dark-mode .tag-notes-list .empty-tag-notes {
+            color: #bbb;
+        }
+
+        .dark-mode .tag-notes-list .loading-notes i,
+        .dark-mode .tag-notes-list .empty-tag-notes i {
+            color: #777;
+        }
+
+        /* 使用特定于标签页面的选择器避免干扰全局模态样式 */
+        .tag-notes-modal .modal-header h2#tagNotesTitle {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            max-width: 80%;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .dark-mode .tag-notes-modal .modal-header h2#tagNotesTitle {
+            color: #fff;
+        }
+
+        .tag-notes-list .note-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+        }
+
+        .dark-mode .tag-notes-list .note-card {
+            background-color: #333;
+            border-color: #444;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        .dark-mode .tag-notes-list .note-card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+    </style>
+</body>
+
+</html>

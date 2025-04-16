@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>收藏笔记 - 笔记平台</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/note-actions-menu.css">
+    <link rel="stylesheet" href="css/sidebar-menu.css">
+    <link rel="stylesheet" href="css/content-header.css">
+    <script src="./component/api.js"></script>
+    <!-- 引入通用API调用组件 -->
+    <script src="./component/commpush.js"></script>
+    <!-- 引入站点信息加载脚本 -->
+    <script src="component/site-info.js"></script>
+    <!-- 引入通用笔记加载组件 -->
+    <script src="component/notes-loader.js"></script>
+    <!-- 引入笔记操作菜单组件 -->
+    <script src="component/note-actions-menu.js"></script>
+    <!-- 引入侧边栏菜单组件 -->
+    <script src="component/sidebar-menu.js"></script>
+    <!-- 引入确认对话框组件 -->
+    <script src="component/confirm-dialog.js"></script>
+    <!-- 引入提示消息组件 -->
+    <script src="component/toast-message.js"></script>
+    <!-- 引入内容头部组件 -->
+    <script src="component/content-header.js"></script>
+</head>
+<body>
+
+    <!-- 侧边栏容器 -->
+    <div id="sidebar"></div>
+
+    <!-- 主主题切换按钮 -->
+    <div class="theme-toggle" id="themeToggle">
+        <div class="theme-toggle-circle"></div>
+    </div>
+
+    <!-- 主内容区域 -->
+    <div class="main-content view-grid" id="mainContent">
+        <div class="content-header" id="contentHeader">
+            <!-- 将由ContentHeader组件动态生成 -->
+        </div>
+        <div class="notes-grid">
+            <!-- 笔记卡片将由 JavaScript 动态生成 -->
+        </div>
+        <div class="notes-list">
+            <!-- 笔记列表将由 JavaScript 动态生成 -->
+        </div>
+    </div>
+
+    <!-- 编辑器弹窗容器 -->
+    <div class="editor-modal-container" id="editorModal"></div>
+
+    <!-- 用户菜单容器 -->
+    <div class="user-profile-menu" id="userProfileMenu"></div>
+
+    <!-- 分享设置弹窗 -->
+    <div class="modal-container" id="shareModal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>分享笔记</h3>
+                <button id="closeShareModal" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="share-options">
+                    <div class="share-type">
+                        <h4>分享方式</h4>
+                        <div class="radio-group">
+                            <label>
+                                <input type="radio" name="shareType" value="public" checked>
+                                <span>公开分享</span>
+                            </label>
+                            <label>
+                                <input type="radio" name="shareType" value="private">
+                                <span>密码分享</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="password-group" id="passwordGroup" style="display: none;">
+                        <label for="sharePassword">访问密码</label>
+                        <input type="text" id="sharePassword" placeholder="设置访问密码">
+                    </div>
+                    <div class="expiry-group">
+                        <label for="shareExpiry">过期时间</label>
+                        <select id="shareExpiry">
+                            <option value="0">永不过期</option>
+                            <option value="1">一天</option>
+                            <option value="7">一周</option>
+                            <option value="30">一个月</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="share-link-container">
+                    <h4>分享链接</h4>
+                    <div class="share-link-group">
+                        <input type="text" id="shareLink" readonly>
+                        <button id="copyShareLink">复制</button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="cancelShareBtn" class="btn-secondary">取消</button>
+                <button id="confirmShareBtn" class="btn-primary">确认分享</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 分类选择弹窗 -->
+    <div class="modal-container" id="categorySelectModal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>选择分类</h3>
+                <button id="closeCategoryModal" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="search-container">
+                    <input type="text" id="categorySearchInput" placeholder="搜索分类...">
+                </div>
+                <div class="categories-list" id="categoriesList">
+                    <!-- 分类列表将由JavaScript动态生成 -->
+                </div>
+                <div class="new-category-container">
+                    <h4>创建新分类</h4>
+                    <input type="text" id="newCategoryName" placeholder="输入新分类名称">
+                    <div class="color-picker">
+                        <div class="color-option selected" data-color="#1a73e8" style="background-color: #1a73e8;"></div>
+                        <div class="color-option" data-color="#34a853" style="background-color: #34a853;"></div>
+                        <div class="color-option" data-color="#fbbc05" style="background-color: #fbbc05;"></div>
+                        <div class="color-option" data-color="#ea4335" style="background-color: #ea4335;"></div>
+                        <div class="color-option" data-color="#9c27b0" style="background-color: #9c27b0;"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="cancelCategorySelect" class="btn-secondary">取消</button>
+                <button id="confirmCategorySelect" class="btn-primary">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 标签选择弹窗 -->
+    <div class="modal-container" id="tagSelectModal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>管理标签</h3>
+                <button id="closeTagModal" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="search-container">
+                    <input type="text" id="tagSearchInput" placeholder="搜索标签...">
+                </div>
+                <div class="tags-list" id="tagsList">
+                    <!-- 标签列表将由JavaScript动态生成 -->
+                </div>
+                <div class="new-tag-container">
+                    <h4>创建新标签</h4>
+                    <input type="text" id="newTagName" placeholder="输入新标签名称">
+                    <div class="color-picker">
+                        <div class="color-option selected" data-color="#1a73e8" style="background-color: #1a73e8;"></div>
+                        <div class="color-option" data-color="#34a853" style="background-color: #34a853;"></div>
+                        <div class="color-option" data-color="#fbbc05" style="background-color: #fbbc05;"></div>
+                        <div class="color-option" data-color="#ea4335" style="background-color: #ea4335;"></div>
+                        <div class="color-option" data-color="#9c27b0" style="background-color: #9c27b0;"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="cancelTagSelect" class="btn-secondary">取消</button>
+                <button id="confirmTagSelect" class="btn-primary">应用标签</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 确保CommPush实例已初始化
+            if (!window.commpush) {
+                window.commpush = new CommPush();
+            }
+
+            const mainContent = document.getElementById('mainContent');
+            const themeToggle = document.getElementById('themeToggle');
+            const body = document.body;
+
+            // 检查本地存储中的主题偏好
+            const currentTheme = localStorage.getItem('theme');
+            if (currentTheme === 'dark') {
+                body.classList.add('dark-mode');
+            }
+
+            // 切换主题
+            themeToggle.addEventListener('click', () => {
+                body.classList.toggle('dark-mode');
+                const theme = body.classList.contains('dark-mode') ? 'dark' : 'light';
+                localStorage.setItem('theme', theme);
+
+                // 通知编辑器窗口更新主题，如果有打开的话
+                const editorFrame = document.querySelector('#editorModal iframe');
+                if (editorFrame && editorFrame.contentWindow) {
+                    editorFrame.contentWindow.postMessage({ type: 'themeChanged', theme }, '*');
+                }
+            });
+
+            // 初始化侧边栏菜单
+            const sidebarMenu = new SidebarMenu({
+                containerId: 'sidebar',
+                logoText: '笔记平台',
+                logoIcon: 'fas fa-book',
+                menuItems: [
+                    { id: 'home', text: '我的笔记', icon: 'fas fa-home', page: 'dashboard.html' },
+                    { id: 'starred', text: '收藏笔记', icon: 'fas fa-star', active: true, page: 'starred-notes.html' },
+                    { id: 'categories', text: '笔记分类', icon: 'fas fa-folder', page: 'note-categories.html' },
+                    { id: 'tags', text: '标签管理', icon: 'fas fa-tags', page: 'tags.html' },
+                    { id: 'shared', text: '分享笔记', icon: 'fas fa-share-alt', page: 'note-share.html' },
+                    { id: 'trash', text: '回收站', icon: 'fas fa-trash', page: 'trash.html' }
+                ],
+                autoNavigate: true
+            });
+
+            // 初始化内容头部组件
+            const contentHeader = new ContentHeader({
+                containerId: 'contentHeader',
+                title: '收藏笔记',
+                showViewToggle: true,
+                showRefreshButton: true,
+                hideOnMobile: false,
+                onViewToggle: (view) => {
+                    // 切换视图
+                    if (notesLoader) {
+                        notesLoader.setViewMode(view);
+                    }
+                },
+                onRefresh: () => {
+                    // 获取当前视图模式
+                    const currentViewMode = localStorage.getItem('viewMode') || 'grid';
+                    // 刷新时保留当前视图模式
+                    return loadStarredNotes(true, currentViewMode);
+                }
+            });
+
+            // 保存到全局对象，使其他组件可以访问
+            window.contentHeader = contentHeader;
+
+            // 初始化笔记操作菜单组件
+            const noteActionsMenu = new NoteActionsMenu({
+                menuId: 'noteActionsMenu',
+                overlayId: 'menuOverlay',
+                // 设置页面类型为收藏页面，自动配置菜单项
+                menuConfig: {
+                    show: ['edit', 'share', 'unstar', 'move', 'tag', 'trash'],
+                    hide: ['star', 'delete', 'restore']
+                },
+                // 定义菜单项点击回调函数
+                onMenuItemClick: function(action, noteId, event) {
+                    console.log('菜单项点击:', action, noteId);
+
+                    switch(action) {
+                        case 'edit':
+                            openNoteEditor(noteId);
+                            break;
+                        case 'share':
+                            // 调用分享方法
+                            if (typeof noteActionsMenu.openShareModal === 'function') {
+                                noteActionsMenu.openShareModal(noteId);
+                            }
+                            break;
+                        case 'unstar':
+                            // 直接调用unstarNote方法
+                            noteActionsMenu.unstarNote(noteId);
+                            break;
+                        case 'move':
+                            // 调用移动到分类方法
+                            if (typeof noteActionsMenu.openCategoryModal === 'function') {
+                                noteActionsMenu.openCategoryModal(noteId);
+                            }
+                            break;
+                        case 'tag':
+                            // 调用添加标签方法
+                            if (typeof noteActionsMenu.openTagModal === 'function') {
+                                noteActionsMenu.openTagModal(noteId);
+                            }
+                            break;
+                        case 'trash':
+                            // 调用移至回收站方法
+                            if (typeof noteActionsMenu.api !== 'undefined' && noteActionsMenu.api) {
+                                // 显示确认对话框
+                                if (typeof ConfirmDialog !== 'undefined') {
+                                    ConfirmDialog.confirm('移至回收站', '确定要将此笔记移至回收站吗？', async (confirmed) => {
+                                        if (confirmed) {
+                                            try {
+                                                // 从UI中移除笔记元素
+                                                noteActionsMenu.removeNoteFromUI(noteId);
+
+                                                // 调用API移动到回收站
+                                                const response = await noteActionsMenu.api.trashNote(noteId);
+
+                                                if (response && response.success) {
+                                                    // 显示成功消息
+                                                    if (typeof ToastMessage !== 'undefined') {
+                                                        ToastMessage.success('笔记已移至回收站');
+                                                    }
+
+                                                    // 清理缓存
+                                                    localStorage.removeItem('starred_notes_cache');
+                                                    localStorage.removeItem('starred_notes_timestamp');
+                                                    localStorage.setItem('notes_updated', Date.now().toString());
+                                                }
+                                            } catch (error) {
+                                                console.error('移动到回收站失败:', error);
+                                                if (typeof ToastMessage !== 'undefined') {
+                                                    ToastMessage.error('移动到回收站失败: ' + (error.message || '未知错误'));
+                                                }
+                                            }
+                                        }
+                                    });
+                                }
+                            }
+                            break;
+                    }
+                },
+                // 定义特殊操作的回调
+                callbacks: {
+                    edit: (noteId) => openNoteEditor(noteId),
+                    share: (noteId) => noteActionsMenu.openShareModal(noteId),
+                    unstar: (noteId) => noteActionsMenu.unstarNote(noteId),
+                    move: (noteId) => noteActionsMenu.openCategoryModal(noteId),
+                    tag: (noteId) => noteActionsMenu.openTagModal(noteId),
+                    trash: (noteId) => {
+                        // 在回调中处理移至回收站操作
+                        if (typeof ConfirmDialog !== 'undefined') {
+                            ConfirmDialog.confirm('移至回收站', '确定要将此笔记移至回收站吗？', async (confirmed) => {
+                                if (confirmed) {
+                                    try {
+                                        // 从UI中移除笔记元素
+                                        noteActionsMenu.removeNoteFromUI(noteId);
+
+                                        // 调用API移动到回收站
+                                        const response = await noteActionsMenu.api.trashNote(noteId);
+
+                                        if (response && response.success) {
+                                            // 显示成功消息
+                                            if (typeof ToastMessage !== 'undefined') {
+                                                ToastMessage.success('笔记已移至回收站');
+                                            }
+
+                                            // 清理缓存
+                                            localStorage.removeItem('starred_notes_cache');
+                                            localStorage.removeItem('starred_notes_timestamp');
+                                            localStorage.setItem('notes_updated', Date.now().toString());
+                                        }
+                                    } catch (error) {
+                                        console.error('移动到回收站失败:', error);
+                                        if (typeof ToastMessage !== 'undefined') {
+                                            ToastMessage.error('移动到回收站失败: ' + (error.message || '未知错误'));
+                                        }
+                                    }
+                                }
+                            });
+                        }
+                    }
+                }
+            });
+
+            // 设置为收藏页面类型
+            noteActionsMenu.setPageType('starred');
+
+            // 初始化NotesLoader实例
+            let notesLoader = new NotesLoader({
+                containerSelector: '.notes-grid', // 默认的容器选择器
+                listContainerSelector: '.notes-list', // 列表视图容器选择器
+                apiClient: window.commpush, // 使用commpush组件
+                onLoadSuccess: handleStarredNotesLoaded,
+                onLoadError: handleStarredNotesError,
+                // 使用NoteActionsMenu组件处理笔记操作
+                noteActionsMenu: noteActionsMenu
+            });
+
+            // 全局化noteActionsMenu以便其他地方使用
+            window.noteActionsMenu = noteActionsMenu;
+
+            // 加载收藏笔记列表
+            async function loadStarredNotes(forceRefresh = false, viewMode = null) {
+                // 如果未提供viewMode，从localStorage获取
+                if (viewMode === null) {
+                    viewMode = localStorage.getItem('viewMode') || 'grid';
+                }
+
+
+                // 根据视图模式选择正确的容器
+                const containerSelector = viewMode === 'grid' ? '.notes-grid' : '.notes-list';
+
+                // 使用已初始化的NotesLoader实例
+                return notesLoader.loadNotes({
+                    isStarred: true,      // 只加载已收藏的笔记
+                    inTrash: false,       // 明确排除回收站中的笔记
+                    forceRefresh: forceRefresh,
+                    viewMode: viewMode,   // 明确传递视图模式
+                    fallbackToLocalStorage: true  // 启用本地存储回退，确保API失败时仍能显示笔记
+                });
+            }
+
+            // 处理收藏笔记加载成功
+            function handleStarredNotesLoaded(notes, options) {
+                // 添加笔记点击事件
+                attachNoteEvents(notes);
+            }
+
+            // 处理收藏笔记加载错误
+            function handleStarredNotesError(error) {
+
+                const container = document.querySelector('.notes-grid');
+                if (container) {
+                    container.innerHTML = `
+                        <div class="empty-starred error">
+                            <i class="fas fa-exclamation-circle"></i>
+                            <p>加载收藏笔记失败: ${error.message || '未知错误'}</p>
+                            <button class="retry-btn">重试</button>
+                        </div>
+                    `;
+
+                    // 添加重试按钮事件
+                    const retryBtn = container.querySelector('.retry-btn');
+                    if (retryBtn) {
+                        retryBtn.addEventListener('click', () => {
+                            loadStarredNotes(true);
+                        });
+                    }
+                }
+
+                // 列表视图中也显示错误状态
+                const notesList = document.querySelector('.notes-list');
+                if (notesList) {
+                    notesList.innerHTML = container.innerHTML;
+                }
+            }
+
+            // 添加笔记点击和操作事件
+            function attachNoteEvents(notes) {
+                // 笔记卡片点击事件，打开在新标签页中
+                document.querySelectorAll('.note-card, .note-list-item').forEach(noteCard => {
+                    noteCard.addEventListener('click', (e) => {
+                        if (!e.target.closest('.more-btn') && !e.target.closest('.note-action-btn')) {
+                            const noteId = noteCard.dataset.id;
+                            const note = notes.find(n => n.id === noteId || n._id === noteId);
+                            if (note) {
+                                // 检查笔记是否已经被分享
+                                if (note.shared) {
+                                    // 如果已分享，使用常规分享链接格式
+                                    const shareUrl = `${window.location.origin}/view-shared-note.html?id=${note.shareId || noteId}`;
+                                    window.open(shareUrl, '_blank');
+                                } else {
+                                    // 如果未分享，传递用户令牌以便查看
+                                    const token = localStorage.getItem('token');
+                                    const viewUrl = `${window.location.origin}/view-shared-note.html?id=${noteId}&mode=private&token=${encodeURIComponent(token)}`;
+                                    window.open(viewUrl, '_blank');
+                                }
+                            }
+                        }
+                    });
+                });
+
+                // 更多操作按钮处理 - 使用note-actions-menu组件
+                document.querySelectorAll('.more-btn, .note-action-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const noteId = btn.dataset.id;
+
+                        // 获取按钮位置
+                        const btnRect = btn.getBoundingClientRect();
+                        const position = {
+                            x: btnRect.right,
+                            y: btnRect.top
+                        };
+
+                        // 使用NoteActionsMenu组件显示菜单
+                        noteActionsMenu.show(position, noteId);
+                    });
+                });
+            }
+
+            // 打开笔记编辑器
+            function openNoteEditor(noteId) {
+                // 先关闭可能已经打开的编辑器
+                closeNoteEditor();
+
+                // 获取现有的编辑器容器
+                const editorModal = document.getElementById('editorModal');
+
+                // 设置编辑器URL
+                const url = noteId
+                    ? `note-editor-modal.html?id=${noteId}`
+                    : `note-editor-modal.html`;
+
+                // 使用iframe加载编辑器
+                editorModal.innerHTML = `<iframe src="${url}" style="width:100%; height:100%; border:none;"></iframe>`;
+                editorModal.style.display = 'block';
+
+                // 添加事件监听器，处理来自iframe的消息
+                window.addEventListener('message', handleEditorMessage);
+            }
+
+            // 关闭笔记编辑器
+            function closeNoteEditor() {
+                const editorModal = document.getElementById('editorModal');
+                if (editorModal) {
+                    editorModal.innerHTML = '';
+                    editorModal.style.display = 'none';
+                }
+
+                // 移除消息事件监听器
+                window.removeEventListener('message', handleEditorMessage);
+            }
+
+            // 处理来自iframe编辑器的消息
+            function handleEditorMessage(event) {
+                // 检查消息类型
+                if (event.data && event.data.action === 'closeEditor') {
+                    closeNoteEditor();
+                } else if (event.data && event.data.action === 'saveSuccess') {
+                    // 如果笔记已保存，刷新笔记列表
+                    loadStarredNotes(true);
+                }
+            }
+
+            // 加载收藏的笔记
+            // 获取当前视图模式
+            const initialViewMode = localStorage.getItem('viewMode') || 'grid';
+
+            // 确保主内容区域的类名与当前视图模式一致
+            // 使用已经定义的mainContent变量，而不是重新声明
+            if (mainContent) {
+                // 移除所有视图相关的类
+                mainContent.className = mainContent.className.split(' ')
+                    .filter(cls => !cls.startsWith('view-'))
+                    .join(' ');
+                // 添加当前视图模式的类
+                mainContent.classList.add(`view-${initialViewMode}`);
+            }
+
+            // 使用当前视图模式加载笔记
+            loadStarredNotes(false, initialViewMode);
+
+            // 供外部调用的刷新函数
+            window.refreshStarredNotes = (forceRefresh = true) => {
+                // 获取当前视图模式
+                const currentViewMode = localStorage.getItem('viewMode') || 'grid';
+                // 使用当前视图模式刷新
+                return loadStarredNotes(forceRefresh, currentViewMode);
+            };
+        });
+    </script>
+
+    <style>
+        /* 旋转动画关键帧 */
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* 空收藏笔记样式 */
+        .empty-starred {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .empty-starred i {
+            font-size: 48px;
+            margin-bottom: 16px;
+            color: #999;
+        }
+
+        .empty-starred p {
+            font-size: 18px;
+            margin: 0;
+        }
+
+        .dark-mode .empty-starred {
+            color: #bbb;
+        }
+
+        .dark-mode .empty-starred i {
+            color: #666;
+        }
+
+        .empty-starred.error i {
+            color: #e53935;
+        }
+
+        .dark-mode .empty-starred.error i {
+            color: #f44336;
+        }
+
+        /* 加载中状态样式 */
+        .loading-starred {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .loading-starred i {
+            font-size: 48px;
+            margin-bottom: 16px;
+            color: #1a73e8;
+        }
+
+        .loading-starred p {
+            font-size: 18px;
+            margin: 0;
+        }
+
+        .dark-mode .loading-starred {
+            color: #bbb;
+        }
+
+        .dark-mode .loading-starred i {
+            color: #4b8bf4;
+        }
+
+        /* 重试按钮样式 */
+        .retry-btn {
+            margin-top: 16px;
+            padding: 8px 16px;
+            background-color: #1a73e8;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s ease;
+        }
+
+        .retry-btn:hover {
+            background-color: #1557b0;
+        }
+
+        .dark-mode .retry-btn {
+            background-color: #4b8bf4;
+        }
+
+        .dark-mode .retry-btn:hover {
+            background-color: #3b71cc;
+        }
+
+        /* 编辑器弹窗样式 */
+        .editor-modal-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: none;
+            z-index: 2000;
+        }
+
+        /* 模态框样式 */
+        .modal-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .dark-mode .modal-content {
+            background-color: #2d2d2d;
+            color: #e0e0e0;
+        }
+
+        .modal-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .dark-mode .modal-header {
+            border-bottom-color: #444;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .dark-mode .close-btn {
+            color: #aaa;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .modal-footer {
+            padding: 16px 20px;
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .dark-mode .modal-footer {
+            border-top-color: #444;
+        }
+
+        .btn-primary, .btn-secondary {
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-primary {
+            background-color: #1a73e8;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #1557b0;
+        }
+
+        .btn-secondary {
+            background-color: #f1f3f4;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background-color: #e0e0e0;
+        }
+
+        .dark-mode .btn-primary {
+            background-color: #4b8bf4;
+        }
+
+        .dark-mode .btn-primary:hover {
+            background-color: #3b71cc;
+        }
+
+        .dark-mode .btn-secondary {
+            background-color: #444;
+            color: #e0e0e0;
+        }
+
+        .dark-mode .btn-secondary:hover {
+            background-color: #555;
+        }
+
+        /* 分享弹窗样式 */
+        .share-options {
+            margin-bottom: 20px;
+        }
+
+        .share-type h4, .share-link-container h4 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 20px;
+        }
+
+        .radio-group label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+        }
+
+        .password-group, .expiry-group {
+            margin-top: 15px;
+        }
+
+        .password-group label, .expiry-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+
+        .password-group input, .expiry-group select {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .dark-mode .password-group input, .dark-mode .expiry-group select {
+            background-color: #333;
+            border-color: #555;
+            color: #e0e0e0;
+        }
+
+        .share-link-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .share-link-group input {
+            flex: 1;
+            padding: 8px 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .dark-mode .share-link-group input {
+            background-color: #333;
+            border-color: #555;
+            color: #e0e0e0;
+        }
+
+        /* 分类和标签弹窗样式 */
+        .search-container {
+            margin-bottom: 15px;
+        }
+
+        .search-container input {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .dark-mode .search-container input {
+            background-color: #333;
+            border-color: #555;
+            color: #e0e0e0;
+        }
+
+        .categories-list, .tags-list {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            border: 1px solid #eee;
+            border-radius: 4px;
+        }
+
+        .dark-mode .categories-list, .dark-mode .tags-list {
+            border-color: #444;
+        }
+
+        .category-item, .tag-item {
+            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+        }
+
+        .dark-mode .category-item, .dark-mode .tag-item {
+            border-bottom-color: #444;
+        }
+
+        .category-item:last-child, .tag-item:last-child {
+            border-bottom: none;
+        }
+
+        .category-item:hover, .tag-item:hover {
+            background-color: #f5f5f5;
+        }
+
+        .dark-mode .category-item:hover, .dark-mode .tag-item:hover {
+            background-color: #3d3d3d;
+        }
+
+        .category-item.selected, .tag-item.selected {
+            background-color: #e8f0fe;
+        }
+
+        .dark-mode .category-item.selected, .dark-mode .tag-item.selected {
+            background-color: #2c3e50;
+        }
+
+        .category-color, .tag-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        .category-name, .tag-name {
+            flex: 1;
+        }
+
+        .category-count {
+            color: #999;
+            font-size: 12px;
+        }
+
+        .dark-mode .category-count {
+            color: #777;
+        }
+
+        .new-category-container, .new-tag-container {
+            margin-top: 20px;
+        }
+
+        .new-category-container h4, .new-tag-container h4 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        .new-category-container input, .new-tag-container input {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        .dark-mode .new-category-container input, .dark-mode .new-tag-container input {
+            background-color: #333;
+            border-color: #555;
+            color: #e0e0e0;
+        }
+
+        .color-picker {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .color-option {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+
+        .color-option.selected {
+            border-color: #333;
+            box-shadow: 0 0 0 2px white;
+        }
+
+        .dark-mode .color-option.selected {
+            border-color: #ddd;
+            box-shadow: 0 0 0 2px #222;
+        }
+
+        .tag-checkbox {
+            margin-right: 10px;
+        }
+    </style>
+</body>
+</html>

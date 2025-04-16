@@ -1,0 +1,605 @@
+/**
+ * 内容头部组件样式
+ *
+ * 注意：此文件的样式已经进行了特异性处理，以确保在所有页面上都使用组件的默认样式。
+ * 请确保所有使用ContentHeader组件的页面都引入了此CSS文件，并且在其他样式文件之后引入，以确保样式优先级。
+ */
+
+/* 内容头部容器 */
+.content-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  border-radius: 16px;
+  margin-bottom: 20px;
+  position: relative;
+  background-color: var(--card-bg);
+  box-shadow: var(--card-shadow);
+  border: 1px solid var(--border-color);
+  transition: all 0.3s ease;
+}
+
+.content-header:hover {
+  box-shadow: 0 6px 12px var(--shadow-color);
+}
+
+/* 按钮共同样式 - 增加特异性以避免被覆盖 */
+.content-header button,
+.content-header button.view-toggle-btn,
+.content-header button.refresh-btn,
+.content-header button.action-btn,
+.content-header button.content-header-action-button {
+  font-family: inherit !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  transition: all 0.25s ease !important;
+  border: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background-color: transparent !important;
+  color: #1a73e8 !important;
+  box-shadow: none !important;
+}
+
+.content-header button:focus,
+.content-header button.view-toggle-btn:focus,
+.content-header button.refresh-btn:focus,
+.content-header button.action-btn:focus,
+.content-header button.content-header-action-button:focus {
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.3) !important;
+}
+
+/* 视图切换容器 */
+.view-toggle {
+  display: flex;
+  margin-left: 15px;
+}
+
+/* 视图切换按钮 - 增加特异性以避免被覆盖 */
+.content-header .view-toggle .view-toggle-btn {
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 10px !important;
+  font-size: 16px !important;
+  background-color: transparent !important;
+  color: #1a73e8 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.3s ease !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.content-header .view-toggle .view-toggle-btn:hover {
+  transform: translateY(-2px) !important;
+  color: #1565c0 !important;
+}
+
+.content-header .view-toggle .view-toggle-btn.active {
+  color: #1a73e8 !important;
+}
+
+.dark-mode .content-header .view-toggle .view-toggle-btn {
+  color: #4b8bf4 !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+.dark-mode .content-header .view-toggle .view-toggle-btn:hover {
+  color: #3a7ae2 !important;
+}
+
+.dark-mode .content-header .view-toggle .view-toggle-btn.active {
+  color: #4b8bf4 !important;
+}
+
+/* 刷新按钮 - 增加特异性以避免被覆盖 */
+.content-header .top-actions .refresh-btn {
+  background-color: transparent !important;
+  color: #1a73e8 !important;
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 12px !important;
+  position: relative !important;
+  overflow: hidden !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.content-header .top-actions .refresh-btn:hover {
+  transform: translateY(-2px) !important;
+  color: #1565c0 !important;
+}
+
+.content-header .top-actions .refresh-btn:active {
+  transform: scale(0.95) !important;
+}
+
+.content-header .top-actions .refresh-btn i {
+  font-size: 18px !important;
+  transition: transform 0.3s ease !important;
+}
+
+.content-header .top-actions .refresh-btn:hover i {
+  transform: rotate(30deg) !important;
+}
+
+.dark-mode .content-header .top-actions .refresh-btn {
+  background-color: transparent !important;
+  color: #4b8bf4 !important;
+}
+
+.dark-mode .content-header .top-actions .refresh-btn:hover {
+  color: #3a7ae2 !important;
+}
+
+/* 旋转动画 */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.refresh-btn.loading i {
+  animation: spin 1s linear infinite;
+}
+
+/* 操作按钮区域 */
+.top-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 操作按钮 - 增加特异性以避免被覆盖 */
+.content-header .top-actions .action-btn,
+.content-header .top-actions .content-header-action-button {
+  background-color: transparent !important;
+  color: #1a73e8 !important;
+  padding: 8px 14px !important;
+  border-radius: 10px !important;
+  gap: 6px !important;
+  font-size: 14px !important;
+  border: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: none !important;
+}
+
+.content-header .top-actions .action-btn:hover,
+.content-header .top-actions .content-header-action-button:hover {
+  transform: translateY(-2px) !important;
+  color: #1565c0 !important;
+}
+
+.content-header .top-actions .action-btn i,
+.content-header .top-actions .content-header-action-button i {
+  transition: transform 0.2s ease !important;
+  color: #1a73e8 !important;
+}
+
+.content-header .top-actions .action-btn:hover i,
+.content-header .top-actions .content-header-action-button:hover i {
+  transform: scale(1.1) !important;
+  color: #1565c0 !important;
+}
+
+.dark-mode .content-header .top-actions .action-btn,
+.dark-mode .content-header .top-actions .content-header-action-button {
+  background-color: transparent !important;
+  color: #4b8bf4 !important;
+}
+
+.dark-mode .content-header .top-actions .action-btn:hover,
+.dark-mode .content-header .top-actions .content-header-action-button:hover {
+  color: #3a7ae2 !important;
+}
+
+.dark-mode .content-header .top-actions .action-btn i,
+.dark-mode .content-header .top-actions .content-header-action-button i {
+  color: #4b8bf4 !important;
+}
+
+.dark-mode .content-header .top-actions .action-btn:hover i,
+.dark-mode .content-header .top-actions .content-header-action-button:hover i {
+  color: #3a7ae2 !important;
+}
+
+/* 主要操作按钮样式 */
+.content-header .top-actions .action-btn.primary,
+.content-header .top-actions .content-header-action-button.primary {
+  color: #1a73e8 !important;
+  font-weight: 600 !important;
+}
+
+.content-header .top-actions .action-btn.primary:hover,
+.content-header .top-actions .content-header-action-button.primary:hover {
+  color: #1565c0 !important;
+}
+
+.content-header .top-actions .action-btn.primary i,
+.content-header .top-actions .content-header-action-button.primary i {
+  color: #1a73e8 !important;
+}
+
+.content-header .top-actions .action-btn.primary:hover i,
+.content-header .top-actions .content-header-action-button.primary:hover i {
+  color: #1565c0 !important;
+}
+
+/* 警告/危险操作按钮样式 */
+.content-header .top-actions .action-btn.warning,
+.content-header .top-actions .content-header-action-button.warning {
+  color: #ff9800 !important;
+}
+
+.content-header .top-actions .action-btn.warning:hover,
+.content-header .top-actions .content-header-action-button.warning:hover {
+  color: #f57c00 !important;
+}
+
+.content-header .top-actions .action-btn.warning i,
+.content-header .top-actions .content-header-action-button.warning i {
+  color: #ff9800 !important;
+}
+
+.content-header .top-actions .action-btn.warning:hover i,
+.content-header .top-actions .content-header-action-button.warning:hover i {
+  color: #f57c00 !important;
+}
+
+.content-header .top-actions .action-btn.danger,
+.content-header .top-actions .content-header-action-button.danger {
+  color: #f44336 !important;
+}
+
+.content-header .top-actions .action-btn.danger:hover,
+.content-header .top-actions .content-header-action-button.danger:hover {
+  color: #e53935 !important;
+}
+
+.content-header .top-actions .action-btn.danger i,
+.content-header .top-actions .content-header-action-button.danger i {
+  color: #f44336 !important;
+}
+
+.content-header .top-actions .action-btn.danger:hover i,
+.content-header .top-actions .content-header-action-button.danger:hover i {
+  color: #e53935 !important;
+}
+
+/* 暗黑模式下的主要操作按钮样式 */
+.dark-mode .content-header .top-actions .action-btn.primary,
+.dark-mode .content-header .top-actions .content-header-action-button.primary {
+  color: #4b8bf4 !important;
+  font-weight: 600 !important;
+}
+
+.dark-mode .content-header .top-actions .action-btn.primary:hover,
+.dark-mode .content-header .top-actions .content-header-action-button.primary:hover {
+  color: #3a7ae2 !important;
+}
+
+.dark-mode .content-header .top-actions .action-btn.primary i,
+.dark-mode .content-header .top-actions .content-header-action-button.primary i {
+  color: #4b8bf4 !important;
+}
+
+.dark-mode .content-header .top-actions .action-btn.primary:hover i,
+.dark-mode .content-header .top-actions .content-header-action-button.primary:hover i {
+  color: #3a7ae2 !important;
+}
+
+/* 暗黑模式下的警告/危险操作按钮样式 */
+.dark-mode .content-header .top-actions .action-btn.warning,
+.dark-mode .content-header .top-actions .content-header-action-button.warning {
+  color: #ffb74d !important;
+}
+
+.dark-mode .content-header .top-actions .action-btn.warning:hover,
+.dark-mode .content-header .top-actions .content-header-action-button.warning:hover {
+  color: #ffa726 !important;
+}
+
+.dark-mode .content-header .top-actions .action-btn.warning i,
+.dark-mode .content-header .top-actions .content-header-action-button.warning i {
+  color: #ffb74d !important;
+}
+
+.dark-mode .content-header .top-actions .action-btn.warning:hover i,
+.dark-mode .content-header .top-actions .content-header-action-button.warning:hover i {
+  color: #ffa726 !important;
+}
+
+.dark-mode .content-header .top-actions .action-btn.danger,
+.dark-mode .content-header .top-actions .content-header-action-button.danger {
+  color: #ef5350 !important;
+}
+
+.dark-mode .content-header .top-actions .action-btn.danger:hover,
+.dark-mode .content-header .top-actions .content-header-action-button.danger:hover {
+  color: #e53935 !important;
+}
+
+.dark-mode .content-header .top-actions .action-btn.danger i,
+.dark-mode .content-header .top-actions .content-header-action-button.danger i {
+  color: #ef5350 !important;
+}
+
+.dark-mode .content-header .top-actions .action-btn.danger:hover i,
+.dark-mode .content-header .top-actions .content-header-action-button.danger:hover i {
+  color: #e53935 !important;
+}
+
+/* 标题样式 */
+.content-header .welcome-text {
+  font-size: 1.17em !important; /* h3的默认大小 */
+  font-weight: 600 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  color: var(--text-color, #333) !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.content-header .welcome-text i {
+  color: #1a73e8 !important;
+  font-size: 1.1em !important;
+}
+
+.dark-mode .content-header .welcome-text {
+  color: var(--text-color, #fff) !important;
+}
+
+/* 所有按钮图标的通用样式 */
+.content-header button i {
+  color: #1a73e8 !important;
+  transition: color 0.2s ease !important;
+}
+
+.content-header button:hover i {
+  color: #1565c0 !important;
+}
+
+.dark-mode .content-header button i {
+  color: #4b8bf4 !important;
+}
+
+.dark-mode .content-header button:hover i {
+  color: #3a7ae2 !important;
+}
+
+/* 用户头像区域 */
+.user-profile-container {
+  position: relative;
+}
+
+.user-profile {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding: 5px 10px;
+  border-radius: 20px;
+  transition: background-color 0.2s;
+  gap: 8px;
+}
+
+.user-profile:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.dark-mode .user-profile:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* 用户头像 */
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  border-radius: 50%;
+  background-color: #1a73e8;
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  font-size: 16px;
+  font-weight: 500;
+  text-transform: uppercase;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 用户名 */
+.user-name {
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+  color: #333;
+}
+
+.dark-mode .user-name {
+  color: #fff;
+}
+
+/* 用户菜单 */
+.user-profile-menu {
+  position: absolute;
+  top: 45px;
+  right: 5px;
+  width: 220px;
+  background-color: var(--card-bg);
+  border-radius: 16px;
+  box-shadow: var(--card-shadow);
+  border: 1px solid var(--border-color);
+  overflow: hidden;
+  z-index: 1000;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-10px);
+  transition: all 0.3s ease;
+}
+
+.user-profile-menu.show {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+  box-shadow: 0 8px 16px var(--shadow-color);
+}
+
+.dark-mode .user-profile-menu {
+  background-color: var(--card-bg);
+  box-shadow: var(--card-shadow);
+}
+
+/* 菜单项 */
+.menu-item {
+  padding: 12px 15px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--text-color);
+  position: relative;
+  overflow: hidden;
+}
+
+.menu-item:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  transform: translateX(3px);
+}
+
+.dark-mode .menu-item:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.menu-item i {
+  font-size: 16px;
+  width: 20px;
+  text-align: center;
+  color: #1a73e8;
+  transition: transform 0.2s ease;
+}
+
+.dark-mode .menu-item i {
+  color: #4b8bf4;
+}
+
+.menu-item:hover i {
+  transform: scale(1.1);
+}
+
+/* 菜单分隔线 */
+.menu-divider {
+  height: 1px;
+  background-color: #e0e0e0;
+  margin: 5px 0;
+}
+
+.dark-mode .menu-divider {
+  background-color: #444;
+}
+
+/* 删除菜单项 */
+.menu-item.delete {
+  color: #e53935;
+}
+
+.dark-mode .menu-item.delete {
+  color: #f44336;
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+  .content-header {
+    padding: 12px 15px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+  }
+
+  .content-header-left {
+    flex: 1;
+    min-width: 0; /* 确保flex item可以正确收缩 */
+  }
+
+  .welcome-text {
+    font-size: 16px !important;
+    margin: 0 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .view-toggle {
+    display: none; /* 在移动端隐藏视图切换按钮 */
+  }
+
+  .top-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .refresh-btn {
+    width: 36px;
+    height: 36px;
+    margin-left: auto;
+  }
+
+  .action-btn, .content-header-action-button {
+    padding: 8px 10px;
+  }
+
+  .action-btn span, .content-header-action-button span {
+    display: none; /* 在移动端只显示图标 */
+  }
+
+  .user-profile-container {
+    display: none; /* 在移动端隐藏用户信息，因为已经在侧边栏显示 */
+  }
+}
+
+/* 移动端特殊样式 */
+.content-header.mobile-header {
+  background-color: var(--card-bg);
+  border-radius: 16px;
+  margin: 10px;
+  box-shadow: var(--card-shadow);
+}
+
+.dark-mode .content-header.mobile-header {
+  background-color: var(--dark-card-bg);
+}
+
+.content-header.mobile-header .welcome-text {
+  font-size: 16px !important;
+  margin: 0 !important;
+  color: var(--text-color) !important;
+}
+
+.content-header.mobile-header .top-actions {
+  margin-left: auto;
+}
+
+.content-header.mobile-header .refresh-btn {
+  color: var(--primary-color);
+}
